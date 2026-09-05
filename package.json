@@ -7,20 +7,21 @@
     "node": ">=24.0.0 <25"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently --kill-others --names web,api \"yarn dev:web\" \"yarn dev:api\"",
+    "dev": "yarn workspace @tms/contracts build && concurrently --kill-others --names web,api \"yarn dev:web\" \"yarn dev:api\"",
     "dev:web": "yarn workspace @tms/web dev",
     "dev:api": "yarn workspace @tms/api dev",
-    "build": "yarn workspace @tms/api build && yarn workspace @tms/web build",
+    "build": "yarn workspace @tms/contracts build && yarn workspace @tms/api build && yarn workspace @tms/web build",
     "start:web": "yarn workspace @tms/web start",
     "start:api": "yarn workspace @tms/api start",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit && yarn workspace @tms/api typecheck && yarn workspace @tms/web typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "yarn test:unit && yarn test:e2e",
+    "test": "yarn test:unit && yarn test:integration && yarn test:e2e",
     "test:unit": "yarn workspace @tms/api test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -30,7 +31,9 @@
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:migrate:status": "prisma migrate status"
+    "db:migrate:status": "prisma migrate status",
+    "db:seed": "yarn workspace @tms/api seed",
+    "test:integration": "yarn workspace @tms/api test:integration"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

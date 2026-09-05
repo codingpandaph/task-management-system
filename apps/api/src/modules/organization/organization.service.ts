@@ -1,0 +1,442 @@
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { HR_DELEGABLE, type DirectoryEmployee } from '@tms/contracts';
+import { dateOnly, today } from '../../common/dates';
+import type { Prisma, Employee, Department } from '../../generated/prisma/client';
+import { audit } from '../audit/audit';
+import { AuthService } from '../auth/auth.service';
+import { Principal, requireHr } from '../authorization/authorization';
+import { DatabaseService, lockEmployee, Transaction } from '../database/database.module';
+import { AccountStatusService } from '../employment/account-status.service';
+import {
+  DepartmentDto,
+  EditDepartmentDto,
+  EditEmployeeDto,
+  EmployeeDto,
+  EmploymentDto,
+  PageDto,
+  PermissionDto,
+} from './dto';
+
+export function directory(e: Employee & { department: Department }): DirectoryEmployee {
+  return {
+    id: e.id,
+    employeeId: e.employeeId,
+    displayName: [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' '),
+    position: e.position,
+    department: { id: e.departmentId, code: e.department.code, name: e.department.name },
+  };
+}
+@Injectable()
+export class OrganizationService {
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly auth: AuthService,
+    private readonly accounts: AccountStatusService,
+  ) {}
+  async employees(actor: Principal, q: PageDto, hr = false) {
+    if (hr) requireHr(actor, 'EMPLOYEE_READ');
+    const where: Prisma.EmployeeWhereInput = {
+      ...(hr ? { status: q.status } : { status: 'ACTIVE' }),
+      departmentId: q.departmentId,
+      position: q.position,
+      ...(q.employmentType && hr
+        ? { employmentRecord_employee: { some: { type: q.employmentType, effectiveTo: null } } }
+        : {}),
+      ...(q.search
+        ? {
+            OR: ['employeeId', 'firstName', 'lastName'].map((field) => ({
+              [field]: { contains: q.search, mode: 'insensitive' },
+            })),
+          }
+        : {}),
+    };
+    const [rows, total] = await Promise.all([
+      this.db.employee.findMany({
+        where,
+        include: { department: true },
+        skip: (q.page - 1) * q.pageSize,
+        take: q.pageSize,
+        orderBy: [{ lastName: 'asc' }, { id: 'asc' }],
+      }),
+      this.db.employee.count({ where }),
+    ]);
+    return {
+      items: rows.map((e) => ({ ...directory(e), ...(hr ? { status: e.status, version: e.version } : {}) })),
+      total,
+      page: q.page,
+      pageSize: q.pageSize,
+    };
+  }
+  async detail(actor: Principal, id: string) {
+    requireHr(actor, 'EMPLOYEE_READ');
+    const e = await this.db.employee.findUnique({ where: { id }, include: { department: true } });
+    if (!e) throw new NotFoundException();
+    return {
+      ...directory(e),
+      firstName: e.firstName,
+      middleName: e.middleName,
+      lastName: e.lastName,
+      status: e.status,
+      version: e.version,
+      ...(actor.permissions.includes('EMPLOYEE_PRIVATE_READ')
+        ? { birthDate: e.birthDate.toISOString().slice(0, 10), email: e.email }
+        : {}),
+    };
+  }
+  async create(actor: Principal, dto: EmployeeDto) {
+    requireHr(actor, 'EMPLOYEE_CREATE');
+    const birth = dateOnly(dto.birthDate);
+    if (dto.birthDate >= today()) throw new UnprocessableEntityException('Birth date must be in the past');
+    const employment = this.employmentData({ ...dto, type: dto.employmentType, reason: 'Employee created' });
+    const credentials = await this.auth.temporaryPassword();
+    const result = await this.db.transaction(async (tx) => {
+      const department = await tx.department.findUnique({ where: { id: dto.departmentId } });
+      if (!department || department.status !== 'ACTIVE')
+        throw new UnprocessableEntityException('Active department required');
+      const policy = await tx.leavePolicyVersion.findUnique({
+        where: { id: dto.leavePolicyVersionId },
+        include: { policy: true },
+      });
+      const christmas = await tx.christmasPolicyVersion.findUnique({
+        where: { id: dto.christmasPolicyVersionId },
+        include: { policy: true },
+      });
+      if (!policy || !christmas || policy.policy.status !== 'ACTIVE' || christmas.policy.status !== 'ACTIVE')
+        throw new UnprocessableEntityException('Active policies required');
+      const [sequence] = await tx.$queryRaw<{ value: bigint }[]>`SELECT nextval('employee_id_sequence') AS value`;
+      const year = Number(today().slice(0, 4));
+      const employeeId = `${year}-${department.code}-${String(sequence.value).padStart(6, '0')}`;
+      const e = await tx.employee.create({
+        data: {
+          employeeId,
+          firstName: dto.firstName,
+          middleName: dto.middleName,
+          lastName: dto.lastName,
+          birthDate: birth,
+          email: dto.email,
+          departmentId: department.id,
+          passwordHash: credentials.hash,
+        },
+        include: { department: true },
+      });
+      await tx.employmentRecord.create({
+        data: { ...employment, employeeId: e.id, actorId: actor.employee.id, reason: 'Employee created' },
+      });
+      await tx.employeeOrganizationHistory.create({
+        data: {
+          employeeId: e.id,
+          departmentId: department.id,
+          position: 'MEMBER',
+          actorId: actor.employee.id,
+          reason: 'Employee created',
+        },
+      });
+      await tx.employeeLeavePolicyAssignment.create({
+        data: { employeeId: e.id, year, policyVersionId: policy.id, actorId: actor.employee.id },
+      });
+      await tx.employeeChristmasPolicyAssignment.create({
+        data: { employeeId: e.id, year, policyVersionId: christmas.id, actorId: actor.employee.id },
+      });
+      await audit(tx, actor.employee.id, 'EMPLOYEE_CREATED', 'Employee', e.id, { departmentId: department.id });
+      return directory(e);
+    });
+    return { ...result, temporaryPassword: credentials.password };
+  }
+  async edit(actor: Principal, id: string, dto: EditEmployeeDto) {
+    requireHr(actor, 'EMPLOYEE_UPDATE');
+    return this.db.transaction(async (tx) => {
+      const updated = await tx.employee.updateMany({
+        where: { id, version: dto.version },
+        data: {
+          firstName: dto.firstName,
+          middleName: dto.middleName,
+          lastName: dto.lastName,
+          email: dto.email,
+          version: { increment: 1 },
+        },
+      });
+      if (!updated.count) throw new ConflictException('Employee changed; reload before saving');
+      await audit(tx, actor.employee.id, 'EMPLOYEE_UPDATED', 'Employee', id, {
+        fields: ['firstName', 'middleName', 'lastName', 'email'],
+      });
+      return { ok: true };
+    });
+  }
+  async departments() {
+    return this.db.department.findMany({ orderBy: { name: 'asc' } });
+  }
+  async createDepartment(actor: Principal, dto: DepartmentDto) {
+    requireHr(actor, 'DEPARTMENT_CREATE');
+    return this.db.transaction(async (tx) => {
+      const d = await tx.department.create({ data: dto });
+      await audit(tx, actor.employee.id, 'DEPARTMENT_CREATED', 'Department', d.id);
+      return d;
+    });
+  }
+  async editDepartment(actor: Principal, id: string, dto: EditDepartmentDto) {
+    requireHr(actor, 'DEPARTMENT_UPDATE');
+    return this.db.transaction(async (tx) => {
+      const r = await tx.department.updateMany({
+        where: { id, version: dto.version },
+        data: { name: dto.name, description: dto.description, version: { increment: 1 } },
+      });
+      if (!r.count) throw new ConflictException('Department changed');
+      await audit(tx, actor.employee.id, 'DEPARTMENT_UPDATED', 'Department', id);
+      return { ok: true };
+    });
+  }
+  async departmentStatus(actor: Principal, id: string, active: boolean) {
+    requireHr(actor, 'DEPARTMENT_UPDATE');
+    return this.db.transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Department" WHERE id=${id}::uuid FOR UPDATE`;
+      const count = await tx.employee.count({ where: { departmentId: id, status: { in: ['ACTIVE', 'SUSPENDED'] } } });
+      const steps = await tx.leaveApprovalStep.count({
+        where: { departmentId: id, status: 'PENDING', request: { status: 'PENDING' } },
+      });
+      const cancellations = await tx.leaveCancellationApprovalStep.count({
+        where: { departmentId: id, status: 'PENDING', cancellation: { status: 'PENDING' } },
+      });
+      if (!active && (count || steps || cancellations))
+        throw new ConflictException('Transfer employees and resolve approvals first');
+      const result = await tx.department.update({
+        where: { id },
+        data: { status: active ? 'ACTIVE' : 'INACTIVE', version: { increment: 1 } },
+      });
+      await audit(tx, actor.employee.id, 'DEPARTMENT_STATUS_CHANGED', 'Department', id, { status: result.status });
+      return result;
+    });
+  }
+  private async history(tx: Transaction, employee: Employee, actor: Principal, reason: string) {
+    await tx.employeeOrganizationHistory.updateMany({
+      where: { employeeId: employee.id, effectiveTo: null },
+      data: { effectiveTo: new Date() },
+    });
+    await tx.employeeOrganizationHistory.create({
+      data: {
+        employeeId: employee.id,
+        departmentId: employee.departmentId,
+        position: employee.position,
+        actorId: actor.employee.id,
+        reason,
+      },
+    });
+  }
+  async transfer(actor: Principal, id: string, departmentId: string, reason: string) {
+    requireHr(actor, 'DEPARTMENT_ASSIGN_MEMBER');
+    if (id === actor.employee.id) throw new ForbiddenException('Self transfer is prohibited');
+    return this.db.transaction(async (tx) => {
+      await lockEmployee(tx, id);
+      const e = await tx.employee.findUniqueOrThrow({ where: { id } });
+      if (e.position !== 'MEMBER') throw new ConflictException('Replace leadership assignment before transfer');
+      const department = await tx.department.findUniqueOrThrow({ where: { id: departmentId } });
+      if (department.status !== 'ACTIVE') throw new ConflictException('Active department required');
+      const updated = await tx.employee.update({ where: { id }, data: { departmentId, version: { increment: 1 } } });
+      await this.history(tx, updated, actor, reason);
+      await audit(tx, actor.employee.id, 'EMPLOYEE_TRANSFERRED', 'Employee', id, {
+        from: e.departmentId,
+        to: departmentId,
+      });
+      return { ok: true };
+    });
+  }
+  async director(actor: Principal, departmentId: string | null, employeeId: string, reason: string) {
+    if (departmentId) requireHr(actor, 'DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR');
+    else if (actor.employee.position !== 'SENIOR_DIRECTOR') throw new ForbiddenException();
+    if (employeeId === actor.employee.id) throw new ForbiddenException('Self assignment is prohibited');
+    return this.db.transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "OrganizationSettings" FOR UPDATE`;
+      const e = await tx.employee.findUniqueOrThrow({ where: { id: employeeId } });
+      if (
+        !(await this.accounts.eligible(tx, e.id)) ||
+        (departmentId && e.departmentId !== departmentId) ||
+        e.position === 'SENIOR_DIRECTOR'
+      )
+        throw new ConflictException('Eligible employee in target department required');
+      const position = departmentId ? 'ACCOUNT_DIRECTOR' : 'SENIOR_DIRECTOR';
+      const previous = await tx.employee.findMany({
+        where: { position, ...(departmentId ? { departmentId } : {}), id: { not: employeeId } },
+      });
+      for (const old of previous) {
+        const demoted = await tx.employee.update({
+          where: { id: old.id },
+          data: { position: 'MEMBER', version: { increment: 1 } },
+        });
+        await this.history(tx, demoted, actor, reason);
+      }
+      const updated = await tx.employee.update({
+        where: { id: employeeId },
+        data: { position, version: { increment: 1 } },
+      });
+      await this.history(tx, updated, actor, reason);
+      await audit(tx, actor.employee.id, 'LEADERSHIP_ASSIGNED', 'Employee', employeeId, { position });
+      return { ok: true };
+    });
+  }
+  async hrApprover(actor: Principal, employeeId: string) {
+    if (actor.employee.position !== 'SENIOR_DIRECTOR') throw new ForbiddenException();
+    return this.db.transaction(async (tx) => {
+      const e = await tx.employee.findUniqueOrThrow({ where: { id: employeeId }, include: { department: true } });
+      const grant = await tx.employeePermission.findFirst({
+        where: { employeeId, revokedAt: null, permission: { code: 'LEAVE_HR_APPROVE' } },
+      });
+      if (e.department.kind !== 'HR' || !grant || !(await this.accounts.eligible(tx, employeeId)))
+        throw new ConflictException('Eligible HR approver required');
+      const settings = await tx.organizationSettings.findFirstOrThrow();
+      await tx.organizationSettings.update({ where: { id: settings.id }, data: { hrApproverId: employeeId } });
+      await audit(tx, actor.employee.id, 'HR_APPROVER_ASSIGNED', 'Employee', employeeId);
+      return { ok: true };
+    });
+  }
+  async permissions(actor: Principal, id: string) {
+    requireHr(actor, 'EMPLOYEE_READ');
+    return this.db.employeePermission.findMany({
+      where: { employeeId: id, revokedAt: null },
+      select: { id: true, permission: { select: { code: true } } },
+    });
+  }
+  async permission(actor: Principal, id: string, dto: PermissionDto, revoke = false) {
+    if (id === actor.employee.id) throw new ForbiddenException('Self permission changes prohibited');
+    if (actor.employee.position !== 'SENIOR_DIRECTOR') {
+      requireHr(actor, revoke ? 'PERMISSION_REVOKE' : 'PERMISSION_ASSIGN');
+      if (!HR_DELEGABLE.includes(dto.code) || !actor.permissions.includes(dto.code))
+        throw new ForbiddenException('Permission is not delegable');
+    }
+    return this.db.transaction(async (tx) => {
+      await lockEmployee(tx, id);
+      const target = await tx.employee.findUniqueOrThrow({ where: { id }, include: { department: true } });
+      if (target.department.kind !== 'HR' && target.position !== 'SENIOR_DIRECTOR')
+        throw new ForbiddenException('Administrative grants require HR scope');
+      const permission = await tx.permission.findUniqueOrThrow({ where: { code: dto.code } });
+      if (revoke)
+        await tx.employeePermission.updateMany({
+          where: { employeeId: id, permissionId: permission.id, revokedAt: null },
+          data: { revokedAt: new Date(), revokedById: actor.employee.id },
+        });
+      else if (
+        !(await tx.employeePermission.findFirst({
+          where: { employeeId: id, permissionId: permission.id, revokedAt: null },
+        }))
+      )
+        await tx.employeePermission.create({
+          data: { employeeId: id, permissionId: permission.id, grantedById: actor.employee.id },
+        });
+      await audit(tx, actor.employee.id, revoke ? 'PERMISSION_REVOKED' : 'PERMISSION_GRANTED', 'Employee', id, {
+        permission: dto.code,
+      });
+      return { ok: true };
+    });
+  }
+  employmentData(dto: EmploymentDto) {
+    const startDate = dateOnly(dto.startDate),
+      endDate = dto.endDate ? dateOnly(dto.endDate) : null,
+      probationEnd = dto.probationEnd ? dateOnly(dto.probationEnd) : null;
+    if (
+      (dto.type === 'CONTRACTUAL' && !endDate) ||
+      (dto.type === 'PROBATIONARY' && !probationEnd) ||
+      (endDate && endDate < startDate) ||
+      (probationEnd && probationEnd < startDate)
+    )
+      throw new UnprocessableEntityException('Invalid employment dates');
+    return { type: dto.type, startDate, endDate, probationEnd };
+  }
+  async employment(actor: Principal, id: string) {
+    requireHr(actor, 'EMPLOYMENT_MANAGE');
+    return this.db.employmentRecord.findMany({ where: { employeeId: id }, orderBy: { effectiveFrom: 'desc' } });
+  }
+  async updateEmployment(actor: Principal, id: string, dto: EmploymentDto) {
+    requireHr(actor, 'EMPLOYMENT_MANAGE');
+    if (id === actor.employee.id) throw new ForbiddenException('Self employment changes prohibited');
+    const data = this.employmentData(dto);
+    return this.db.transaction(async (tx) => {
+      await lockEmployee(tx, id);
+      const e = await tx.employee.findUniqueOrThrow({ where: { id } });
+      if (e.status === 'TERMINATED') throw new ConflictException('Rehire is not supported');
+      await tx.employmentRecord.updateMany({
+        where: { employeeId: id, effectiveTo: null },
+        data: { effectiveTo: new Date() },
+      });
+      const record = await tx.employmentRecord.create({
+        data: { ...data, employeeId: id, actorId: actor.employee.id, reason: dto.reason },
+      });
+      await this.accounts.eligible(tx, id);
+      await audit(tx, actor.employee.id, 'EMPLOYMENT_CHANGED', 'Employee', id, { type: dto.type });
+      return record;
+    });
+  }
+  async status(
+    actor: Principal,
+    id: string,
+    next: 'SUSPENDED' | 'INACTIVE' | 'ACTIVE' | 'TERMINATED',
+    reason: string,
+    suspendedUntil?: string,
+  ) {
+    requireHr(actor, 'EMPLOYEE_STATUS_MANAGE');
+    if (id === actor.employee.id) throw new ForbiddenException('Self status changes prohibited');
+    return this.db.transaction(async (tx) => {
+      await lockEmployee(tx, id);
+      const e = await tx.employee.findUniqueOrThrow({ where: { id } });
+      if (e.position === 'SENIOR_DIRECTOR' || e.status === 'TERMINATED' || e.status === next)
+        throw new ConflictException('Invalid status transition');
+      if (next === 'SUSPENDED' && e.status !== 'ACTIVE')
+        throw new ConflictException('Only active employees may be suspended');
+      if (next === 'ACTIVE' && e.status !== 'INACTIVE')
+        throw new ConflictException('Only inactive employees may be reactivated');
+      if (next === 'SUSPENDED') {
+        const until = new Date(suspendedUntil ?? '');
+        if (!Number.isFinite(until.getTime()) || until <= new Date())
+          throw new UnprocessableEntityException('Future suspension end required');
+        await tx.suspension.create({
+          data: {
+            employeeId: id,
+            actorId: actor.employee.id,
+            previousAccessState: e.status,
+            suspendedUntil: until,
+            reason,
+          },
+        });
+      } else
+        await tx.suspension.updateMany({
+          where: { employeeId: id, resolvedAt: null },
+          data: { resolvedAt: new Date() },
+        });
+      await tx.employee.update({ where: { id }, data: { status: next, version: { increment: 1 } } });
+      if (next === 'ACTIVE' && !(await this.accounts.eligible(tx, id)))
+        throw new ConflictException('Employment eligibility required');
+      await tx.session.updateMany({
+        where: { employeeId: id, revokedAt: null },
+        data: { revokedAt: new Date(), revokeReason: 'ACCOUNT_STATUS_CHANGED' },
+      });
+      await tx.employeeStatusChange.create({
+        data: { employeeId: id, actorId: actor.employee.id, previous: e.status, next, reason },
+      });
+      await audit(tx, actor.employee.id, 'ACCOUNT_STATUS_CHANGED', 'Employee', id, { previous: e.status, next });
+      return { ok: true };
+    });
+  }
+  async reset(actor: Principal, id: string) {
+    requireHr(actor, 'EMPLOYEE_PASSWORD_RESET');
+    if (id === actor.employee.id) throw new ForbiddenException('Use change password');
+    const credentials = await this.auth.temporaryPassword();
+    await this.db.transaction(async (tx) => {
+      await lockEmployee(tx, id);
+      await tx.employee.update({ where: { id }, data: { passwordHash: credentials.hash, mustChangePassword: true } });
+      await tx.session.updateMany({
+        where: { employeeId: id, revokedAt: null },
+        data: { revokedAt: new Date(), revokeReason: 'PASSWORD_RESET' },
+      });
+      await audit(tx, actor.employee.id, 'PASSWORD_RESET', 'Employee', id);
+    });
+    return { temporaryPassword: credentials.password };
+  }
+  async hierarchy() {
+    const departments = await this.db.department.findMany({ where: { status: 'ACTIVE' }, orderBy: { name: 'asc' } });
+    const employees = await this.db.employee.findMany({ where: { status: 'ACTIVE' }, include: { department: true } });
+    return { departments, employees: employees.map(directory) };
+  }
+}

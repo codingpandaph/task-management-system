@@ -7,3 +7,554 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum DepartmentKind {
+  OPERATIONAL
+  HR
+}
+
+enum Position {
+  SENIOR_DIRECTOR
+  ACCOUNT_DIRECTOR
+  MEMBER
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+  TERMINATED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  CONTRACTUAL
+  PROBATIONARY
+}
+
+enum LeaveType {
+  VACATION
+  SICK
+  CHRISTMAS_VACATION
+}
+
+enum LeaveSource {
+  EMPLOYEE
+  ADMINISTRATIVE
+}
+
+enum LeaveStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalType {
+  ACCOUNT_DIRECTOR
+  SENIOR_DIRECTOR
+  HR
+}
+
+enum LedgerType {
+  ANNUAL_ENTITLEMENT
+  MANUAL_ADJUSTMENT
+  PENDING_RESERVATION
+  RESERVATION_RELEASE
+  APPROVED_LEAVE
+  CANCELLATION_REVERSAL
+}
+
+model OrganizationSettings {
+  id           String          @id @default(uuid()) @db.Uuid
+  createdAt    DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime        @updatedAt @db.Timestamptz(3)
+  name         String
+  timezone     String          @default("Europe/London")
+  calendarId   String          @db.Uuid
+  calendar     WorkingCalendar @relation("OrganizationSettings_calendar", fields: [calendarId], references: [id], onDelete: Restrict)
+  hrApproverId String?         @db.Uuid
+  hrApprover   Employee?       @relation("OrganizationSettings_hrApprover", fields: [hrApproverId], references: [id], onDelete: Restrict)
+}
+
+model Department {
+  id                                       String                          @id @default(uuid()) @db.Uuid
+  createdAt                                DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt                                DateTime                        @updatedAt @db.Timestamptz(3)
+  code                                     String                          @unique
+  name                                     String
+  description                              String?
+  status                                   RecordStatus                    @default(ACTIVE)
+  kind                                     DepartmentKind                  @default(OPERATIONAL)
+  version                                  Int                             @default(1)
+  employee_department                      Employee[]                      @relation("Employee_department")
+  employeeOrganizationHistory_department   EmployeeOrganizationHistory[]   @relation("EmployeeOrganizationHistory_department")
+  leaveApprovalStep_department             LeaveApprovalStep[]             @relation("LeaveApprovalStep_department")
+  leaveCancellationApprovalStep_department LeaveCancellationApprovalStep[] @relation("LeaveCancellationApprovalStep_department")
+}
+
+model Employee {
+  id                                         String                              @id @default(uuid()) @db.Uuid
+  createdAt                                  DateTime                            @default(now()) @db.Timestamptz(3)
+  updatedAt                                  DateTime                            @updatedAt @db.Timestamptz(3)
+  employeeId                                 String                              @unique
+  firstName                                  String
+  middleName                                 String?
+  lastName                                   String
+  birthDate                                  DateTime                            @db.Date
+  email                                      String?
+  passwordHash                               String
+  mustChangePassword                         Boolean                             @default(true)
+  position                                   Position                            @default(MEMBER)
+  status                                     AccountStatus                       @default(ACTIVE)
+  version                                    Int                                 @default(1)
+  departmentId                               String                              @db.Uuid
+  department                                 Department                          @relation("Employee_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  employeeOrganizationHistory_employee       EmployeeOrganizationHistory[]       @relation("EmployeeOrganizationHistory_employee")
+  employmentRecord_employee                  EmploymentRecord[]                  @relation("EmploymentRecord_employee")
+  employeeStatusChange_employee              EmployeeStatusChange[]              @relation("EmployeeStatusChange_employee")
+  suspension_employee                        Suspension[]                        @relation("Suspension_employee")
+  employeePermission_employee                EmployeePermission[]                @relation("EmployeePermission_employee")
+  employeeLeavePolicyAssignment_employee     EmployeeLeavePolicyAssignment[]     @relation("EmployeeLeavePolicyAssignment_employee")
+  employeeChristmasPolicyAssignment_employee EmployeeChristmasPolicyAssignment[] @relation("EmployeeChristmasPolicyAssignment_employee")
+  employeeLeaveYear_employee                 EmployeeLeaveYear[]                 @relation("EmployeeLeaveYear_employee")
+  leaveRequest_employee                      LeaveRequest[]                      @relation("LeaveRequest_employee")
+  session_employee                           Session[]                           @relation("Session_employee")
+  employeeOrganizationHistory_actor          EmployeeOrganizationHistory[]       @relation("EmployeeOrganizationHistory_actor")
+  employmentRecord_actor                     EmploymentRecord[]                  @relation("EmploymentRecord_actor")
+  employeeStatusChange_actor                 EmployeeStatusChange[]              @relation("EmployeeStatusChange_actor")
+  suspension_actor                           Suspension[]                        @relation("Suspension_actor")
+  leavePolicyVersion_actor                   LeavePolicyVersion[]                @relation("LeavePolicyVersion_actor")
+  christmasPolicyVersion_actor               ChristmasPolicyVersion[]            @relation("ChristmasPolicyVersion_actor")
+  employeeLeavePolicyAssignment_actor        EmployeeLeavePolicyAssignment[]     @relation("EmployeeLeavePolicyAssignment_actor")
+  employeeChristmasPolicyAssignment_actor    EmployeeChristmasPolicyAssignment[] @relation("EmployeeChristmasPolicyAssignment_actor")
+  leaveLedgerEntry_actor                     LeaveLedgerEntry[]                  @relation("LeaveLedgerEntry_actor")
+  auditEvent_actor                           AuditEvent[]                        @relation("AuditEvent_actor")
+  employeePermission_grantedBy               EmployeePermission[]                @relation("EmployeePermission_grantedBy")
+  employeePermission_revokedBy               EmployeePermission[]                @relation("EmployeePermission_revokedBy")
+  organizationSettings_hrApprover            OrganizationSettings[]              @relation("OrganizationSettings_hrApprover")
+  leaveRequest_submittedBy                   LeaveRequest[]                      @relation("LeaveRequest_submittedBy")
+  leaveCancellationRequest_requester         LeaveCancellationRequest[]          @relation("LeaveCancellationRequest_requester")
+  leaveApprovalStep_approver                 LeaveApprovalStep[]                 @relation("LeaveApprovalStep_approver")
+  leaveCancellationApprovalStep_approver     LeaveCancellationApprovalStep[]     @relation("LeaveCancellationApprovalStep_approver")
+  notification_recipient                     Notification[]                      @relation("Notification_recipient")
+
+  @@index([departmentId, status, position])
+}
+
+model EmployeeOrganizationHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  createdAt     DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(3)
+  position      Position
+  effectiveFrom DateTime   @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?  @db.Timestamptz(3)
+  reason        String
+  employeeId    String     @db.Uuid
+  employee      Employee   @relation("EmployeeOrganizationHistory_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId       String?    @db.Uuid
+  actor         Employee?  @relation("EmployeeOrganizationHistory_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  departmentId  String     @db.Uuid
+  department    Department @relation("EmployeeOrganizationHistory_department", fields: [departmentId], references: [id], onDelete: Restrict)
+}
+
+model EmploymentRecord {
+  id            String         @id @default(uuid()) @db.Uuid
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  type          EmploymentType
+  startDate     DateTime       @db.Date
+  endDate       DateTime?      @db.Date
+  probationEnd  DateTime?      @db.Date
+  effectiveFrom DateTime       @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?      @db.Timestamptz(3)
+  reason        String
+  employeeId    String         @db.Uuid
+  employee      Employee       @relation("EmploymentRecord_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId       String?        @db.Uuid
+  actor         Employee?      @relation("EmploymentRecord_actor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([endDate, effectiveTo])
+}
+
+model EmployeeStatusChange {
+  id         String        @id @default(uuid()) @db.Uuid
+  createdAt  DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime      @updatedAt @db.Timestamptz(3)
+  previous   AccountStatus
+  next       AccountStatus
+  reason     String
+  employeeId String        @db.Uuid
+  employee   Employee      @relation("EmployeeStatusChange_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId    String?       @db.Uuid
+  actor      Employee?     @relation("EmployeeStatusChange_actor", fields: [actorId], references: [id], onDelete: Restrict)
+}
+
+model Suspension {
+  id                  String        @id @default(uuid()) @db.Uuid
+  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime      @updatedAt @db.Timestamptz(3)
+  previousAccessState AccountStatus
+  suspendedAt         DateTime      @default(now()) @db.Timestamptz(3)
+  suspendedUntil      DateTime      @db.Timestamptz(3)
+  resolvedAt          DateTime?     @db.Timestamptz(3)
+  reason              String
+  employeeId          String        @db.Uuid
+  employee            Employee      @relation("Suspension_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId             String?       @db.Uuid
+  actor               Employee?     @relation("Suspension_actor", fields: [actorId], references: [id], onDelete: Restrict)
+}
+
+model Permission {
+  id                            String               @id @default(uuid()) @db.Uuid
+  createdAt                     DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                     DateTime             @updatedAt @db.Timestamptz(3)
+  code                          String               @unique
+  description                   String
+  delegable                     Boolean              @default(false)
+  employeePermission_permission EmployeePermission[] @relation("EmployeePermission_permission")
+}
+
+model EmployeePermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
+  revokedAt    DateTime?  @db.Timestamptz(3)
+  employeeId   String     @db.Uuid
+  employee     Employee   @relation("EmployeePermission_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  permissionId String     @db.Uuid
+  permission   Permission @relation("EmployeePermission_permission", fields: [permissionId], references: [id], onDelete: Restrict)
+  grantedById  String?    @db.Uuid
+  grantedBy    Employee?  @relation("EmployeePermission_grantedBy", fields: [grantedById], references: [id], onDelete: Restrict)
+  revokedById  String?    @db.Uuid
+  revokedBy    Employee?  @relation("EmployeePermission_revokedBy", fields: [revokedById], references: [id], onDelete: Restrict)
+}
+
+model LeavePolicy {
+  id                        String               @id @default(uuid()) @db.Uuid
+  createdAt                 DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime             @updatedAt @db.Timestamptz(3)
+  name                      String               @unique
+  status                    RecordStatus         @default(ACTIVE)
+  version                   Int                  @default(1)
+  leavePolicyVersion_policy LeavePolicyVersion[] @relation("LeavePolicyVersion_policy")
+}
+
+model LeavePolicyVersion {
+  id                                          String                          @id @default(uuid()) @db.Uuid
+  createdAt                                   DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt                                   DateTime                        @updatedAt @db.Timestamptz(3)
+  number                                      Int
+  vacationDays                                Int
+  sickDays                                    Int
+  actorId                                     String?                         @db.Uuid
+  actor                                       Employee?                       @relation("LeavePolicyVersion_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  policyId                                    String                          @db.Uuid
+  policy                                      LeavePolicy                     @relation("LeavePolicyVersion_policy", fields: [policyId], references: [id], onDelete: Restrict)
+  employeeLeavePolicyAssignment_policyVersion EmployeeLeavePolicyAssignment[] @relation("EmployeeLeavePolicyAssignment_policyVersion")
+
+  @@unique([policyId, number])
+}
+
+model ChristmasPolicy {
+  id                            String                   @id @default(uuid()) @db.Uuid
+  createdAt                     DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt                     DateTime                 @updatedAt @db.Timestamptz(3)
+  name                          String                   @unique
+  status                        RecordStatus             @default(ACTIVE)
+  version                       Int                      @default(1)
+  christmasPolicyVersion_policy ChristmasPolicyVersion[] @relation("ChristmasPolicyVersion_policy")
+}
+
+model ChristmasPolicyVersion {
+  id                                              String                              @id @default(uuid()) @db.Uuid
+  createdAt                                       DateTime                            @default(now()) @db.Timestamptz(3)
+  updatedAt                                       DateTime                            @updatedAt @db.Timestamptz(3)
+  number                                          Int
+  days                                            Int
+  actorId                                         String?                             @db.Uuid
+  actor                                           Employee?                           @relation("ChristmasPolicyVersion_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  policyId                                        String                              @db.Uuid
+  policy                                          ChristmasPolicy                     @relation("ChristmasPolicyVersion_policy", fields: [policyId], references: [id], onDelete: Restrict)
+  employeeChristmasPolicyAssignment_policyVersion EmployeeChristmasPolicyAssignment[] @relation("EmployeeChristmasPolicyAssignment_policyVersion")
+
+  @@unique([policyId, number])
+}
+
+model EmployeeLeavePolicyAssignment {
+  id              String             @id @default(uuid()) @db.Uuid
+  createdAt       DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @db.Timestamptz(3)
+  year            Int
+  employeeId      String             @db.Uuid
+  employee        Employee           @relation("EmployeeLeavePolicyAssignment_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId         String?            @db.Uuid
+  actor           Employee?          @relation("EmployeeLeavePolicyAssignment_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  policyVersionId String             @db.Uuid
+  policyVersion   LeavePolicyVersion @relation("EmployeeLeavePolicyAssignment_policyVersion", fields: [policyVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, year])
+}
+
+model EmployeeChristmasPolicyAssignment {
+  id              String                 @id @default(uuid()) @db.Uuid
+  createdAt       DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime               @updatedAt @db.Timestamptz(3)
+  year            Int
+  employeeId      String                 @db.Uuid
+  employee        Employee               @relation("EmployeeChristmasPolicyAssignment_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId         String?                @db.Uuid
+  actor           Employee?              @relation("EmployeeChristmasPolicyAssignment_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  policyVersionId String                 @db.Uuid
+  policyVersion   ChristmasPolicyVersion @relation("EmployeeChristmasPolicyAssignment_policyVersion", fields: [policyVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, year])
+}
+
+model WorkingCalendar {
+  id                            String                 @id @default(uuid()) @db.Uuid
+  createdAt                     DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt                     DateTime               @updatedAt @db.Timestamptz(3)
+  code                          String                 @unique
+  name                          String
+  timezone                      String                 @default("Europe/London")
+  coverageStart                 DateTime               @db.Date
+  coverageEnd                   DateTime               @db.Date
+  organizationSettings_calendar OrganizationSettings[] @relation("OrganizationSettings_calendar")
+  calendarWorkingDay_calendar   CalendarWorkingDay[]   @relation("CalendarWorkingDay_calendar")
+  holiday_calendar              Holiday[]              @relation("Holiday_calendar")
+  employeeLeaveYear_calendar    EmployeeLeaveYear[]    @relation("EmployeeLeaveYear_calendar")
+}
+
+model CalendarWorkingDay {
+  id         String          @id @default(uuid()) @db.Uuid
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @db.Timestamptz(3)
+  weekday    Int
+  calendarId String          @db.Uuid
+  calendar   WorkingCalendar @relation("CalendarWorkingDay_calendar", fields: [calendarId], references: [id], onDelete: Restrict)
+
+  @@unique([calendarId, weekday])
+}
+
+model Holiday {
+  id         String          @id @default(uuid()) @db.Uuid
+  createdAt  DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @db.Timestamptz(3)
+  date       DateTime        @db.Date
+  name       String
+  active     Boolean         @default(true)
+  calendarId String          @db.Uuid
+  calendar   WorkingCalendar @relation("Holiday_calendar", fields: [calendarId], references: [id], onDelete: Restrict)
+
+  @@unique([calendarId, date])
+}
+
+model EmployeeLeaveYear {
+  id                     String          @id @default(uuid()) @db.Uuid
+  createdAt              DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime        @updatedAt @db.Timestamptz(3)
+  year                   Int
+  employeeId             String          @db.Uuid
+  employee               Employee        @relation("EmployeeLeaveYear_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  calendarId             String          @db.Uuid
+  calendar               WorkingCalendar @relation("EmployeeLeaveYear_calendar", fields: [calendarId], references: [id], onDelete: Restrict)
+  leaveAccount_leaveYear LeaveAccount[]  @relation("LeaveAccount_leaveYear")
+
+  @@unique([employeeId, year])
+}
+
+model LeaveAccount {
+  id                       String             @id @default(uuid()) @db.Uuid
+  createdAt                DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime           @updatedAt @db.Timestamptz(3)
+  type                     LeaveType
+  leaveYearId              String             @db.Uuid
+  leaveYear                EmployeeLeaveYear  @relation("LeaveAccount_leaveYear", fields: [leaveYearId], references: [id], onDelete: Restrict)
+  leaveRequest_account     LeaveRequest[]     @relation("LeaveRequest_account")
+  leaveLedgerEntry_account LeaveLedgerEntry[] @relation("LeaveLedgerEntry_account")
+
+  @@unique([leaveYearId, type])
+}
+
+model LeaveRequest {
+  id                               String                     @id @default(uuid()) @db.Uuid
+  createdAt                        DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                        DateTime                   @updatedAt @db.Timestamptz(3)
+  type                             LeaveType
+  startDate                        DateTime                   @db.Date
+  endDate                          DateTime                   @db.Date
+  reason                           String?
+  source                           LeaveSource                @default(EMPLOYEE)
+  status                           LeaveStatus                @default(DRAFT)
+  submittedAt                      DateTime?                  @db.Timestamptz(3)
+  version                          Int                        @default(1)
+  administrativeReason             String?
+  operationKey                     String?                    @unique
+  employeeId                       String                     @db.Uuid
+  employee                         Employee                   @relation("LeaveRequest_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  accountId                        String?                    @db.Uuid
+  account                          LeaveAccount?              @relation("LeaveRequest_account", fields: [accountId], references: [id], onDelete: Restrict)
+  submittedById                    String?                    @db.Uuid
+  submittedBy                      Employee?                  @relation("LeaveRequest_submittedBy", fields: [submittedById], references: [id], onDelete: Restrict)
+  leaveRequestDay_request          LeaveRequestDay[]          @relation("LeaveRequestDay_request")
+  leaveApprovalStep_request        LeaveApprovalStep[]        @relation("LeaveApprovalStep_request")
+  leaveCancellationRequest_request LeaveCancellationRequest[] @relation("LeaveCancellationRequest_request")
+  leaveLedgerEntry_request         LeaveLedgerEntry[]         @relation("LeaveLedgerEntry_request")
+
+  @@index([employeeId, startDate, endDate, status])
+}
+
+model LeaveRequestDay {
+  id        String       @id @default(uuid()) @db.Uuid
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @db.Timestamptz(3)
+  date      DateTime     @db.Date
+  requestId String       @db.Uuid
+  request   LeaveRequest @relation("LeaveRequestDay_request", fields: [requestId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, date])
+}
+
+model LeaveApprovalStep {
+  id           String         @id @default(uuid()) @db.Uuid
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @db.Timestamptz(3)
+  sequence     Int
+  type         ApprovalType
+  status       ApprovalStatus @default(PENDING)
+  actedAt      DateTime?      @db.Timestamptz(3)
+  reason       String?
+  requestId    String         @db.Uuid
+  request      LeaveRequest   @relation("LeaveApprovalStep_request", fields: [requestId], references: [id], onDelete: Restrict)
+  approverId   String         @db.Uuid
+  approver     Employee       @relation("LeaveApprovalStep_approver", fields: [approverId], references: [id], onDelete: Restrict)
+  departmentId String?        @db.Uuid
+  department   Department?    @relation("LeaveApprovalStep_department", fields: [departmentId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, sequence])
+  @@index([approverId, status])
+}
+
+model LeaveCancellationRequest {
+  id                                         String                          @id @default(uuid()) @db.Uuid
+  createdAt                                  DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt                                  DateTime                        @updatedAt @db.Timestamptz(3)
+  reason                                     String
+  status                                     ApprovalStatus                  @default(PENDING)
+  operationKey                               String                          @unique
+  requestId                                  String                          @db.Uuid
+  request                                    LeaveRequest                    @relation("LeaveCancellationRequest_request", fields: [requestId], references: [id], onDelete: Restrict)
+  requesterId                                String                          @db.Uuid
+  requester                                  Employee                        @relation("LeaveCancellationRequest_requester", fields: [requesterId], references: [id], onDelete: Restrict)
+  leaveCancellationApprovalStep_cancellation LeaveCancellationApprovalStep[] @relation("LeaveCancellationApprovalStep_cancellation")
+  leaveLedgerEntry_cancellation              LeaveLedgerEntry[]              @relation("LeaveLedgerEntry_cancellation")
+}
+
+model LeaveCancellationApprovalStep {
+  id             String                   @id @default(uuid()) @db.Uuid
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                 @updatedAt @db.Timestamptz(3)
+  sequence       Int
+  type           ApprovalType
+  status         ApprovalStatus           @default(PENDING)
+  actedAt        DateTime?                @db.Timestamptz(3)
+  reason         String?
+  cancellationId String                   @db.Uuid
+  cancellation   LeaveCancellationRequest @relation("LeaveCancellationApprovalStep_cancellation", fields: [cancellationId], references: [id], onDelete: Restrict)
+  approverId     String                   @db.Uuid
+  approver       Employee                 @relation("LeaveCancellationApprovalStep_approver", fields: [approverId], references: [id], onDelete: Restrict)
+  departmentId   String?                  @db.Uuid
+  department     Department?              @relation("LeaveCancellationApprovalStep_department", fields: [departmentId], references: [id], onDelete: Restrict)
+
+  @@unique([cancellationId, sequence])
+  @@index([approverId, status])
+}
+
+model LeaveLedgerEntry {
+  id               String                    @id @default(uuid()) @db.Uuid
+  createdAt        DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @db.Timestamptz(3)
+  type             LedgerType
+  entitlementDelta Int                       @default(0)
+  reservedDelta    Int                       @default(0)
+  usedDelta        Int                       @default(0)
+  reason           String?
+  postingKey       String                    @unique
+  actorId          String?                   @db.Uuid
+  actor            Employee?                 @relation("LeaveLedgerEntry_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  requestId        String?                   @db.Uuid
+  request          LeaveRequest?             @relation("LeaveLedgerEntry_request", fields: [requestId], references: [id], onDelete: Restrict)
+  accountId        String                    @db.Uuid
+  account          LeaveAccount              @relation("LeaveLedgerEntry_account", fields: [accountId], references: [id], onDelete: Restrict)
+  cancellationId   String?                   @db.Uuid
+  cancellation     LeaveCancellationRequest? @relation("LeaveLedgerEntry_cancellation", fields: [cancellationId], references: [id], onDelete: Restrict)
+}
+
+model Session {
+  id                        String              @id @default(uuid()) @db.Uuid
+  createdAt                 DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime            @updatedAt @db.Timestamptz(3)
+  expiresAt                 DateTime            @db.Timestamptz(3)
+  revokedAt                 DateTime?           @db.Timestamptz(3)
+  revokeReason              String?
+  csrfHash                  String
+  employeeId                String              @db.Uuid
+  employee                  Employee            @relation("Session_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  refreshCredential_session RefreshCredential[] @relation("RefreshCredential_session")
+}
+
+model RefreshCredential {
+  id         String    @id @default(uuid()) @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  digest     String    @unique
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  sessionId  String    @db.Uuid
+  session    Session   @relation("RefreshCredential_session", fields: [sessionId], references: [id], onDelete: Restrict)
+}
+
+model Notification {
+  id           String    @id @default(uuid()) @db.Uuid
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+  type         String
+  title        String
+  resourceType String
+  resourceId   String
+  readAt       DateTime? @db.Timestamptz(3)
+  dedupeKey    String    @unique
+  recipientId  String    @db.Uuid
+  recipient    Employee  @relation("Notification_recipient", fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, readAt, createdAt])
+}
+
+model AuditEvent {
+  id         String    @id @default(uuid()) @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  action     String
+  targetType String
+  targetId   String
+  requestId  String?
+  metadata   Json      @default("{}")
+  actorId    String?   @db.Uuid
+  actor      Employee? @relation("AuditEvent_actor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([targetType, targetId, createdAt])
+}

@@ -8,22 +8,38 @@
     "start": "node dist/main.js",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && node --test '.test-dist/**/*.spec.js'"
+    "test": "tsc -p tsconfig.test.json && node --test '.test-dist/**/*.spec.js'",
+    "seed": "yarn build && node dist/seed.js",
+    "test:integration": "tsc -p tsconfig.test.json && node --env-file=.env.test --test .test-dist/hr.integration.js"
   },
   "dependencies": {
     "@nestjs/common": "12.0.1",
     "@nestjs/config": "12.0.0",
     "@nestjs/core": "12.0.1",
+    "@nestjs/jwt": "12.0.1",
     "@nestjs/platform-express": "12.0.1",
+    "@nestjs/schedule": "12.0.1",
+    "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@tms/contracts": "workspace:*",
+    "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.3",
+    "pino": "^9.9.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "12.0.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.3",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
     "eslint": "^9.39.5",
     "typescript": "~5.9.3"
   }

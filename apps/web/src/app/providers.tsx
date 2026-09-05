@@ -6,8 +6,13 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 
 const theme = createTheme({
+  palette: { primary: { main: '#285540' }, background: { default: '#f5f6f2' } },
+  shape: { borderRadius: 10 },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
+    h3: { fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.8px' },
+    h4: { fontWeight: 600 },
+    button: { textTransform: 'none', fontWeight: 600 },
   },
 });
 
