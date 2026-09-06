@@ -84,6 +84,15 @@ yarn test
 Playwright owns ports 3100 and 3101. Stop local dev servers before E2E. Browser artifacts may contain private test
 state and remain ignored in `test-results/` and `playwright-report/`.
 
+### Acceptance testing
+
+`yarn test:e2e` resets `tms_test` and covers authentication/session rotation, employee onboarding and forced password
+change, directory scope, departments, employee edits/transfers/employment records, permissions, lifecycle transitions,
+regular and Christmas policy creation/versioning/status/assignment, balances, all five approval chains, cancellation,
+HR adjustments, reporting, audit, responsive UI, and direct authorization denial. Use `yarn demo:e2e` for the paced
+headed tour. The step-by-step manual checklist and expected results are in
+[docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist).
+
 ## Architecture
 
 Nest controllers validate transport DTOs and delegate to domain services. PostgreSQL transactions and row locks guard

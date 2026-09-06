@@ -244,3 +244,121 @@ test('HR adjustment is idempotent and suspension immediately denies authenticati
     await employee.dispose();
   }
 });
+
+test('remaining management, policy, lifecycle, reporting, and session flows complete', async ({ playwright }) => {
+  const hr = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  const senior = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  try {
+    const hrCsrf = await login(hr, usernames.hr),
+      seniorCsrf = await login(senior, usernames.senior);
+    const suffix = Date.now().toString().slice(-6);
+    const department = await post<{ id: string; version: number }>(hr, 'departments', hrCsrf, {
+      code: `Z${suffix}`,
+      name: `Lifecycle ${suffix}`,
+    });
+    const editDepartment = await hr.patch(`/api/departments/${department.id}`, {
+      headers: { origin: 'http://127.0.0.1:3100', 'x-tms-client': 'web', 'x-csrf-token': hrCsrf },
+      data: {
+        name: `Lifecycle team ${suffix}`,
+        description: 'Playwright management flow',
+        version: department.version,
+      },
+    });
+    expect(editDepartment.ok(), await editDepartment.text()).toBe(true);
+    await post(hr, `departments/${department.id}/deactivate`, hrCsrf, {});
+    await post(hr, `departments/${department.id}/activate`, hrCsrf, {});
+
+    const policies = (await (await hr.get('/api/policies')).json()) as {
+      leave: { leavePolicyVersion_policy: { id: string }[] }[];
+      christmas: { christmasPolicyVersion_policy: { id: string }[] }[];
+    };
+    const employee = await post<{ id: string }>(hr, 'employees', hrCsrf, {
+      firstName: 'Flow',
+      lastName: `Tester${suffix}`,
+      birthDate: '1991-04-10',
+      departmentId: department.id,
+      employmentType: 'FULL_TIME',
+      startDate: `${year}-01-01`,
+      leavePolicyVersionId: policies.leave[0].leavePolicyVersion_policy[0].id,
+      christmasPolicyVersionId: policies.christmas[0].christmasPolicyVersion_policy[0].id,
+    });
+    const detail = (await (await hr.get(`/api/employees/${employee.id}`)).json()) as { version: number };
+    const editEmployee = await hr.patch(`/api/employees/${employee.id}`, {
+      headers: { origin: 'http://127.0.0.1:3100', 'x-tms-client': 'web', 'x-csrf-token': hrCsrf },
+      data: { firstName: 'Flow', lastName: `Verified${suffix}`, version: detail.version },
+    });
+    expect(editEmployee.ok(), await editEmployee.text()).toBe(true);
+    await post(hr, `employees/${employee.id}/employment-records`, hrCsrf, {
+      type: 'CONTRACTUAL',
+      startDate: `${year}-01-01`,
+      endDate: `${year}-12-31`,
+      reason: 'E2E renewal',
+    });
+    expect((await hr.get(`/api/employees/${employee.id}/employment-records`)).ok()).toBe(true);
+
+    const leaveVersion = await post<{ id: string; policyId: string }>(hr, 'leave-policies', hrCsrf, {
+      name: `Flow leave ${suffix}`,
+      vacationDays: 24,
+      sickDays: 6,
+    });
+    const leaveV2 = await post<{ id: string }>(hr, `leave-policies/${leaveVersion.policyId}/versions`, hrCsrf, {
+      name: `Flow leave ${suffix}`,
+      vacationDays: 26,
+      sickDays: 7,
+    });
+    await post(hr, `employees/${employee.id}/leave-policy`, hrCsrf, { policyVersionId: leaveV2.id, year: year + 1 });
+    await post(hr, `leave-policies/${leaveVersion.policyId}/status`, hrCsrf, { status: 'INACTIVE' });
+    await post(hr, `leave-policies/${leaveVersion.policyId}/status`, hrCsrf, { status: 'ACTIVE' });
+    const christmas = await post<{ id: string; policyId: string }>(hr, 'christmas-policies', hrCsrf, {
+      name: `Flow Christmas ${suffix}`,
+      days: 5,
+    });
+    const christmasV2 = await post<{ id: string }>(hr, `christmas-policies/${christmas.policyId}/versions`, hrCsrf, {
+      name: `Flow Christmas ${suffix}`,
+      days: 6,
+    });
+    await post(hr, `employees/${employee.id}/christmas-policy`, hrCsrf, {
+      policyVersionId: christmasV2.id,
+      year: year + 1,
+    });
+    await post(hr, `christmas-policies/${christmas.policyId}/status`, hrCsrf, { status: 'INACTIVE' });
+    await post(hr, `christmas-policies/${christmas.policyId}/status`, hrCsrf, { status: 'ACTIVE' });
+
+    const people = (await (await hr.get('/api/employees?pageSize=100')).json()) as {
+      items: { id: string; displayName: string; department: { code: string } }[];
+    };
+    const riley = people.items.find((person) => person.displayName === 'Riley Shaw')!;
+    await post(hr, `employees/${riley.id}/permissions`, hrCsrf, { code: 'EMPLOYEE_READ', reason: 'E2E grant' });
+    expect((await hr.get(`/api/employees/${riley.id}/permissions`)).ok()).toBe(true);
+    await post(hr, `employees/${riley.id}/permissions/revoke`, hrCsrf, { code: 'EMPLOYEE_READ', reason: 'E2E revoke' });
+
+    const acc = ((await (await hr.get('/api/departments')).json()) as { id: string; code: string }[]).find(
+      (d) => d.code === 'ACC',
+    )!;
+    await post(hr, `employees/${employee.id}/transfer`, hrCsrf, { departmentId: acc.id, reason: 'E2E transfer' });
+    await post(hr, `employees/${employee.id}/reset-password`, hrCsrf, { reason: 'E2E reset' });
+    await post(hr, `employees/${employee.id}/suspend`, hrCsrf, {
+      reason: 'E2E suspension',
+      suspendedUntil: new Date(Date.now() + 86_400_000).toISOString(),
+    });
+    await post(hr, `employees/${employee.id}/deactivate`, hrCsrf, { reason: 'E2E deactivation' });
+    await post(hr, `employees/${employee.id}/reactivate`, hrCsrf, { reason: 'E2E reactivation' });
+    await post(hr, `employees/${employee.id}/terminate`, hrCsrf, { reason: 'E2E termination' });
+
+    for (const endpoint of ['reporting/dashboard', `reporting/calendar?start=${year}-01-01&end=${year}-03-31`, 'audit']) {
+      const response = await hr.get(`/api/${endpoint}`);
+      expect(response.ok(), `${endpoint}: ${await response.text()}`).toBe(true);
+    }
+    const refreshed = await senior.post('/api/auth/refresh', {
+      headers: { origin: 'http://127.0.0.1:3100', 'x-tms-client': 'web', 'x-csrf-token': seniorCsrf },
+      data: {},
+    });
+    expect(refreshed.ok(), await refreshed.text()).toBe(true);
+    const refreshedCsrf = ((await refreshed.json()) as { csrf: string }).csrf;
+    await post(senior, 'auth/logout', refreshedCsrf, {});
+    expect((await senior.get('/api/auth/me')).status()).toBe(401);
+  } finally {
+    await hr.dispose();
+    await senior.dispose();
+  }
+});
