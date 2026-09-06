@@ -205,6 +205,59 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   await expect(page.getByLabel('Calendar department', { exact: true })).toBeVisible();
 });
 
+test('draft editing, HR correction, notifications, and audit review work through the UI', async ({ page }) => {
+  await login(page.request, usernames.hr);
+  await page.goto('/leave');
+  await page.getByRole('button', { name: 'File leave', exact: true }).click();
+  let dialog = page.getByRole('dialog', { name: 'File a leave request' });
+  await select(page, 'Leave type', 'Vacation');
+  await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-11-05`);
+  await dialog.getByLabel('End date', { exact: true }).fill(`${year}-11-05`);
+  await dialog.getByLabel('Reason (optional; no medical diagnosis)', { exact: true }).fill('Initial draft');
+  await select(page, 'Action', 'Save draft');
+  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page
+    .getByRole('link')
+    .filter({ hasText: `${year}-11-05` })
+    .first()
+    .click();
+  await page.getByRole('button', { name: 'Edit draft', exact: true }).click();
+  dialog = page.getByRole('dialog', { name: 'Edit leave draft' });
+  await dialog.getByLabel('Reason (optional; no medical diagnosis)', { exact: true }).fill('Updated draft');
+  await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText('Updated draft', { exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Leave administration', exact: true }).click();
+  await page.getByRole('button', { name: 'Add administrative leave', exact: true }).click();
+  dialog = page.getByRole('dialog', { name: 'Administrative leave entry' });
+  await select(page, 'Employee', 'Morgan Reed');
+  await select(page, 'Leave type', 'Vacation');
+  await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-09-22`);
+  await dialog.getByLabel('End date', { exact: true }).fill(`${year}-09-22`);
+  await dialog.getByLabel('Administrative reason', { exact: true }).fill('Recorded by HR for UI verification');
+  await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText('Changes saved successfully', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Correct', exact: true }).first().click();
+  dialog = page.getByRole('dialog', { name: 'Correct administrative leave' });
+  await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-09-23`);
+  await dialog.getByLabel('End date', { exact: true }).fill(`${year}-09-23`);
+  await dialog.getByLabel('Correction reason', { exact: true }).fill('Corrected date after employee confirmation');
+  await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByText(`${year}-09-23 → ${year}-09-23`, { exact: false })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Notifications', exact: true }).click();
+  await expect(page.getByRole('tab', { name: /Unread/ })).toBeVisible();
+  const markRead = page.getByRole('button', { name: 'Mark read', exact: true }).first();
+  if (await markRead.isVisible()) {
+    await markRead.click();
+    await page.getByRole('tab', { name: /Unread/ }).click();
+  }
+
+  await page.getByRole('link', { name: 'Audit log', exact: true }).click();
+  await page.getByLabel('Search audit history', { exact: true }).fill('LEAVE_CORRECTED');
+  await expect(page.getByText('Leave corrected', { exact: true })).toBeVisible();
+});
+
 test('HR adjustment is idempotent and suspension immediately denies authentication', async ({ playwright }) => {
   const hr = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
   const employee = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });

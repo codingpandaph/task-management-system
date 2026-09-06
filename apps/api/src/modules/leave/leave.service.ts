@@ -147,7 +147,7 @@ export class LeaveService {
       this.db.leaveRequest.findMany({
         where,
         include: {
-          employee: { select: { employeeId: true, firstName: true, lastName: true } },
+          employee: { select: { id: true, employeeId: true, firstName: true, lastName: true } },
           _count: { select: { leaveRequestDay_request: true } },
         },
         orderBy: { createdAt: 'desc' },

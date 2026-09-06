@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node --test '.test-dist/**/*.spec.js'",
     "seed": "yarn build && node dist/seed.js",
-    "test:integration": "tsc -p tsconfig.test.json && node --env-file=.env.test --test .test-dist/hr.integration.js"
+    "test:integration": "SEED_PROFILE=integration node ../../tests/e2e/reset-database.mjs && tsc -p tsconfig.test.json && node --env-file=.env.test --test .test-dist/hr.integration.js"
   },
   "dependencies": {
     "@nestjs/common": "12.0.1",

@@ -8,6 +8,10 @@ export function assertE2EDatabase(databaseUrl) {
   return databaseUrl;
 }
 
+export function seedProfile(environment = process.env) {
+  return environment.SEED_PROFILE === 'integration' ? 'full' : 'limited';
+}
+
 function run(command, args, extraEnv = {}, cwd = process.cwd()) {
   const result = spawnSync(command, args, {
     cwd,
@@ -19,13 +23,15 @@ function run(command, args, extraEnv = {}, cwd = process.cwd()) {
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   const databaseUrl = assertE2EDatabase(process.env.TEST_DATABASE_URL);
+  const profile = seedProfile();
+  const repositoryRoot = new URL('../../', import.meta.url);
   process.env.DATABASE_URL = databaseUrl;
-  run('yarn', ['prisma', 'migrate', 'reset', '--force']);
-  run('yarn', ['workspace', '@tms/api', 'build']);
+  run('yarn', ['prisma', 'migrate', 'reset', '--force'], {}, repositoryRoot);
+  run('yarn', ['workspace', '@tms/api', 'build'], {}, repositoryRoot);
   run(
     'node',
     ['dist/seed.js'],
-    { NODE_ENV: 'test', ALLOW_DEMO_SEED: 'true', E2E_SEED: 'true' },
+    { NODE_ENV: 'test', ALLOW_DEMO_SEED: 'true', E2E_SEED: String(profile === 'limited') },
     new URL('../../apps/api/', import.meta.url),
   );
 }

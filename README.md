@@ -89,9 +89,13 @@ state and remain ignored in `test-results/` and `playwright-report/`.
 `yarn test:e2e` resets `tms_test` and covers authentication/session rotation, employee onboarding and forced password
 change, directory scope, departments, employee edits/transfers/employment records, permissions, lifecycle transitions,
 regular and Christmas policy creation/versioning/status/assignment, balances, all five approval chains, cancellation,
-HR adjustments, reporting, audit, responsive UI, and direct authorization denial. Use `yarn demo:e2e` for the paced
-headed tour. The step-by-step manual checklist and expected results are in
+editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
+responsive UI, and direct authorization denial. Use `yarn demo:e2e` for the paced headed tour. The step-by-step manual
+checklist and expected results are in
 [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist).
+
+`yarn test:integration` also resets `tms_test`, using the fuller lifecycle fixture set required for contractual,
+probationary, concurrency, ledger, and privacy assertions. Both commands refuse any database other than `tms_test`.
 
 The portal uses task-based employee tabs with visible employment history and access grants, searchable approval queues,
 department-filtered calendars, semantic tags, policy version/status actions, and global success messages. Business

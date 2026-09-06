@@ -25,7 +25,7 @@ interface RequestRow {
   endDate: string;
   status: string;
   workingDays: number;
-  employee?: { firstName: string; lastName: string };
+  employee?: { id: string; firstName: string; lastName: string };
 }
 interface Step {
   id: string;
@@ -153,19 +153,42 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               )}
             </Card>
             {detail.status === 'DRAFT' && detail.employeeId === user.id && (
-              <Button
-                variant="contained"
-                onClick={async () => {
-                  try {
-                    await api(`leave/requests/${id}/submit`, { operationId: crypto.randomUUID() });
-                    reload();
-                  } catch (e) {
-                    setError(message(e));
-                  }
-                }}
-              >
-                Submit draft
-              </Button>
+              <Card title="Draft actions" className="action-bar">
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  <ModalForm
+                    buttonLabel="Edit draft"
+                    title="Edit leave draft"
+                    fields={leaveFields.map((field) => ({
+                      ...field,
+                      value:
+                        field.name === 'type'
+                          ? detail.type
+                          : field.name === 'startDate'
+                            ? detail.startDate.slice(0, 10)
+                            : field.name === 'endDate'
+                              ? detail.endDate.slice(0, 10)
+                              : detail.reason,
+                    }))}
+                    onSubmit={async (v) => {
+                      await api(`leave/requests/${id}`, v, 'PATCH');
+                      reload();
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={async () => {
+                      try {
+                        await api(`leave/requests/${id}/submit`, { operationId: crypto.randomUUID() });
+                        reload();
+                      } catch (e) {
+                        setError(message(e));
+                      }
+                    }}
+                  >
+                    Submit draft
+                  </Button>
+                </Stack>
+              </Card>
             )}
             {detail.status === 'PENDING' &&
               detail.steps.find((s) => s.status === 'PENDING')?.approverId === user.id && (
@@ -392,6 +415,35 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                 </Typography>
               </Link>
               <StatusTag value={r.status} />
+              {path === '/hr' && r.employee && ['PENDING', 'APPROVED'].includes(r.status) && (
+                <ModalForm
+                  buttonLabel="Correct"
+                  title="Correct administrative leave"
+                  description="The original charge is reversed and the corrected entry is posted atomically."
+                  fields={[
+                    ...leaveFields.map((field) => ({
+                      ...field,
+                      value:
+                        field.name === 'type'
+                          ? r.type
+                          : field.name === 'startDate'
+                            ? r.startDate.slice(0, 10)
+                            : field.name === 'endDate'
+                              ? r.endDate.slice(0, 10)
+                              : undefined,
+                    })),
+                    { name: 'administrativeReason', label: 'Correction reason' },
+                  ]}
+                  onSubmit={async (v) => {
+                    await api(`hr/leave/${r.id}/correct`, {
+                      ...v,
+                      employeeId: r.employee!.id,
+                      operationId: crypto.randomUUID(),
+                    });
+                    reload();
+                  }}
+                />
+              )}
             </Stack>
           ))
         ) : (

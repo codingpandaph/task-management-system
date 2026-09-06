@@ -13,6 +13,10 @@ import BeachAccessOutlined from '@mui/icons-material/BeachAccessOutlined';
 import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import InputAdornment from '@mui/material/InputAdornment';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import type { CurrentEmployee, PageResult } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -59,6 +63,8 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     [notices, setNotices] = useState<Notice[]>([]),
     [audit, setAudit] = useState<Audit[]>([]),
     [dashboard, setDashboard] = useState<Dashboard | null>(null),
+    [auditSearch, setAuditSearch] = useState(''),
+    [noticeTab, setNoticeTab] = useState(0),
     [error, setError] = useState('');
   const start = `${month}-01`,
     last = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate(),
@@ -106,26 +112,52 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     return (
       <Card title="Audit history">
         {error && <Alert severity="error">{error}</Alert>}
-        {audit.map((a) => (
-          <Box key={a.id} sx={{ py: 2, borderBottom: '1px solid #eee', overflowWrap: 'anywhere' }}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <StatusTag value={a.action} />
+        <TextField
+          label="Search audit history"
+          value={auditSearch}
+          onChange={(event) => setAuditSearch(event.target.value)}
+          size="small"
+          sx={{ mb: 2, minWidth: { sm: 320 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlined />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        {audit
+          .filter((a) => `${a.action} ${a.targetType} ${a.targetId}`.toLowerCase().includes(auditSearch.toLowerCase()))
+          .map((a) => (
+            <Box key={a.id} sx={{ py: 2, borderBottom: '1px solid #eee', overflowWrap: 'anywhere' }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <StatusTag value={a.action} />
+                <Typography variant="body2" color="text.secondary">
+                  {a.targetType}
+                </Typography>
+              </Stack>
               <Typography variant="body2" color="text.secondary">
-                {a.targetType}
+                {new Date(a.createdAt).toLocaleString()} · {a.targetId}
               </Typography>
-            </Stack>
-            <Typography variant="body2" color="text.secondary">
-              {new Date(a.createdAt).toLocaleString()} · {a.targetId}
-            </Typography>
-          </Box>
-        ))}
+            </Box>
+          ))}
+        {!audit.some((a) =>
+          `${a.action} ${a.targetType} ${a.targetId}`.toLowerCase().includes(auditSearch.toLowerCase()),
+        ) && <EmptyState title="No audit events found" detail="Try a different action or target." />}
       </Card>
     );
-  if (path === '/notifications')
+  if (path === '/notifications') {
+    const visibleNotices = notices.filter((notice) => noticeTab === 0 || !notice.readAt);
     return (
       <Card title="Your notifications">
         {error && <Alert severity="error">{error}</Alert>}
-        {notices.map((n) => (
+        <Tabs value={noticeTab} onChange={(_, value: number) => setNoticeTab(value)} aria-label="Notification filters">
+          <Tab label={`All (${notices.length})`} />
+          <Tab label={`Unread (${notices.filter((notice) => !notice.readAt).length})`} />
+        </Tabs>
+        {visibleNotices.map((n) => (
           <Stack
             key={n.id}
             direction="row"
@@ -152,11 +184,15 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             )}
           </Stack>
         ))}
-        {!notices.length && (
-          <EmptyState title="You’re up to date" detail="New approvals and HR events will appear here." />
+        {!visibleNotices.length && (
+          <EmptyState
+            title={noticeTab === 1 ? 'No unread notifications' : 'You’re up to date'}
+            detail="New approvals and HR events will appear here."
+          />
         )}
       </Card>
     );
+  }
   const calendar = (
     <Card title="Who’s out">
       <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 3 }}>
