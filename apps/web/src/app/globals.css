@@ -226,6 +226,37 @@ a {
   text-align: center;
   background: #fafcf9;
 }
+.profile-card {
+  background: linear-gradient(135deg, #fff 65%, #eef5e9) !important;
+}
+.profile-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+.profile-facts > div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(239, 245, 239, 0.8);
+}
+.profile-facts span {
+  color: #66756e;
+  font-size: 12px;
+}
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.policy-tile {
+  padding: 18px;
+  border: 1px solid #dfe8e2;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #fff, #f7faf6);
+}
 .MuiPaper-outlined {
   border-color: #e0e8e3 !important;
   box-shadow: 0 5px 22px rgba(23, 62, 48, 0.045);
@@ -277,6 +308,10 @@ a {
   .sidebar {
     width: 100%;
     padding: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    box-shadow: 0 5px 18px rgba(11, 46, 36, 0.2);
   }
   .sidebar nav {
     display: flex;
@@ -322,6 +357,10 @@ a {
     padding: 12px;
   }
   .action-bar {
-    top: 8px;
+    top: 116px;
+  }
+  .profile-facts,
+  .policy-grid {
+    grid-template-columns: 1fr;
   }
 }

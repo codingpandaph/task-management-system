@@ -3,11 +3,16 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import EditCalendarOutlined from '@mui/icons-material/EditCalendarOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import InputAdornment from '@mui/material/InputAdornment';
+import LinearProgress from '@mui/material/LinearProgress';
 import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -72,6 +77,8 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0),
     [preview, setPreview] = useState(''),
+    [approvalTab, setApprovalTab] = useState(0),
+    [approvalSearch, setApprovalSearch] = useState(''),
     [requestSearch, setRequestSearch] = useState(''),
     [requestStatus, setRequestStatus] = useState('ALL');
   const id = path.startsWith('/leave/') ? path.split('/')[2] : undefined;
@@ -229,43 +236,88 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
       </Stack>
     );
   if (path === '/approvals')
-    return (
-      <Stack spacing={3}>
-        {error && <Alert severity="error">{error}</Alert>}
-        <Card title="Assigned leave approvals">
-          {inbox.steps.length ? (
-            inbox.steps.map((s) => (
-              <Stack
-                direction="row"
-                key={s.id}
-                sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid #eee' }}
+    return (() => {
+      const approvalSteps = inbox.steps.filter((step) =>
+        `${step.request.employee.firstName} ${step.request.employee.lastName} ${step.request.startDate} ${step.status}`
+          .toLowerCase()
+          .includes(approvalSearch.toLowerCase()),
+      );
+      return (
+        <Stack spacing={3}>
+          {error && <Alert severity="error">{error}</Alert>}
+          <Card title="Approval inbox">
+            <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 2 }}>
+              <Tabs
+                value={approvalTab}
+                onChange={(_, value: number) => setApprovalTab(value)}
+                aria-label="Approval queues"
               >
-                <div>
-                  <Link href={`/leave/${s.request.id}`}>
-                    <Typography sx={{ fontWeight: 600 }}>
-                      {s.request.employee.firstName} {s.request.employee.lastName}
-                    </Typography>
-                  </Link>
-                  <Typography variant="body2">
-                    {s.request.startDate.slice(0, 10)} → {s.request.endDate.slice(0, 10)} · Step {s.sequence}
+                <Tab label={`Leave requests (${inbox.steps.length})`} />
+                <Tab label={`Cancellations (${inbox.cancellations.length})`} />
+              </Tabs>
+              <TextField
+                label="Search approvals"
+                size="small"
+                value={approvalSearch}
+                onChange={(event) => setApprovalSearch(event.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchOutlined />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Stack>
+            {approvalTab === 0 &&
+              (approvalSteps.length ? (
+                approvalSteps.map((s) => (
+                  <Stack
+                    direction="row"
+                    key={s.id}
+                    sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid #eee' }}
+                  >
+                    <div>
+                      <Link href={`/leave/${s.request.id}`}>
+                        <Typography sx={{ fontWeight: 600 }}>
+                          {s.request.employee.firstName} {s.request.employee.lastName}
+                        </Typography>
+                      </Link>
+                      <Typography variant="body2">
+                        {s.request.startDate.slice(0, 10)} → {s.request.endDate.slice(0, 10)} · Step {s.sequence}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Open request to review dates and approval history
+                      </Typography>
+                    </div>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                      <Chip label={`step ${s.sequence}`} size="small" variant="outlined" />
+                      <StatusTag value={s.status} />
+                    </Stack>
+                  </Stack>
+                ))
+              ) : (
+                <EmptyState title="You’re all caught up" detail="New approval requests will appear here." />
+              ))}
+            {approvalTab === 1 &&
+              (inbox.cancellations.length ? (
+                inbox.cancellations.map((c) => (
+                  <Typography key={c.id} sx={{ my: 1 }}>
+                    <Link href={`/leave/${c.cancellation.requestId}`}>Cancellation · {c.status}</Link>
                   </Typography>
-                </div>
-                <StatusTag value={s.status} />
-              </Stack>
-            ))
-          ) : (
-            <EmptyState title="You’re all caught up" detail="New approval requests will appear here." />
-          )}
-        </Card>
-        <Card title="Cancellation approvals">
-          {inbox.cancellations.map((c) => (
-            <Typography key={c.id} sx={{ my: 1 }}>
-              <Link href={`/leave/${c.cancellation.requestId}`}>Cancellation · {c.status}</Link>
-            </Typography>
-          ))}
-        </Card>
-      </Stack>
-    );
+                ))
+              ) : (
+                <EmptyState
+                  title="No cancellation reviews"
+                  detail="Cancellation requests assigned to you will appear here."
+                />
+              ))}
+          </Card>
+        </Stack>
+      );
+    })();
   const employeeOptions = people.filter((p) => p.id !== user.id).map((p) => ({ value: p.id, label: p.displayName }));
   const filteredRows = rows.filter(
     (row) =>
@@ -288,6 +340,12 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             <Typography variant="body2" sx={{ mt: 2 }}>
               {b.used} used · {b.reserved} reserved · {b.entitlement} entitlement
             </Typography>
+            <LinearProgress
+              aria-label={`${b.type.replaceAll('_', ' ')} allowance used`}
+              value={b.entitlement ? Math.min(100, ((b.used + b.reserved) / b.entitlement) * 100) : 0}
+              variant="determinate"
+              sx={{ mt: 2, height: 7, borderRadius: 10, bgcolor: '#e7eee9' }}
+            />
           </Card>
         ))}
       </div>

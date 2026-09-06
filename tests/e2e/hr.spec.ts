@@ -151,7 +151,9 @@ test('leave action dialog fits mobile, tablet, desktop, and breakpoint boundarie
   }
 });
 
-test('HRIS navigation, search, filters, tabs, icons, and primary actions stay immediately available', async ({ page }) => {
+test('HRIS navigation, search, filters, tabs, icons, and primary actions stay immediately available', async ({
+  page,
+}) => {
   await login(page.request, usernames.hr);
   await page.goto('/employees');
 
@@ -166,6 +168,12 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   await select(page, 'Position', 'Account Director');
   await select(page, 'Status', 'active');
   await expect(page.getByRole('link', { name: 'Taylor Quinn', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Taylor Quinn', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Employment', exact: true }).click();
+  await expect(page.getByText('Manage effective employment records and role changes.')).toBeVisible();
+  await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Access controls', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Policies', exact: true }).click();
   await expect(page.getByRole('tab', { name: /Regular leave/ })).toBeVisible();
@@ -173,6 +181,13 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   await page.getByLabel('Search policies', { exact: true }).fill('Christmas');
   await expect(page.getByText(/Christmas/).first()).toBeVisible();
   expect((await page.locator('.action-bar').boundingBox())!.y).toBeLessThan(280);
+
+  await page.getByRole('link', { name: 'Approvals', exact: true }).click();
+  await expect(page.getByLabel('Search approvals', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: /Cancellations/ }).click();
+
+  await page.getByRole('link', { name: 'Who’s out', exact: true }).click();
+  await expect(page.getByLabel('Calendar department', { exact: true })).toBeVisible();
 });
 
 test('HR adjustment is idempotent and suspension immediately denies authentication', async ({ playwright }) => {

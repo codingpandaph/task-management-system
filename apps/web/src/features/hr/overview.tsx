@@ -3,7 +3,9 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
 import ArrowForwardOutlined from '@mui/icons-material/ArrowForwardOutlined';
@@ -52,6 +54,7 @@ interface Dashboard {
 }
 export function OverviewScreens({ path, user }: { path: string; user: CurrentEmployee }) {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7)),
+    [calendarDepartment, setCalendarDepartment] = useState('ALL'),
     [events, setEvents] = useState<Absence[]>([]),
     [notices, setNotices] = useState<Notice[]>([]),
     [audit, setAudit] = useState<Audit[]>([]),
@@ -93,6 +96,12 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     d.setUTCMonth(d.getUTCMonth() + offset);
     setMonth(d.toISOString().slice(0, 7));
   }
+  const calendarDepartments = Array.from(
+      new Map(events.map((event) => [event.employee.department.id, event.employee.department])).values(),
+    ),
+    visibleEvents = events.filter(
+      (event) => calendarDepartment === 'ALL' || event.employee.department.id === calendarDepartment,
+    );
   if (path === '/audit')
     return (
       <Card title="Audit history">
@@ -150,10 +159,27 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     );
   const calendar = (
     <Card title="Who’s out">
-      <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 3 }}>
-        <Typography variant="h6">
-          {new Date(`${month}-15`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-        </Typography>
+      <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' } }}>
+          <Typography variant="h6">
+            {new Date(`${month}-15`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+          </Typography>
+          <TextField
+            select
+            label="Calendar department"
+            size="small"
+            value={calendarDepartment}
+            onChange={(event) => setCalendarDepartment(event.target.value)}
+            sx={{ minWidth: 190 }}
+          >
+            <MenuItem value="ALL">All departments</MenuItem>
+            {calendarDepartments.map((department) => (
+              <MenuItem key={department.id} value={department.id}>
+                {department.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
         <Stack direction="row">
           <Button aria-label="Previous month" onClick={() => shift(-1)}>
             <ArrowBackOutlined />
@@ -183,7 +209,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
               <Typography variant="caption" color="text.secondary">
                 {i + 1}
               </Typography>
-              {events
+              {visibleEvents
                 .filter((e) => e.startDate.slice(0, 10) <= day && e.endDate.slice(0, 10) >= day)
                 .map((e) => (
                   <span className="calendar-event" key={e.id} title={e.employee.department.name}>
@@ -195,8 +221,8 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
         })}
       </div>
       <Box sx={{ mt: 3 }}>
-        {events.length ? (
-          events.map((e) => (
+        {visibleEvents.length ? (
+          visibleEvents.map((e) => (
             <Stack
               key={e.id}
               direction={{ xs: 'column', sm: 'row' }}

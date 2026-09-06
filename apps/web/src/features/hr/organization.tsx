@@ -66,6 +66,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     [position, setPosition] = useState(''),
     [status, setStatus] = useState(''),
     [policyTab, setPolicyTab] = useState(0),
+    [employeeTab, setEmployeeTab] = useState(0),
     [policySearch, setPolicySearch] = useState(''),
     [revision, setRevision] = useState(0),
     [secret, setSecret] = useState('');
@@ -140,19 +141,90 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         {error && <Alert severity="error">{error}</Alert>}
         {detail && (
           <>
-            <Card title={detail.displayName}>
-              <Typography>
-                {detail.employeeId} · {detail.department.name}
-              </Typography>
-              <StatusTag value={detail.status} />
-              {detail.birthDate && <Typography sx={{ mt: 2 }}>Birth date: {detail.birthDate}</Typography>}
+            <Card title="Employee profile" className="profile-card">
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} sx={{ alignItems: { sm: 'center' } }}>
+                <Avatar sx={{ width: 68, height: 68, bgcolor: '#244f40', fontSize: 22 }}>
+                  {detail.displayName
+                    .split(' ')
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join('')}
+                </Avatar>
+                <div>
+                  <Typography variant="h4" component="h2">
+                    {detail.displayName}
+                  </Typography>
+                  <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1 }}>
+                    <StatusTag value={detail.status} />
+                    <Chip label={detail.position.replaceAll('_', ' ').toLowerCase()} size="small" variant="outlined" />
+                    <Chip label={detail.department.name} size="small" variant="outlined" />
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {detail.employeeId}
+                  </Typography>
+                </div>
+              </Stack>
+              <Tabs
+                value={employeeTab}
+                onChange={(_, value: number) => setEmployeeTab(value)}
+                aria-label="Employee profile sections"
+                variant="scrollable"
+                sx={{ mt: 3 }}
+              >
+                <Tab label="Overview" />
+                <Tab label="Employment" />
+                <Tab label="Leave policies" />
+                <Tab label="Access & security" />
+              </Tabs>
+              {employeeTab === 0 && (
+                <div className="profile-facts">
+                  <div>
+                    <span>Department</span>
+                    <strong>{detail.department.name}</strong>
+                  </div>
+                  <div>
+                    <span>Position</span>
+                    <strong>{detail.position.replaceAll('_', ' ')}</strong>
+                  </div>
+                  {detail.email && (
+                    <div>
+                      <span>Email</span>
+                      <strong>{detail.email}</strong>
+                    </div>
+                  )}
+                  {detail.birthDate && (
+                    <div>
+                      <span>Birth date</span>
+                      <strong>{detail.birthDate}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+              {employeeTab === 1 && (
+                <Typography color="text.secondary" sx={{ mt: 3 }}>
+                  Manage effective employment records and role changes.
+                </Typography>
+              )}
+              {employeeTab === 2 && (
+                <Typography color="text.secondary" sx={{ mt: 3 }}>
+                  Assign next-year regular and Christmas leave policies.
+                </Typography>
+              )}
+              {employeeTab === 3 && (
+                <Typography color="text.secondary" sx={{ mt: 3 }}>
+                  Control account status, credentials, and explicit permissions.
+                </Typography>
+              )}
             </Card>
-            <Card title="Employee actions" className="action-bar">
+            <Card
+              title={['Profile actions', 'Employment actions', 'Policy assignments', 'Access controls'][employeeTab]}
+              className="action-bar"
+            >
               <Typography color="text.secondary" sx={{ mb: 2 }}>
                 Choose an action. Each change opens in its own review dialog.
               </Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} useFlexGap sx={{ flexWrap: 'wrap' }}>
-                {can('EMPLOYEE_UPDATE') && (
+                {employeeTab === 0 && can('EMPLOYEE_UPDATE') && (
                   <ModalForm
                     buttonLabel="Edit profile"
                     icon={<EditOutlined />}
@@ -166,7 +238,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     onSubmit={(v) => save(`employees/${id}`, { ...v, version: detail.version }, 'PATCH')}
                   />
                 )}
-                {can('DEPARTMENT_ASSIGN_MEMBER') && (
+                {employeeTab === 0 && can('DEPARTMENT_ASSIGN_MEMBER') && (
                   <ModalForm
                     buttonLabel="Transfer department"
                     icon={<ManageAccountsOutlined />}
@@ -175,7 +247,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     onSubmit={(v) => save(`employees/${id}/transfer`, v)}
                   />
                 )}
-                {can('EMPLOYEE_STATUS_MANAGE') && (
+                {employeeTab === 3 && can('EMPLOYEE_STATUS_MANAGE') && (
                   <ModalForm
                     buttonLabel="Suspend access"
                     title="Suspend employee access"
@@ -189,7 +261,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     }
                   />
                 )}
-                {can('EMPLOYEE_STATUS_MANAGE') && (
+                {employeeTab === 3 && can('EMPLOYEE_STATUS_MANAGE') && (
                   <ModalForm
                     buttonLabel="Change status"
                     title="Change account status"
@@ -208,7 +280,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     onSubmit={async ({ action, ...v }) => save(`employees/${id}/${action}`, v)}
                   />
                 )}
-                {can('EMPLOYEE_PASSWORD_RESET') && (
+                {employeeTab === 3 && can('EMPLOYEE_PASSWORD_RESET') && (
                   <ModalForm
                     buttonLabel="Reset password"
                     title="Reset employee password"
@@ -220,7 +292,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     }}
                   />
                 )}
-                {can('EMPLOYMENT_MANAGE') && (
+                {employeeTab === 1 && can('EMPLOYMENT_MANAGE') && (
                   <ModalForm
                     buttonLabel="Add employment record"
                     title="Add employment record"
@@ -241,7 +313,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     onSubmit={(v) => save(`employees/${id}/employment-records`, v)}
                   />
                 )}
-                {(can('PERMISSION_ASSIGN') || user.position === 'SENIOR_DIRECTOR') && (
+                {employeeTab === 3 && (can('PERMISSION_ASSIGN') || user.position === 'SENIOR_DIRECTOR') && (
                   <ModalForm
                     buttonLabel="Manage permissions"
                     title="Manage permissions"
@@ -266,7 +338,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     }
                   />
                 )}
-                {can('LEAVE_POLICY_MANAGE') && (
+                {employeeTab === 2 && can('LEAVE_POLICY_MANAGE') && (
                   <ModalForm
                     buttonLabel="Assign leave policy"
                     title="Assign next-year leave policy"
@@ -277,7 +349,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     onSubmit={(v) => save(`employees/${id}/leave-policy`, v)}
                   />
                 )}
-                {can('CHRISTMAS_POLICY_MANAGE') && (
+                {employeeTab === 2 && can('CHRISTMAS_POLICY_MANAGE') && (
                   <ModalForm
                     buttonLabel="Assign Christmas policy"
                     title="Assign next-year Christmas policy"
@@ -311,22 +383,30 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
               onChange={(event) => setPolicySearch(event.target.value)}
             />
           </Stack>
-          {policyTab === 0
-            ? policies.leave
-                .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
-                .map((p) => (
-                  <Typography component="div" key={p.id} sx={{ mb: 1 }}>
-                    {p.name} <StatusTag value={p.status} /> · {p.leavePolicyVersion_policy?.[0]?.vacationDays} VL /{' '}
-                    {p.leavePolicyVersion_policy?.[0]?.sickDays} SL
-                  </Typography>
-                ))
-            : policies.christmas
-                .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
-                .map((p) => (
-                  <Typography component="div" key={p.id} sx={{ mb: 1 }}>
-                    {p.name} <StatusTag value={p.status} /> · {p.christmasPolicyVersion_policy?.[0]?.days} days
-                  </Typography>
-                ))}
+          <div className="policy-grid">
+            {(policyTab === 0 ? policies.leave : policies.christmas)
+              .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
+              .map((policy) => {
+                const allowance =
+                  policyTab === 0
+                    ? `${policy.leavePolicyVersion_policy?.[0]?.vacationDays} vacation · ${policy.leavePolicyVersion_policy?.[0]?.sickDays} sick`
+                    : `${policy.christmasPolicyVersion_policy?.[0]?.days} Christmas days`;
+                return (
+                  <div className="policy-tile" key={policy.id}>
+                    <Stack direction="row" sx={{ justifyContent: 'space-between', gap: 1 }}>
+                      <Typography sx={{ fontWeight: 700 }}>{policy.name}</Typography>
+                      <StatusTag value={policy.status} />
+                    </Stack>
+                    <Typography variant="h6" sx={{ mt: 2 }}>
+                      {allowance}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Current version · annual entitlement
+                    </Typography>
+                  </div>
+                );
+              })}
+          </div>
         </Card>
         <Card title="Policy actions" className="action-bar">
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>

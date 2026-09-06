@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? 450 : 0 } });
+const demoDelay = Number(process.env.DEMO_SLOWMO_MS ?? 900);
+test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? demoDelay : 0 } });
 
 const year = new Date().getFullYear();
 const demoPassword = 'Demo only password 2026!';
@@ -19,7 +20,7 @@ async function choose(page: Page, scope: Locator, label: string, option: string 
 }
 
 test('complete CPPinSync HRIS demonstration', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 240_000 : 90_000);
   const suffix = Date.now().toString().slice(-6);
   const leavePolicy = `Demo leave ${suffix}`;
   const christmasPolicy = `Demo Christmas ${suffix}`;
@@ -35,6 +36,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     expect(employees.total).toBe(7);
     expect(policies.leave).toHaveLength(1);
     expect(policies.christmas).toHaveLength(1);
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
   });
 
   await test.step('HR creates regular and Christmas policies', async () => {
@@ -47,6 +49,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     await dialog.getByLabel('Sick days', { exact: true }).fill('7');
     await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
     await expect(dialog).toBeHidden();
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
 
     await page.getByRole('button', { name: 'Create Christmas policy', exact: true }).click();
     dialog = page.getByRole('dialog', { name: 'Create Christmas policy' });
@@ -82,6 +85,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     const credentialDialog = page.getByRole('dialog', { name: 'One-time temporary password' });
     await expect(credentialDialog).toBeVisible();
     await credentialDialog.getByRole('button', { name: 'Close and clear password', exact: true }).click();
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
   });
 
   await test.step('Senior Director files and cancels auto-approved leave', async () => {
@@ -123,12 +127,13 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     const requestLink = page.locator('a').filter({ hasText: leaveDay }).first();
     await expect(requestLink).toBeVisible();
     await requestLink.click();
-    await expect(page.getByText('APPROVED', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('approved', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Request cancellation', exact: true }).click();
     dialog = page.getByRole('dialog', { name: 'Request leave cancellation' });
     await dialog.getByLabel('Cancellation reason', { exact: true }).fill('Plans changed');
     await dialog.getByRole('button', { name: 'Request cancellation', exact: true }).click();
-    await expect(page.getByText('CANCELLED', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('cancelled', { exact: true }).first()).toBeVisible();
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
   });
 
   await test.step('HR reviews the operational HRIS workspace', async () => {
@@ -149,6 +154,8 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     for (const destination of ['Approvals', 'Who’s out', 'Leave administration', 'Audit log', 'Notifications']) {
       await page.getByRole('link', { name: destination, exact: true }).click();
       await expect(page.locator('h1')).toBeVisible();
+      if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_200);
     }
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(3_000);
   });
 });
