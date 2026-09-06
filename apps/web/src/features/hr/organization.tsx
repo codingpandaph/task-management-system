@@ -14,7 +14,6 @@ import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
-import Chip from '@mui/material/Chip';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -29,7 +28,7 @@ import { PERMISSIONS, type CurrentEmployee, type DirectoryEmployee, type PageRes
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, message, ModalForm, StatusTag, type Field } from './ui';
+import { Card, EmptyState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
 interface Department {
   id: string;
   name: string;
@@ -156,8 +155,8 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                   </Typography>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1 }}>
                     <StatusTag value={detail.status} />
-                    <Chip label={detail.position.replaceAll('_', ' ').toLowerCase()} size="small" variant="outlined" />
-                    <Chip label={detail.department.name} size="small" variant="outlined" />
+                    <Tag value={detail.position} />
+                    <Tag value={detail.department.name} tone="teal" />
                   </Stack>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     {detail.employeeId}
@@ -447,10 +446,10 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         <div className="grid-two">
           {departments.map((d) => (
             <Card key={d.id} title={d.name}>
-              <Chip label={d.code} size="small" />
+              <Tag value={d.code} tone="teal" />
               <Stack direction="row" spacing={1} sx={{ my: 2 }}>
                 <StatusTag value={d.status} />
-                <Chip label={`${people.items.filter((e) => e.department.id === d.id).length} people`} size="small" />
+                <Tag value={`${people.items.filter((e) => e.department.id === d.id).length} people`} />
               </Stack>
               {people.items
                 .filter((e) => e.department.id === d.id)
@@ -630,7 +629,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                   <TableCell>{e.employeeId}</TableCell>
                   <TableCell>{e.department.name}</TableCell>
                   <TableCell>
-                    <Chip label={e.position.replaceAll('_', ' ').toLowerCase()} size="small" variant="outlined" />
+                    <Tag value={e.position} />
                   </TableCell>
                 </TableRow>
               ))}

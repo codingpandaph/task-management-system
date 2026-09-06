@@ -127,12 +127,12 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     const requestLink = page.locator('a').filter({ hasText: leaveDay }).first();
     await expect(requestLink).toBeVisible();
     await requestLink.click();
-    await expect(page.getByText('approved', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Request cancellation', exact: true }).click();
     dialog = page.getByRole('dialog', { name: 'Request leave cancellation' });
     await dialog.getByLabel('Cancellation reason', { exact: true }).fill('Plans changed');
     await dialog.getByRole('button', { name: 'Request cancellation', exact: true }).click();
-    await expect(page.getByText('cancelled', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Cancelled', { exact: true }).first()).toBeVisible();
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
   });
 

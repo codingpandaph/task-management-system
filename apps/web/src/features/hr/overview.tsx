@@ -17,7 +17,7 @@ import type { CurrentEmployee, PageResult } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, message, StatusTag } from './ui';
+import { Card, EmptyState, message, StatusTag, Tag } from './ui';
 interface Absence {
   id: string;
   startDate: string;
@@ -232,7 +232,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
                 {e.employee.firstName} {e.employee.lastName}
                 <Typography component="span" variant="body2" color="text.secondary">
                   {' '}
-                  · <Chip component="span" label={e.employee.department.name} size="small" variant="outlined" />
+                  · <Tag value={e.employee.department.name} tone="teal" />
                 </Typography>
               </Typography>
               <Typography variant="body2">

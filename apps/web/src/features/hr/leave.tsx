@@ -17,7 +17,7 @@ import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } fro
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, message, ModalForm, StatusTag, type Field } from './ui';
+import { Card, EmptyState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
 interface RequestRow {
   id: string;
   type: string;
@@ -123,8 +123,11 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
         {error && <Alert severity="error">{error}</Alert>}
         {detail && (
           <>
-            <Card title={detail.type.replaceAll('_', ' ')}>
-              <StatusTag value={detail.status} />
+            <Card title="Leave request">
+              <Stack direction="row" spacing={1}>
+                <Tag value={detail.type} />
+                <StatusTag value={detail.status} />
+              </Stack>
               <Typography sx={{ mt: 2 }}>
                 {detail.startDate} → {detail.endDate} · {detail.workingDays} working days
               </Typography>
@@ -134,9 +137,9 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               {detail.steps.length ? (
                 detail.steps.map((s) => (
                   <Stack key={s.id} direction="row" spacing={2} sx={{ py: 2, borderBottom: '1px solid #eee' }}>
-                    <Chip label={s.sequence} />
+                    <Tag value={`Step ${s.sequence}`} tone="blue" />
                     <div>
-                      <Typography>{s.type.replaceAll('_', ' ')}</Typography>
+                      <Tag value={s.type} tone="purple" />
                       <Typography variant="body2" color="text.secondary">
                         {s.status}
                         {s.status === 'PENDING' && s.eligible === false ? ' · Approver unavailable — contact HR' : ''}
@@ -293,7 +296,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                       </Typography>
                     </div>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                      <Chip label={`step ${s.sequence}`} size="small" variant="outlined" />
+                      <Tag value={`Step ${s.sequence}`} tone="blue" />
                       <StatusTag value={s.status} />
                     </Stack>
                   </Stack>
@@ -378,10 +381,12 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               sx={{ justifyContent: 'space-between', gap: 1, py: 2, borderBottom: '1px solid #eee' }}
             >
               <Link href={`/leave/${r.id}`}>
-                <Typography sx={{ fontWeight: 600 }}>
-                  {r.type.replaceAll('_', ' ')}
-                  {r.employee ? ` · ${r.employee.firstName} ${r.employee.lastName}` : ''}
-                </Typography>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <Tag value={r.type} />
+                  <Typography sx={{ fontWeight: 600 }}>
+                    {r.employee ? ` · ${r.employee.firstName} ${r.employee.lastName}` : ''}
+                  </Typography>
+                </Stack>
                 <Typography variant="body2" color="text.secondary">
                   {r.startDate} → {r.endDate} · {r.workingDays} working days
                 </Typography>

@@ -1,7 +1,7 @@
 'use client';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Chip, { type ChipProps } from '@mui/material/Chip';
+import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -98,27 +98,58 @@ export function Card({ title, children, className }: { title: string; children: 
     </Paper>
   );
 }
-const tagColors: Record<string, ChipProps['color']> = {
-  ACTIVE: 'success',
-  APPROVED: 'success',
-  PENDING: 'warning',
-  SUSPENDED: 'warning',
-  REJECTED: 'error',
-  TERMINATED: 'error',
-  INACTIVE: 'default',
-  CANCELLED: 'default',
-  DRAFT: 'info',
+const tagLabels: Record<string, string> = {
+  ACCOUNT_DIRECTOR: 'Director',
+  SENIOR_DIRECTOR: 'Senior director',
+  CHRISTMAS_VACATION: 'Christmas',
+  FULL_TIME: 'Full time',
+  PROBATIONARY: 'Probation',
 };
-export function StatusTag({ value }: { value: string }) {
+const tagTones: Record<string, keyof typeof tagPalette> = {
+  ACTIVE: 'green',
+  APPROVED: 'green',
+  PENDING: 'amber',
+  SUSPENDED: 'amber',
+  REJECTED: 'red',
+  TERMINATED: 'red',
+  INACTIVE: 'grey',
+  CANCELLED: 'grey',
+  DRAFT: 'blue',
+  VACATION: 'blue',
+  SICK: 'red',
+  CHRISTMAS_VACATION: 'teal',
+  SENIOR_DIRECTOR: 'purple',
+  ACCOUNT_DIRECTOR: 'purple',
+  MEMBER: 'grey',
+};
+const tagPalette = {
+  green: { background: '#dff3e5', color: '#17633a' },
+  amber: { background: '#fff0c7', color: '#755000' },
+  red: { background: '#fde3e3', color: '#922b2b' },
+  blue: { background: '#e3efff', color: '#245795' },
+  purple: { background: '#eee5ff', color: '#5e3a9f' },
+  teal: { background: '#dcf3f0', color: '#176860' },
+  grey: { background: '#edf1ef', color: '#4c5d55' },
+};
+export function Tag({ value, tone }: { value: string; tone?: keyof typeof tagPalette }) {
+  const palette = tagPalette[tone ?? tagTones[value] ?? 'grey'];
+  const label =
+    tagLabels[value] ??
+    value
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .replace(/^./, (letter) => letter.toUpperCase());
   return (
     <Chip
       className="status-tag"
-      color={tagColors[value] ?? 'default'}
-      label={value.replaceAll('_', ' ').toLowerCase()}
+      label={label}
       size="small"
-      variant={['ACTIVE', 'APPROVED'].includes(value) ? 'filled' : 'outlined'}
+      sx={{ bgcolor: palette.background, color: palette.color }}
     />
   );
+}
+export function StatusTag({ value }: { value: string }) {
+  return <Tag value={value} />;
 }
 export function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (

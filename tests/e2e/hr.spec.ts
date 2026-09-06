@@ -170,6 +170,13 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   await expect(page.getByRole('link', { name: 'Taylor Quinn', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Taylor Quinn', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Overview', exact: true })).toBeVisible();
+  const activeTag = page.locator('.status-tag', { hasText: 'Active' }).first();
+  const directorTag = page.locator('.status-tag', { hasText: 'Director' }).first();
+  await expect(activeTag).toBeVisible();
+  await expect(directorTag).toBeVisible();
+  expect(await activeTag.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(
+    await directorTag.evaluate((element) => getComputedStyle(element).backgroundColor),
+  );
   await page.getByRole('tab', { name: 'Employment', exact: true }).click();
   await expect(page.getByText('Manage effective employment records and role changes.')).toBeVisible();
   await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
