@@ -12,7 +12,7 @@ import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } fro
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, message, ModalForm, type Field } from './ui';
+import { Card, EmptyState, message, ModalForm, StatusTag, type Field } from './ui';
 interface RequestRow {
   id: string;
   type: string;
@@ -117,7 +117,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
         {detail && (
           <>
             <Card title={detail.type.replaceAll('_', ' ')}>
-              <Chip label={detail.status} />
+              <StatusTag value={detail.status} />
               <Typography sx={{ mt: 2 }}>
                 {detail.startDate} → {detail.endDate} · {detail.workingDays} working days
               </Typography>
@@ -250,11 +250,11 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                     {s.request.startDate.slice(0, 10)} → {s.request.endDate.slice(0, 10)} · Step {s.sequence}
                   </Typography>
                 </div>
-                <Chip label={s.status} />
+                <StatusTag value={s.status} />
               </Stack>
             ))
           ) : (
-            <Typography color="text.secondary">You’re all caught up.</Typography>
+            <EmptyState title="You’re all caught up" detail="New approval requests will appear here." />
           )}
         </Card>
         <Card title="Cancellation approvals">
@@ -328,11 +328,11 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                   {r.startDate} → {r.endDate} · {r.workingDays} working days
                 </Typography>
               </Link>
-              <Chip label={r.status} size="small" />
+              <StatusTag value={r.status} />
             </Stack>
           ))
         ) : (
-          <Typography color="text.secondary">No requests match these filters.</Typography>
+          <EmptyState title="No leave requests found" detail="Try another status or clear your search." />
         )}
       </Card>
       <Card className="action-bar" title={path === '/hr' ? 'HR actions' : 'Ready to plan time away?'}>

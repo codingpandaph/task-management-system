@@ -1,5 +1,6 @@
 'use client';
 import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
@@ -28,7 +29,7 @@ import { PERMISSIONS, type CurrentEmployee, type DirectoryEmployee, type PageRes
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, message, ModalForm, type Field } from './ui';
+import { Card, EmptyState, message, ModalForm, StatusTag, type Field } from './ui';
 interface Department {
   id: string;
   name: string;
@@ -143,7 +144,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
               <Typography>
                 {detail.employeeId} · {detail.department.name}
               </Typography>
-              <Chip label={detail.status} sx={{ mt: 1 }} />
+              <StatusTag value={detail.status} />
               {detail.birthDate && <Typography sx={{ mt: 2 }}>Birth date: {detail.birthDate}</Typography>}
             </Card>
             <Card title="Employee actions" className="action-bar">
@@ -315,17 +316,15 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
                 .map((p) => (
                   <Typography component="div" key={p.id} sx={{ mb: 1 }}>
-                    {p.name} <Chip label={p.status.toLowerCase()} size="small" /> ·{' '}
-                    {p.leavePolicyVersion_policy?.[0]?.vacationDays} VL / {p.leavePolicyVersion_policy?.[0]?.sickDays}{' '}
-                    SL
+                    {p.name} <StatusTag value={p.status} /> · {p.leavePolicyVersion_policy?.[0]?.vacationDays} VL /{' '}
+                    {p.leavePolicyVersion_policy?.[0]?.sickDays} SL
                   </Typography>
                 ))
             : policies.christmas
                 .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
                 .map((p) => (
                   <Typography component="div" key={p.id} sx={{ mb: 1 }}>
-                    {p.name} <Chip label={p.status.toLowerCase()} size="small" /> ·{' '}
-                    {p.christmasPolicyVersion_policy?.[0]?.days} days
+                    {p.name} <StatusTag value={p.status} /> · {p.christmasPolicyVersion_policy?.[0]?.days} days
                   </Typography>
                 ))}
         </Card>
@@ -369,9 +368,10 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
           {departments.map((d) => (
             <Card key={d.id} title={d.name}>
               <Chip label={d.code} size="small" />
-              <Typography color="text.secondary" sx={{ my: 2 }}>
-                {d.status}
-              </Typography>
+              <Stack direction="row" spacing={1} sx={{ my: 2 }}>
+                <StatusTag value={d.status} />
+                <Chip label={`${people.items.filter((e) => e.department.id === d.id).length} people`} size="small" />
+              </Stack>
               {people.items
                 .filter((e) => e.department.id === d.id)
                 .map((e) => (
@@ -536,16 +536,30 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
               {people.items.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>
-                    {can('EMPLOYEE_READ') ? <Link href={`/employees/${e.id}`}>{e.displayName}</Link> : e.displayName}
+                    <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                      <Avatar sx={{ width: 34, height: 34, bgcolor: '#e2ede6', color: '#244f40', fontSize: 12 }}>
+                        {e.displayName
+                          .split(' ')
+                          .map((part) => part[0])
+                          .slice(0, 2)
+                          .join('')}
+                      </Avatar>
+                      {can('EMPLOYEE_READ') ? <Link href={`/employees/${e.id}`}>{e.displayName}</Link> : e.displayName}
+                    </Stack>
                   </TableCell>
                   <TableCell>{e.employeeId}</TableCell>
                   <TableCell>{e.department.name}</TableCell>
-                  <TableCell>{e.position.replaceAll('_', ' ')}</TableCell>
+                  <TableCell>
+                    <Chip label={e.position.replaceAll('_', ' ').toLowerCase()} size="small" variant="outlined" />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+        {!people.items.length && (
+          <EmptyState title="No people found" detail="Try removing a filter or search by Employee ID." />
+        )}
         <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
           <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
             Previous

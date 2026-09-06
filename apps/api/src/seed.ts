@@ -14,7 +14,8 @@ export async function seed(db: DatabaseService) {
   if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DEMO_SEED !== 'true')
     throw new Error('Seeding requires non-production mode and ALLOW_DEMO_SEED=true');
   if (await db.employee.count()) return;
-  const passwordHash = await bcrypt.hash('Demo only password 2026!', 12),
+  const limited = process.env.E2E_SEED === 'true',
+    passwordHash = await bcrypt.hash('Demo only password 2026!', 12),
     year = Number(today().slice(0, 4));
   const data = JSON.parse(
     await readFile(resolve(process.cwd(), '../../prisma/fixtures/uk-bank-holidays.json'), 'utf8'),
@@ -40,18 +41,22 @@ export async function seed(db: DatabaseService) {
       await tx.permission.create({
         data: { code, description: code.toLowerCase().replaceAll('_', ' '), delegable: HR_DELEGABLE.includes(code) },
       });
-    const regular = await tx.leavePolicy.create({ data: { name: 'Regular' } }),
-      custom = await tx.leavePolicy.create({ data: { name: 'Extended' } });
+    const regular = await tx.leavePolicy.create({ data: { name: 'Regular' } });
     const policy = await tx.leavePolicyVersion.create({
       data: { policyId: regular.id, number: 1, vacationDays: 25, sickDays: 5 },
     });
-    await tx.leavePolicyVersion.create({ data: { policyId: custom.id, number: 1, vacationDays: 30, sickDays: 8 } });
-    const christmas = await tx.christmasPolicy.create({ data: { name: 'Regular Christmas Vacation' } }),
-      extended = await tx.christmasPolicy.create({ data: { name: 'Extended Christmas Vacation' } });
+    if (!limited) {
+      const custom = await tx.leavePolicy.create({ data: { name: 'Extended' } });
+      await tx.leavePolicyVersion.create({ data: { policyId: custom.id, number: 1, vacationDays: 30, sickDays: 8 } });
+    }
+    const christmas = await tx.christmasPolicy.create({ data: { name: 'Regular Christmas Vacation' } });
     const christmasVersion = await tx.christmasPolicyVersion.create({
       data: { policyId: christmas.id, number: 1, days: 5 },
     });
-    await tx.christmasPolicyVersion.create({ data: { policyId: extended.id, number: 1, days: 7 } });
+    if (!limited) {
+      const extended = await tx.christmasPolicy.create({ data: { name: 'Extended Christmas Vacation' } });
+      await tx.christmasPolicyVersion.create({ data: { policyId: extended.id, number: 1, days: 7 } });
+    }
     const departments = new Map<string, string>();
     for (const [code, name] of [
       ['DIR', 'Leadership'],
@@ -75,6 +80,7 @@ export async function seed(db: DatabaseService) {
       ['Robin', 'Vale', 'MKT', 'MEMBER'],
       ['Drew', 'Lane', 'ACC', 'MEMBER'],
     ];
+    if (limited) people.splice(7);
     const ids: string[] = [];
     for (const [i, [firstName, lastName, code, position]] of people.entries()) {
       const [sequence] = await tx.$queryRaw<{ value: bigint }[]>`SELECT nextval('employee_id_sequence') AS value`;
@@ -137,7 +143,7 @@ export async function seed(db: DatabaseService) {
     });
     const balances = new LeaveBalanceService();
     for (const id of ids) await balances.accounts(tx, id, year);
-    for (const [i, status] of (['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const).entries()) {
+    for (const [i, status] of (limited ? [] : (['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const)).entries()) {
       const employeeId = ids[6];
       const accounts = await balances.accounts(tx, employeeId, year);
       const account = accounts.find((a) => a.type === 'VACATION')!;

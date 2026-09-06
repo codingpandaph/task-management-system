@@ -1,6 +1,7 @@
 'use client';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Chip, { type ChipProps } from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -95,6 +96,38 @@ export function Card({ title, children, className }: { title: string; children: 
       </Typography>
       {children}
     </Paper>
+  );
+}
+const tagColors: Record<string, ChipProps['color']> = {
+  ACTIVE: 'success',
+  APPROVED: 'success',
+  PENDING: 'warning',
+  SUSPENDED: 'warning',
+  REJECTED: 'error',
+  TERMINATED: 'error',
+  INACTIVE: 'default',
+  CANCELLED: 'default',
+  DRAFT: 'info',
+};
+export function StatusTag({ value }: { value: string }) {
+  return (
+    <Chip
+      className="status-tag"
+      color={tagColors[value] ?? 'default'}
+      label={value.replaceAll('_', ' ').toLowerCase()}
+      size="small"
+      variant={['ACTIVE', 'APPROVED'].includes(value) ? 'filled' : 'outlined'}
+    />
+  );
+}
+export function EmptyState({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="empty-state">
+      <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
+      <Typography variant="body2" color="text.secondary">
+        {detail}
+      </Typography>
+    </div>
   );
 }
 export function ModalForm({

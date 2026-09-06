@@ -33,6 +33,10 @@ yarn test:e2e:install
 yarn dev
 ```
 
+`yarn dev` and `yarn dev:retain` preserve existing development data. Use `yarn dev:fresh` when you explicitly want
+to reset the local development database, apply migrations, load the full fictional demo seed, and then start the apps.
+Fresh mode refuses remote hosts and the dedicated E2E database.
+
 The web application runs at <http://localhost:3000>, the API at <http://localhost:3001/api>, and liveness is available
 at <http://localhost:3001/health>. Browser API calls pass through the same-origin Next.js `/api` rewrite.
 
@@ -55,11 +59,10 @@ yarn db:migrate:dev --name descriptive_change
 yarn db:migrate:deploy
 ```
 
-Integration and E2E tests require `TEST_DATABASE_URL` to identify a dedicated database whose name ends in `_test` or
-is exactly `tms_test`. Tests refuse another database. Apply committed migrations to it before running the suite:
+Integration tests require a dedicated test database. Every Playwright command requires exactly `tms_test`, resets it,
+applies committed migrations, and loads a limited deterministic seven-person seed before starting the app:
 
 ```bash
-DATABASE_URL="$TEST_DATABASE_URL" yarn db:migrate:deploy
 yarn test
 ```
 
@@ -67,7 +70,8 @@ yarn test
 
 | Command                        | Purpose                                                |
 | ------------------------------ | ------------------------------------------------------ |
-| `yarn dev`                     | Build contracts and start web/API watch servers        |
+| `yarn dev` / `yarn dev:retain` | Start development while preserving database data       |
+| `yarn dev:fresh`               | Reset, seed, and start the local development database  |
 | `yarn build`                   | Build contracts, API, and web application              |
 | `yarn lint` / `yarn typecheck` | Static validation                                      |
 | `yarn format:check`            | Verify repository formatting                           |

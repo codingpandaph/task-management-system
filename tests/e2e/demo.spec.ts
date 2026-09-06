@@ -25,8 +25,19 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
   const christmasPolicy = `Demo Christmas ${suffix}`;
   const department = `Demo Operations ${suffix}`;
 
-  await test.step('HR creates regular and Christmas policies', async () => {
+  await test.step('run starts from the limited deterministic seed', async () => {
     await signIn(page, `${year}-HR-000004`);
+    const employees = (await (await page.request.get('/api/employees?pageSize=100')).json()) as { total: number };
+    const policies = (await (await page.request.get('/api/policies')).json()) as {
+      leave: unknown[];
+      christmas: unknown[];
+    };
+    expect(employees.total).toBe(7);
+    expect(policies.leave).toHaveLength(1);
+    expect(policies.christmas).toHaveLength(1);
+  });
+
+  await test.step('HR creates regular and Christmas policies', async () => {
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
 
     await page.getByRole('button', { name: 'Create leave policy', exact: true }).click();

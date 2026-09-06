@@ -5,11 +5,17 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
+import ArrowForwardOutlined from '@mui/icons-material/ArrowForwardOutlined';
+import BeachAccessOutlined from '@mui/icons-material/BeachAccessOutlined';
+import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
+import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
+import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import type { CurrentEmployee, PageResult } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, message } from './ui';
+import { Card, EmptyState, message, StatusTag } from './ui';
 interface Absence {
   id: string;
   startDate: string;
@@ -93,9 +99,14 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
         {error && <Alert severity="error">{error}</Alert>}
         {audit.map((a) => (
           <Box key={a.id} sx={{ py: 2, borderBottom: '1px solid #eee', overflowWrap: 'anywhere' }}>
-            <Typography sx={{ fontWeight: 600 }}>{a.action.replaceAll('_', ' ')}</Typography>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <StatusTag value={a.action} />
+              <Typography variant="body2" color="text.secondary">
+                {a.targetType}
+              </Typography>
+            </Stack>
             <Typography variant="body2" color="text.secondary">
-              {new Date(a.createdAt).toLocaleString()} · {a.targetType} {a.targetId}
+              {new Date(a.createdAt).toLocaleString()} · {a.targetId}
             </Typography>
           </Box>
         ))}
@@ -132,22 +143,24 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             )}
           </Stack>
         ))}
-        {!notices.length && <Typography>No notifications yet.</Typography>}
+        {!notices.length && (
+          <EmptyState title="You’re up to date" detail="New approvals and HR events will appear here." />
+        )}
       </Card>
     );
   const calendar = (
     <Card title="Who’s out">
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 3 }}>
         <Typography variant="h6">
           {new Date(`${month}-15`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
         </Typography>
         <Stack direction="row">
           <Button aria-label="Previous month" onClick={() => shift(-1)}>
-            ←
+            <ArrowBackOutlined />
           </Button>
           <Button onClick={() => setMonth(new Date().toISOString().slice(0, 7))}>Today</Button>
           <Button aria-label="Next month" onClick={() => shift(1)}>
-            →
+            <ArrowForwardOutlined />
           </Button>
         </Stack>
       </Stack>
@@ -163,7 +176,10 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
         {Array.from({ length: last }, (_, i) => {
           const day = `${month}-${String(i + 1).padStart(2, '0')}`;
           return (
-            <div key={day} className="calendar-day">
+            <div
+              key={day}
+              className={`calendar-day${day === new Date().toISOString().slice(0, 10) ? ' calendar-today' : ''}`}
+            >
               <Typography variant="caption" color="text.secondary">
                 {i + 1}
               </Typography>
@@ -190,7 +206,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
                 {e.employee.firstName} {e.employee.lastName}
                 <Typography component="span" variant="body2" color="text.secondary">
                   {' '}
-                  · {e.employee.department.name}
+                  · <Chip component="span" label={e.employee.department.name} size="small" variant="outlined" />
                 </Typography>
               </Typography>
               <Typography variant="body2">
@@ -199,9 +215,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             </Stack>
           ))
         ) : (
-          <Typography color="text.secondary" sx={{ py: 2 }}>
-            No planned absences this month.
-          </Typography>
+          <EmptyState title="Everyone is available" detail="There are no approved absences in this month." />
         )}
       </Box>
     </Card>
@@ -236,13 +250,16 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
           {dashboard && (
             <div className="stats">
               {[
-                ['Active employees', dashboard.active],
-                ['Currently away', dashboard.onLeave],
-                ['Pending leave', dashboard.pending],
-                ['Days used', dashboard.usedDays],
-              ].map(([label, value]) => (
-                <Card key={String(label)} title={String(label)}>
-                  <Typography variant="h3">{value}</Typography>
+                ['Active employees', dashboard.active, <GroupsOutlined key="active" />],
+                ['Currently away', dashboard.onLeave, <BeachAccessOutlined key="away" />],
+                ['Pending leave', dashboard.pending, <PendingActionsOutlined key="pending" />],
+                ['Days used', dashboard.usedDays, <CalendarTodayOutlined key="used" />],
+              ].map(([label, value, icon]) => (
+                <Card key={String(label)} title={String(label)} className="metric-card">
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'end' }}>
+                    <Typography variant="h3">{value}</Typography>
+                    <span className="metric-icon">{icon}</span>
+                  </Stack>
                 </Card>
               ))}
             </div>
@@ -258,7 +275,9 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
                 {c.employee.firstName} {c.employee.lastName} · {c.daysRemaining} days remaining
               </Typography>
             ))}
-            {!dashboard.contracts.length && <Typography>No contracts expiring in the next 90 days.</Typography>}
+            {!dashboard.contracts.length && (
+              <EmptyState title="No urgent contracts" detail="Nothing expires in the next 90 days." />
+            )}
           </Card>
           <Card title="Probation reviews">
             {dashboard.probation.map((p) => (
@@ -266,7 +285,9 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
                 {p.employee.firstName} {p.employee.lastName} · {p.probationEnd.slice(0, 10)}
               </Typography>
             ))}
-            {!dashboard.probation.length && <Typography>No upcoming probation reviews.</Typography>}
+            {!dashboard.probation.length && (
+              <EmptyState title="No reviews due" detail="Upcoming probation reviews will be listed here." />
+            )}
           </Card>
         </div>
       )}
