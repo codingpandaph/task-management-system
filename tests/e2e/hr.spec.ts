@@ -178,8 +178,10 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
     await directorTag.evaluate((element) => getComputedStyle(element).backgroundColor),
   );
   await page.getByRole('tab', { name: 'Employment', exact: true }).click();
-  await expect(page.getByText('Manage effective employment records and role changes.')).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Employment history' })).toBeVisible();
+  await expect(page.getByText('Full time', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
+  await expect(page.getByText('Employee create', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Access controls', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Policies', exact: true }).click();
@@ -187,6 +189,12 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   await page.getByRole('tab', { name: /Christmas/ }).click();
   await page.getByLabel('Search policies', { exact: true }).fill('Christmas');
   await expect(page.getByText(/Christmas/).first()).toBeVisible();
+  await page.getByRole('button', { name: 'New version', exact: true }).first().click();
+  await expect(page.getByRole('dialog', { name: /Create a new version/ })).toBeVisible();
+  await page
+    .getByRole('dialog', { name: /Create a new version/ })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
   expect((await page.locator('.action-bar').boundingBox())!.y).toBeLessThan(280);
 
   await page.getByRole('link', { name: 'Approvals', exact: true }).click();
@@ -345,7 +353,11 @@ test('remaining management, policy, lifecycle, reporting, and session flows comp
     await post(hr, `employees/${employee.id}/reactivate`, hrCsrf, { reason: 'E2E reactivation' });
     await post(hr, `employees/${employee.id}/terminate`, hrCsrf, { reason: 'E2E termination' });
 
-    for (const endpoint of ['reporting/dashboard', `reporting/calendar?start=${year}-01-01&end=${year}-03-31`, 'audit']) {
+    for (const endpoint of [
+      'reporting/dashboard',
+      `reporting/calendar?start=${year}-01-01&end=${year}-03-31`,
+      'audit',
+    ]) {
       const response = await hr.get(`/api/${endpoint}`);
       expect(response.ok(), `${endpoint}: ${await response.text()}`).toBe(true);
     }

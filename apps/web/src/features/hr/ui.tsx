@@ -48,6 +48,7 @@ export function Form({
         try {
           await onSubmit(values);
           setSuccess(true);
+          window.dispatchEvent(new CustomEvent('hris:notice', { detail: 'Changes saved successfully' }));
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Unable to save');
         } finally {

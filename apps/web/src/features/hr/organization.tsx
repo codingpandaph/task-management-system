@@ -52,12 +52,28 @@ interface EmployeeDetail extends DirectoryEmployee {
   birthDate?: string;
   email?: string;
 }
+interface EmploymentRecord {
+  id: string;
+  type: string;
+  startDate: string;
+  endDate?: string;
+  probationEnd?: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  reason: string;
+}
+interface PermissionGrant {
+  id: string;
+  permission: { code: string };
+}
 const reason: Field = { name: 'reason', label: 'Reason' };
 export function OrganizationScreens({ path, user }: { path: string; user: CurrentEmployee }) {
   const [departments, setDepartments] = useState<Department[]>([]),
     [people, setPeople] = useState<PageResult<DirectoryEmployee>>({ items: [], total: 0, page: 1, pageSize: 20 }),
     [policies, setPolicies] = useState<{ leave: Policy[]; christmas: Policy[] }>({ leave: [], christmas: [] }),
     [detail, setDetail] = useState<EmployeeDetail | null>(null),
+    [employment, setEmployment] = useState<EmploymentRecord[]>([]),
+    [permissionGrants, setPermissionGrants] = useState<PermissionGrant[]>([]),
     [error, setError] = useState(''),
     [search, setSearch] = useState(''),
     [page, setPage] = useState(1),
@@ -95,6 +111,22 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       api<EmployeeDetail>(`employees/${id}`)
         .then((d) => {
           if (active) setDetail(d);
+        })
+        .catch((e) => {
+          if (active) setError(message(e));
+        });
+    if (id && can('EMPLOYMENT_MANAGE'))
+      api<EmploymentRecord[]>(`employees/${id}/employment-records`)
+        .then((records) => {
+          if (active) setEmployment(records);
+        })
+        .catch((e) => {
+          if (active) setError(message(e));
+        });
+    if (id && can('EMPLOYEE_READ'))
+      api<PermissionGrant[]>(`employees/${id}/permissions`)
+        .then((grants) => {
+          if (active) setPermissionGrants(grants);
         })
         .catch((e) => {
           if (active) setError(message(e));
@@ -200,9 +232,48 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 </div>
               )}
               {employeeTab === 1 && (
-                <Typography color="text.secondary" sx={{ mt: 3 }}>
-                  Manage effective employment records and role changes.
-                </Typography>
+                <Stack spacing={2} sx={{ mt: 3 }}>
+                  <Typography color="text.secondary">
+                    Effective-dated employment history, with the current record first.
+                  </Typography>
+                  {employment.length ? (
+                    <div className="table-scroll">
+                      <Table size="small" aria-label="Employment history">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Type</TableCell>
+                            <TableCell>Employment dates</TableCell>
+                            <TableCell>Effective period</TableCell>
+                            <TableCell>Reason</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {employment.map((record) => (
+                            <TableRow key={record.id}>
+                              <TableCell>
+                                <Tag value={record.type} tone="blue" />
+                              </TableCell>
+                              <TableCell>
+                                {record.startDate.slice(0, 10)} – {record.endDate?.slice(0, 10) ?? 'Open-ended'}
+                                {record.probationEnd && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                    Review {record.probationEnd.slice(0, 10)}
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {record.effectiveFrom.slice(0, 10)} – {record.effectiveTo?.slice(0, 10) ?? 'Current'}
+                              </TableCell>
+                              <TableCell>{record.reason}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <EmptyState title="No employment history" detail="Add the employee’s first employment record." />
+                  )}
+                </Stack>
               )}
               {employeeTab === 2 && (
                 <Typography color="text.secondary" sx={{ mt: 3 }}>
@@ -210,9 +281,21 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 </Typography>
               )}
               {employeeTab === 3 && (
-                <Typography color="text.secondary" sx={{ mt: 3 }}>
-                  Control account status, credentials, and explicit permissions.
-                </Typography>
+                <Stack spacing={2} sx={{ mt: 3 }}>
+                  <Typography color="text.secondary">Current explicit access grants for this employee.</Typography>
+                  {permissionGrants.length ? (
+                    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+                      {permissionGrants.map((grant) => (
+                        <Tag key={grant.id} value={grant.permission.code} tone="purple" />
+                      ))}
+                    </Stack>
+                  ) : (
+                    <EmptyState
+                      title="No explicit permissions"
+                      detail="This employee only has standard account access."
+                    />
+                  )}
+                </Stack>
               )}
             </Card>
             <Card
@@ -402,6 +485,58 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     <Typography variant="caption" color="text.secondary">
                       Current version · annual entitlement
                     </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                      {((policyTab === 0 && can('LEAVE_POLICY_MANAGE')) ||
+                        (policyTab === 1 && can('CHRISTMAS_POLICY_MANAGE'))) && (
+                        <ModalForm
+                          buttonLabel="New version"
+                          title={`Create a new version of ${policy.name}`}
+                          fields={
+                            policyTab === 0
+                              ? [
+                                  { name: 'name', label: 'Policy name', value: policy.name },
+                                  {
+                                    name: 'vacationDays',
+                                    label: 'Vacation days',
+                                    type: 'number',
+                                    value: policy.leavePolicyVersion_policy?.[0]?.vacationDays,
+                                  },
+                                  {
+                                    name: 'sickDays',
+                                    label: 'Sick days',
+                                    type: 'number',
+                                    value: policy.leavePolicyVersion_policy?.[0]?.sickDays,
+                                  },
+                                ]
+                              : [
+                                  { name: 'name', label: 'Policy name', value: policy.name },
+                                  {
+                                    name: 'days',
+                                    label: 'Days',
+                                    type: 'number',
+                                    value: policy.christmasPolicyVersion_policy?.[0]?.days,
+                                  },
+                                ]
+                          }
+                          onSubmit={(values) =>
+                            save(`${policyTab === 0 ? 'leave' : 'christmas'}-policies/${policy.id}/versions`, values)
+                          }
+                        />
+                      )}
+                      {((policyTab === 0 && can('LEAVE_POLICY_MANAGE')) ||
+                        (policyTab === 1 && can('CHRISTMAS_POLICY_MANAGE'))) && (
+                        <Button
+                          color={policy.status === 'ACTIVE' ? 'warning' : 'success'}
+                          onClick={() =>
+                            save(`${policyTab === 0 ? 'leave' : 'christmas'}-policies/${policy.id}/status`, {
+                              status: policy.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
+                            })
+                          }
+                        >
+                          {policy.status === 'ACTIVE' ? 'Make inactive' : 'Activate'}
+                        </Button>
+                      )}
+                    </Stack>
                   </div>
                 );
               })}

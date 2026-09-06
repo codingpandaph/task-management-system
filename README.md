@@ -93,6 +93,10 @@ HR adjustments, reporting, audit, responsive UI, and direct authorization denial
 headed tour. The step-by-step manual checklist and expected results are in
 [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist).
 
+The portal uses task-based employee tabs with visible employment history and access grants, searchable approval queues,
+department-filtered calendars, semantic tags, policy version/status actions, and global success messages. Business
+mutations remain enforced by the API regardless of which controls are visible in the browser.
+
 ## Architecture
 
 Nest controllers validate transport DTOs and delegate to domain services. PostgreSQL transactions and row locks guard

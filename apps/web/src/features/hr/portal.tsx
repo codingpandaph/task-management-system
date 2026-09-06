@@ -7,6 +7,7 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
 import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined';
 import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
@@ -34,7 +35,13 @@ export default function Portal() {
     router = useRouter();
   const [user, setUser] = useState<CurrentEmployee | null>(null),
     [loading, setLoading] = useState(true),
-    [error, setError] = useState('');
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState('');
+  useEffect(() => {
+    const showNotice = (event: Event) => setNotice((event as CustomEvent<string>).detail);
+    window.addEventListener('hris:notice', showNotice);
+    return () => window.removeEventListener('hris:notice', showNotice);
+  }, []);
   useEffect(() => {
     let active = true;
     api<CurrentEmployee>('auth/me')
@@ -159,6 +166,16 @@ export default function Portal() {
   const title = nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People';
   return (
     <div className="portal">
+      <Snackbar
+        open={!!notice}
+        autoHideDuration={4000}
+        onClose={() => setNotice('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setNotice('')}>
+          {notice}
+        </Alert>
+      </Snackbar>
       <aside className="sidebar">
         <Link href="/" className="brand">
           <span className="brand-mark">CP</span>
