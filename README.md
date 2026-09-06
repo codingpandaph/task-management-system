@@ -1,4 +1,4 @@
-# Northstar People — HR & Organization Foundation
+# CPPinSync — HR & Organization Foundation
 
 A TypeScript monorepo for employee identity, organization administration, employment lifecycle, leave accounting,
 approvals, reporting, notifications, and audit. The browser app uses Next.js 16, React 19, MUI, and Tailwind. The REST

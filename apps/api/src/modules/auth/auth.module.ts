@@ -94,8 +94,11 @@ export class AuthController {
   @Post('login')
   @Public()
   async login(@Body() dto: LoginDto, @Req() req: AuthRequest, @Res({ passthrough: true }) res: Response) {
-    this.throttle(`ip:${req.ip}`, 20);
-    this.throttle(`identity:${digest(dto.employeeId.trim().toUpperCase())}`, 5);
+    this.throttle(`ip:${req.ip}`, this.config.get<number>('LOGIN_IP_LIMIT', 20));
+    this.throttle(
+      `identity:${digest(dto.employeeId.trim().toUpperCase())}`,
+      this.config.get<number>('LOGIN_IDENTITY_LIMIT', 5),
+    );
     return this.setCookies(res, await this.auth.login(dto.employeeId, dto.password));
   }
   @Post('refresh')

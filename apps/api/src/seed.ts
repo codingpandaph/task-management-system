@@ -133,7 +133,7 @@ export async function seed(db: DatabaseService) {
       }
     }
     await tx.organizationSettings.create({
-      data: { name: 'Northstar People', calendarId: calendar.id, hrApproverId: ids[4] },
+      data: { name: 'CPPinSync', calendarId: calendar.id, hrApproverId: ids[4] },
     });
     const balances = new LeaveBalanceService();
     for (const id of ids) await balances.accounts(tx, id, year);

@@ -6,7 +6,10 @@ const required = { DATABASE_URL: 'postgresql://localhost/tms_test', JWT_ACCESS_S
 const validate = (values: Record<string, unknown>) => validateEnvironment({ ...required, ...values });
 
 test('environment defaults allow startup without local configuration', () => {
-  assert.equal(validate({}).PORT, 3001);
+  const environment = validate({});
+  assert.equal(environment.PORT, 3001);
+  assert.equal(environment.LOGIN_IDENTITY_LIMIT, 5);
+  assert.equal(environment.LOGIN_IP_LIMIT, 20);
 });
 
 test('environment accepts and converts configured ports', () => {
@@ -18,4 +21,6 @@ test('environment rejects invalid ports and runtime modes before startup', () =>
     assert.throws(() => validate({ PORT }), /PORT must be/);
   }
   assert.throws(() => validate({ NODE_ENV: 'invalid' }), /NODE_ENV must be/);
+  assert.throws(() => validate({ LOGIN_IDENTITY_LIMIT: 0 }), /LOGIN_IDENTITY_LIMIT/);
+  assert.throws(() => validate({ LOGIN_IP_LIMIT: 'nope' }), /LOGIN_IP_LIMIT/);
 });

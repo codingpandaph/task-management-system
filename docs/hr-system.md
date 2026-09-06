@@ -1,6 +1,6 @@
 # HR & Organization Foundation
 
-This document is the authoritative business specification for the Northstar People prototype. It implements one
+This document is the authoritative business specification for the CPPinSync prototype. It implements one
 organization, one PostgreSQL database, dynamic departments, employee identity, employment lifecycle, permission-based
 administration, annual leave, reporting, notifications, and append-oriented audit history. Task Management is a future
 module that may reuse these foundations but has no schema, API, or UI here.
@@ -122,6 +122,174 @@ raw employee serialization.
 Actual production worker-health processing requires an employer-approved UK GDPR lawful basis and applicable
 special-category condition. The prototype deliberately sets no invented legal retention period and implements no
 automatic deletion, subject-access tooling, or legal certification.
+
+## Complete system flows
+
+The following journeys describe every interactive flow currently exposed by the portal and REST API. Each mutation is
+authenticated, origin-checked, CSRF-protected, validated through a DTO, authorized against current database state, and
+audited where it changes business state.
+
+### 1. Sign in and session lifecycle
+
+1. The employee opens `/login` and enters an Employee ID and password.
+2. The API normalizes only the Employee ID, performs the credential and current eligibility checks, and creates an
+   authoritative session with access and refresh cookies.
+3. The portal loads `/auth/me` and builds navigation from the employee's current permissions.
+4. When access expires, the browser performs one serialized refresh, rotates the opaque refresh credential, and retries
+   the request once. A consumed credential replay revokes the session.
+5. Sign-out revokes the current session, clears both cookies and private in-memory browser state, and returns to login.
+6. Suspension, deactivation, termination, contract expiry, password reset, or password change also revokes affected
+   sessions. The next protected request is denied.
+
+### 2. First login and password reset
+
+1. HR creates an employee and receives the generated Employee ID and random temporary password in a transient dialog.
+2. The employee signs in with those one-time credentials and is routed to `/change-password`.
+3. All directory, HR, leave, approval, reporting, notification, and audit endpoints remain forbidden until completion.
+4. The employee supplies the temporary password and a valid new password. The API replaces the hash, clears the forced
+   change flag, revokes earlier sessions, and issues a fresh unrestricted session.
+5. An authorized HR user can later reset the password with a reason. A new temporary password is shown once and the
+   same forced-change flow repeats.
+
+### 3. Employee creation and administration
+
+1. An authorized HR user opens `/employees`, filters or pages through employees, and submits identity, birth date,
+   department, employment type/dates, and current leave/Christmas policy versions.
+2. In one transaction the API allocates the immutable ID, stores the bcrypt hash, creates the employee, effective
+   organization and employment history, annual policy assignments, audit event, and one-time credential response.
+3. HR opens `/employees/:id` to update basic information with optimistic version checking. Confidential fields appear
+   only when the viewer has their dedicated permission.
+4. HR may transfer a Member to an active department with a reason. Membership history closes and reopens without
+   changing the Employee ID.
+5. HR may append full-time, contractual, or probationary employment records. The previous current record closes and
+   historical records remain available through the employee employment endpoint.
+6. Authorized users may view current grants, grant allowed capabilities, or revoke them. The API prevents self-change,
+   invalid HR delegation, and privilege escalation.
+
+### 4. Account and employment status
+
+1. HR suspends an Active employee with a restricted reason and future end instant. Sessions revoke immediately.
+2. Request-time and scheduled reconciliation restore Active only when the prior state and current employment permit it.
+3. HR can deactivate an Active or Suspended employee, reactivate an eligible Inactive employee explicitly, or terminate
+   an Active, Suspended, or Inactive employee. Termination cannot be reversed in this prototype.
+4. Contractual access expires after the inclusive London end date. A later renewal does not override an administrative
+   Inactive state. Probation review dates create reminders but do not remove access.
+5. Status and employment changes retain their actor, effective time, and reason in restricted history and audit data.
+
+### 5. Department and leadership administration
+
+1. Authorized HR opens `/organization`, creates a normalized unique department code, and edits its name/description.
+2. A department may remain without an Account Director and is visibly incomplete; dependent leave submissions fail
+   safely until leadership is assigned.
+3. Account Director assignment validates active employment and membership, atomically demotes any previous holder,
+   promotes the replacement, writes organization history, and audits the change.
+4. The Senior Director may atomically appoint a successor and designate the final active HR leave approver.
+5. Department activation is explicit. Deactivation is refused while active/suspended employees or unresolved approval
+   responsibilities remain; HR transfers staff and resolves workflows first.
+6. `/organization` and `/directory/employees` provide the organization-wide minimal hierarchy without confidential data.
+
+### 6. Leave and Christmas policy administration
+
+1. Authorized HR opens `/policies` and creates a regular leave policy or independent Christmas policy.
+2. Editing creates the next immutable version. Existing employee-year assignments continue to reference the old version.
+3. HR can mark a policy Active or Inactive. Inactive versions remain readable historically but cannot be newly assigned.
+4. From an employee record, HR assigns a concrete regular and Christmas version for a future leave year.
+5. Current-year changes use the separate audited balance-adjustment flow; policy reassignment does not rewrite posted
+   entitlement.
+
+### 7. Balance creation and viewing
+
+1. The employee opens `/leave`; the API creates the employee-year and Vacation, Sick, and Christmas Vacation accounts
+   on demand when missing.
+2. Immutable annual entitlement postings are created once from the assigned policy versions.
+3. Each balance is derived from ledger totals and displays entitlement, reserved, used, and available days.
+4. Repeated account creation or operation IDs return the existing result and cannot duplicate entitlement or postings.
+
+### 8. Drafting and filing leave
+
+1. The employee selects Vacation, Sick, or Christmas Vacation, date range, and an optional reason.
+2. Preview calculates advisory working days using the London calendar, weekends, and checked-in holidays.
+3. Saving creates a Draft, which may be edited without reserving days.
+4. Filing the Draft supplies a unique operation ID. The API locks the employee/account and validates employment dates,
+   calendar coverage, working days, past dates, year boundary, December-only Christmas, overlap, and affordability.
+5. The API snapshots chargeable dates and the exact approval chain. It then reserves the balance, or records used days
+   immediately for Senior Director auto-approval, and creates audit and notification records atomically.
+6. Filed dates and leave type cannot be edited. The employee cancels and creates a new request when those must change.
+
+### 9. Reviewing and deciding leave
+
+1. An approver opens `/approvals` to see currently assigned request and cancellation steps.
+2. Opening a request shows the employee, dates, optional permitted reason, status, ordered timeline, and whether each
+   snapshotted assignee remains eligible.
+3. Approve/reject locks the request and account, verifies the actor, eligibility, sequence, and current state, then
+   updates the step, workflow, ledger, audit, and notifications in one transaction.
+4. Intermediate approval activates the next step. Final approval moves reserved days to used. Rejection requires a
+   reason, terminates the workflow, and releases reserved days.
+5. Duplicate, stale, wrong-actor, and out-of-order decisions return conflicts. An ineligible snapshot remains visible as
+   blocked and is never silently reassigned.
+
+### 10. Cancelling leave
+
+1. Cancelling Draft or Pending leave immediately marks it Cancelled and releases any reservation.
+2. Cancelling future Approved leave creates a separate Pending cancellation and copies the original approval chain.
+3. The original request remains Approved and charged while cancellation approval is pending.
+4. Final cancellation approval marks the original Cancelled and reverses used days. Rejection leaves the request and
+   charge unchanged. Auto-approved leave with no chain cancels immediately while still future-dated.
+5. When leave has started, normal cancellation completion is refused and HR uses the correction flow.
+
+### 11. HR leave administration and corrections
+
+1. An authorized HR user opens `/hr` to view employee leave records and balances.
+2. HR may post an immediate Approved administrative leave entry with employee, type, dates, mandatory reason, and
+   operation ID. Normal approval is bypassed and the source remains visibly Administrative.
+3. HR may adjust an employee's annual entitlement up or down with a mandatory reason; an adjustment that would produce
+   negative availability is rejected. Retrying the same operation ID cannot post twice.
+4. To correct existing leave, HR supplies corrected dates/type and a reason. The API reverses the original charge and
+   posts the corrected charge atomically, retaining both request and ledger history.
+5. HR cannot create administrative leave, corrections, or adjustments for themselves.
+
+### 12. Who's Out calendar
+
+1. The employee opens `/calendar`, navigates months, returns to today, and views accessible calendar and compact list
+   presentations.
+2. Ordinary employees receive only Approved absences in their own department. Senior Director and authorized HR may
+   request a broader or department-filtered view.
+3. Entries disclose name, department, and absence dates only. Leave type and reason never appear.
+4. The layout switches between month grid and list presentation across mobile, tablet, and desktop breakpoints without
+   horizontal page overflow.
+
+### 13. HR dashboard and reminders
+
+1. Authorized HR users land on dashboard aggregates for active staff, departments, employment types, Pending leave,
+   current absences, suspensions, and used days.
+2. Contract expiry and probation review lists show upcoming operational work without exposing restricted status reasons.
+3. The scheduled reminder pass finds relevant employment records and creates deduplicated notifications for active HR
+   users with employment-management permission.
+
+### 14. Notifications
+
+1. Each employee opens `/notifications` to receive their own paginated, newest-first items.
+2. Workflow events create safe titles/messages and protected resource references rather than copying confidential text.
+3. Mark-read updates only a notification owned by the current recipient. Accessing another recipient's ID behaves as an
+   inaccessible resource.
+
+### 15. Audit review
+
+1. A user with `AUDIT_READ` opens `/audit` and pages through immutable business events.
+2. Entries show actor identifier, action, target type/identifier, time, request ID when present, and allowlisted metadata.
+3. Audit rows cannot be updated or deleted. Passwords, refresh/access credentials, cookies, DOB, health narratives, and
+   restricted employment/status reasons are excluded.
+
+### 16. Error, retry, and privacy behavior
+
+1. APIs return `401` for missing/invalid sessions, `403` for capability denial, `404` for inaccessible resources,
+   `409` for stale or conflicting transitions, and `422` for business-rule rejection.
+2. Responses carry a stable safe message and request ID. Lists use server pagination with 20 default and 100 maximum.
+3. Editable resources use optimistic versions. Ledger-style mutations use actor-scoped operation IDs.
+4. The frontend displays safe form errors, performs at most one authentication refresh/retry, and does not automatically
+   replay an unsafe mutation that lacks an operation ID.
+5. No password hash, token, credential, confidential reason, or raw Prisma Employee object is returned through public
+   projections, notifications, audit metadata, or structured logs.
 
 ## Future improvements / production hardening
 

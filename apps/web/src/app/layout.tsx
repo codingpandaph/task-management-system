@@ -5,8 +5,8 @@ import './globals.css';
 import Providers from './providers';
 
 export const metadata: Metadata = {
-  title: 'Task Management System',
-  description: 'Task Management System frontend foundation.',
+  title: 'CPPinSync — People & Organization',
+  description: 'CPPinSync employee, organization, and leave management.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

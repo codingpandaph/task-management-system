@@ -1,12 +1,16 @@
 'use client';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 export interface Field {
   name: string;
   label: string;
@@ -83,14 +87,63 @@ export function Form({
     </form>
   );
 }
-export function Card({ title, children }: { title: string; children: ReactNode }) {
+export function Card({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, height: '100%', borderRadius: 3 }}>
+    <Paper className={className} variant="outlined" sx={{ p: { xs: 2, sm: 3 }, height: '100%', borderRadius: 3 }}>
       <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
         {title}
       </Typography>
       {children}
     </Paper>
+  );
+}
+export function ModalForm({
+  buttonLabel,
+  title,
+  description,
+  fields,
+  onSubmit,
+  submitLabel = 'Save changes',
+  variant = 'outlined',
+  icon,
+}: {
+  buttonLabel: string;
+  title: string;
+  description?: string;
+  fields: Field[];
+  onSubmit: (values: Record<string, string | number>) => Promise<void>;
+  submitLabel?: string;
+  variant?: 'text' | 'outlined' | 'contained';
+  icon?: ReactElement;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant={variant} startIcon={icon} onClick={() => setOpen(true)}>
+        {buttonLabel}
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogContent>
+          {description && (
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              {description}
+            </Typography>
+          )}
+          <Form
+            fields={fields}
+            label={submitLabel}
+            onSubmit={async (values) => {
+              await onSubmit(values);
+              setOpen(false);
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 export function message(error: unknown) {

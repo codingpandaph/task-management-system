@@ -29,7 +29,13 @@ export default defineConfig({
     {
       command: 'yarn workspace @tms/api build && yarn start:api',
       url: 'http://127.0.0.1:3101/health',
-      env: { PORT: '3101', DATABASE_URL: process.env.TEST_DATABASE_URL ?? '', APP_ORIGIN: 'http://127.0.0.1:3100' },
+      env: {
+        PORT: '3101',
+        DATABASE_URL: process.env.TEST_DATABASE_URL ?? '',
+        APP_ORIGIN: 'http://127.0.0.1:3100',
+        LOGIN_IDENTITY_LIMIT: '100',
+        LOGIN_IP_LIMIT: '250',
+      },
       reuseExistingServer: false,
       timeout: 120_000,
     },

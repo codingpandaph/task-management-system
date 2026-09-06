@@ -8,6 +8,17 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined';
+import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
+import BeachAccessOutlined from '@mui/icons-material/BeachAccessOutlined';
+import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined';
+import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
+import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined';
+import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
+import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
+import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined';
+import PolicyOutlined from '@mui/icons-material/PolicyOutlined';
+import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
 import type { CurrentEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -68,8 +79,8 @@ export default function Portal() {
     return (
       <main className="auth-layout">
         <section className="auth-story">
-          <div className="brand-mark">N</div>
-          <Typography variant="overline">NORTHSTAR PEOPLE</Typography>
+          <div className="brand-mark">CP</div>
+          <Typography variant="overline">CPPINSYNC</Typography>
           <Typography component="h1" variant="h2" sx={{ mt: 4, maxWidth: 560 }}>
             A clearer view of your people.
           </Typography>
@@ -128,40 +139,45 @@ export default function Portal() {
       </Box>
     );
   const nav = [
-    ['/', 'Overview'],
-    ['/organization', 'Organization'],
-    ['/employees', 'People'],
-    ['/leave', 'My leave'],
-    ['/approvals', 'Approvals'],
-    ['/calendar', 'Who’s out'],
+    { href: '/', label: 'Overview', icon: <DashboardOutlined /> },
+    { href: '/organization', label: 'Organization', icon: <AccountTreeOutlined /> },
+    { href: '/employees', label: 'People', icon: <GroupsOutlined /> },
+    { href: '/leave', label: 'My leave', icon: <BeachAccessOutlined /> },
+    { href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> },
+    { href: '/calendar', label: 'Who’s out', icon: <CalendarMonthOutlined /> },
     ...(user.permissions.includes('LEAVE_POLICY_MANAGE') || user.permissions.includes('CHRISTMAS_POLICY_MANAGE')
-      ? [['/policies', 'Policies']]
+      ? [{ href: '/policies', label: 'Policies', icon: <PolicyOutlined /> }]
       : []),
-    ...(user.permissions.includes('LEAVE_ADMIN') ? [['/hr', 'Leave administration']] : []),
-    ...(user.permissions.includes('AUDIT_READ') ? [['/audit', 'Audit log']] : []),
-    ['/notifications', 'Notifications'],
+    ...(user.permissions.includes('LEAVE_ADMIN')
+      ? [{ href: '/hr', label: 'Leave administration', icon: <AdminPanelSettingsOutlined /> }]
+      : []),
+    ...(user.permissions.includes('AUDIT_READ')
+      ? [{ href: '/audit', label: 'Audit log', icon: <FactCheckOutlined /> }]
+      : []),
+    { href: '/notifications', label: 'Notifications', icon: <NotificationsNoneOutlined /> },
   ];
-  const title = nav.find(([href]) => (href === '/' ? path === '/' : path.startsWith(href)))?.[1] ?? 'People';
+  const title = nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People';
   return (
     <div className="portal">
       <aside className="sidebar">
         <Link href="/" className="brand">
-          <span className="brand-mark">N</span>
+          <span className="brand-mark">CP</span>
           <span>
-            Northstar<small>PEOPLE & ORGANIZATION</small>
+            CPPinSync<small>PEOPLE & ORGANIZATION</small>
           </span>
         </Link>
         <Typography variant="overline" sx={{ px: 2, mt: 4, color: '#87968f' }}>
           WORKSPACE
         </Typography>
         <nav aria-label="Main navigation">
-          {nav.map(([href, label]) => (
+          {nav.map(({ href, label, icon }) => (
             <Link
               key={href}
               href={href}
               className={(href === '/' ? path === '/' : path.startsWith(href)) ? 'nav-link selected' : 'nav-link'}
             >
-              {label}
+              {icon}
+              <span>{label}</span>
             </Link>
           ))}
         </nav>
@@ -183,6 +199,7 @@ export default function Portal() {
             <Typography variant="body2">{user.displayName}</Typography>
             <Button
               size="small"
+              startIcon={<LogoutOutlined />}
               onClick={async () => {
                 try {
                   await api('auth/logout', {});
@@ -202,7 +219,7 @@ export default function Portal() {
           <div className="page-heading">
             <div>
               <Typography variant="overline" color="text.secondary">
-                NORTHSTAR / {user.department.name}
+                CPPINSYNC / {user.department.name}
               </Typography>
               <Typography component="h1" variant="h3" sx={{ mt: 0.5 }}>
                 {title}

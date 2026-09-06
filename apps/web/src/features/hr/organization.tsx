@@ -14,11 +14,21 @@ import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Chip from '@mui/material/Chip';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import InputAdornment from '@mui/material/InputAdornment';
+import AddBusinessOutlined from '@mui/icons-material/AddBusinessOutlined';
+import AddOutlined from '@mui/icons-material/AddOutlined';
+import BadgeOutlined from '@mui/icons-material/BadgeOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import ManageAccountsOutlined from '@mui/icons-material/ManageAccountsOutlined';
+import PersonAddAltOutlined from '@mui/icons-material/PersonAddAltOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import { PERMISSIONS, type CurrentEmployee, type DirectoryEmployee, type PageResult } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, Form, message, type Field } from './ui';
+import { Card, message, ModalForm, type Field } from './ui';
 interface Department {
   id: string;
   name: string;
@@ -52,6 +62,10 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     [search, setSearch] = useState(''),
     [page, setPage] = useState(1),
     [department, setDepartment] = useState(''),
+    [position, setPosition] = useState(''),
+    [status, setStatus] = useState(''),
+    [policyTab, setPolicyTab] = useState(0),
+    [policySearch, setPolicySearch] = useState(''),
     [revision, setRevision] = useState(0),
     [secret, setSecret] = useState('');
   const can = (p: CurrentEmployee['permissions'][number]) => user.permissions.includes(p);
@@ -62,7 +76,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       api<Department[]>('departments'),
       api<{ leave: Policy[]; christmas: Policy[] }>('policies'),
       api<PageResult<DirectoryEmployee>>(
-        `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}`,
+        `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}${position ? `&position=${position}` : ''}${status ? `&status=${status}` : ''}`,
       ),
     ])
       .then(([d, p, e]) => {
@@ -87,7 +101,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     return () => {
       active = false;
     };
-  }, [id, page, search, department, revision, user.permissions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, page, search, department, position, status, revision, user.permissions]); // eslint-disable-line react-hooks/exhaustive-deps
   const options = departments.filter((d) => d.status === 'ACTIVE').map((d) => ({ value: d.id, label: d.name }));
   const employeeOptions = people.items.map((e) => ({ value: e.id, label: e.displayName }));
   const policyOptions = policies.leave.flatMap(
@@ -132,10 +146,16 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
               <Chip label={detail.status} sx={{ mt: 1 }} />
               {detail.birthDate && <Typography sx={{ mt: 2 }}>Birth date: {detail.birthDate}</Typography>}
             </Card>
-            <div className="grid-two">
-              {can('EMPLOYEE_UPDATE') && (
-                <Card title="Basic information">
-                  <Form
+            <Card title="Employee actions" className="action-bar">
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                Choose an action. Each change opens in its own review dialog.
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} useFlexGap sx={{ flexWrap: 'wrap' }}>
+                {can('EMPLOYEE_UPDATE') && (
+                  <ModalForm
+                    buttonLabel="Edit profile"
+                    icon={<EditOutlined />}
+                    title="Edit basic information"
                     fields={[
                       { name: 'firstName', label: 'First name', value: detail.firstName },
                       { name: 'middleName', label: 'Middle name', optional: true, value: detail.middleName },
@@ -144,20 +164,21 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     ]}
                     onSubmit={(v) => save(`employees/${id}`, { ...v, version: detail.version }, 'PATCH')}
                   />
-                </Card>
-              )}
-              {can('DEPARTMENT_ASSIGN_MEMBER') && (
-                <Card title="Transfer department">
-                  <Form
+                )}
+                {can('DEPARTMENT_ASSIGN_MEMBER') && (
+                  <ModalForm
+                    buttonLabel="Transfer department"
+                    icon={<ManageAccountsOutlined />}
+                    title="Transfer department"
                     fields={[{ name: 'departmentId', label: 'Department', options }, reason]}
                     onSubmit={(v) => save(`employees/${id}/transfer`, v)}
                   />
-                </Card>
-              )}
-              {can('EMPLOYEE_STATUS_MANAGE') && (
-                <Card title="Suspend access">
-                  <Form
-                    label="Suspend employee"
+                )}
+                {can('EMPLOYEE_STATUS_MANAGE') && (
+                  <ModalForm
+                    buttonLabel="Suspend access"
+                    title="Suspend employee access"
+                    submitLabel="Suspend employee"
                     fields={[reason, { name: 'suspendedUntil', label: 'Suspended until', type: 'datetime-local' }]}
                     onSubmit={(v) =>
                       save(`employees/${id}/suspend`, {
@@ -166,11 +187,11 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                       })
                     }
                   />
-                </Card>
-              )}
-              {can('EMPLOYEE_STATUS_MANAGE') && (
-                <Card title="Account status">
-                  <Form
+                )}
+                {can('EMPLOYEE_STATUS_MANAGE') && (
+                  <ModalForm
+                    buttonLabel="Change status"
+                    title="Change account status"
                     fields={[
                       {
                         name: 'action',
@@ -185,23 +206,23 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     ]}
                     onSubmit={async ({ action, ...v }) => save(`employees/${id}/${action}`, v)}
                   />
-                </Card>
-              )}
-              {can('EMPLOYEE_PASSWORD_RESET') && (
-                <Card title="Reset password">
-                  <Form
-                    label="Generate temporary password"
+                )}
+                {can('EMPLOYEE_PASSWORD_RESET') && (
+                  <ModalForm
+                    buttonLabel="Reset password"
+                    title="Reset employee password"
+                    submitLabel="Generate temporary password"
                     fields={[reason]}
                     onSubmit={async (v) => {
                       const r = await api<{ temporaryPassword: string }>(`employees/${id}/reset-password`, v);
                       setSecret(r.temporaryPassword);
                     }}
                   />
-                </Card>
-              )}
-              {can('EMPLOYMENT_MANAGE') && (
-                <Card title="Employment record">
-                  <Form
+                )}
+                {can('EMPLOYMENT_MANAGE') && (
+                  <ModalForm
+                    buttonLabel="Add employment record"
+                    title="Add employment record"
                     fields={[
                       {
                         name: 'type',
@@ -218,11 +239,11 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                     ]}
                     onSubmit={(v) => save(`employees/${id}/employment-records`, v)}
                   />
-                </Card>
-              )}
-              {(can('PERMISSION_ASSIGN') || user.position === 'SENIOR_DIRECTOR') && (
-                <Card title="Permissions">
-                  <Form
+                )}
+                {(can('PERMISSION_ASSIGN') || user.position === 'SENIOR_DIRECTOR') && (
+                  <ModalForm
+                    buttonLabel="Manage permissions"
+                    title="Manage permissions"
                     fields={[
                       {
                         name: 'code',
@@ -243,31 +264,31 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                       save(`employees/${id}/permissions${action === 'revoke' ? '/revoke' : ''}`, v)
                     }
                   />
-                </Card>
-              )}
-              {can('LEAVE_POLICY_MANAGE') && (
-                <Card title="Next-year leave policy">
-                  <Form
+                )}
+                {can('LEAVE_POLICY_MANAGE') && (
+                  <ModalForm
+                    buttonLabel="Assign leave policy"
+                    title="Assign next-year leave policy"
                     fields={[
                       { name: 'policyVersionId', label: 'Policy', options: policyOptions },
                       { name: 'year', label: 'Leave year', type: 'number', value: new Date().getFullYear() + 1 },
                     ]}
                     onSubmit={(v) => save(`employees/${id}/leave-policy`, v)}
                   />
-                </Card>
-              )}
-              {can('CHRISTMAS_POLICY_MANAGE') && (
-                <Card title="Next-year Christmas policy">
-                  <Form
+                )}
+                {can('CHRISTMAS_POLICY_MANAGE') && (
+                  <ModalForm
+                    buttonLabel="Assign Christmas policy"
+                    title="Assign next-year Christmas policy"
                     fields={[
                       { name: 'policyVersionId', label: 'Policy', options: christmasOptions },
                       { name: 'year', label: 'Leave year', type: 'number', value: new Date().getFullYear() + 1 },
                     ]}
                     onSubmit={(v) => save(`employees/${id}/christmas-policy`, v)}
                   />
-                </Card>
-              )}
-            </div>
+                )}
+              </Stack>
+            </Card>
           </>
         )}
         {credentialDialog}
@@ -277,27 +298,45 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     return (
       <Stack spacing={3}>
         {error && <Alert severity="error">{error}</Alert>}
-        <div className="grid-two">
-          <Card title="Leave policies">
-            {policies.leave.map((p) => (
-              <Typography key={p.id} sx={{ mb: 1 }}>
-                {p.name} · {p.status} · {p.leavePolicyVersion_policy?.[0]?.vacationDays} VL /{' '}
-                {p.leavePolicyVersion_policy?.[0]?.sickDays} SL
-              </Typography>
-            ))}
-          </Card>
-          <Card title="Christmas policies">
-            {policies.christmas.map((p) => (
-              <Typography key={p.id} sx={{ mb: 1 }}>
-                {p.name} · {p.status} · {p.christmasPolicyVersion_policy?.[0]?.days} days
-              </Typography>
-            ))}
-          </Card>
-        </div>
-        <div className="grid-two">
-          {can('LEAVE_POLICY_MANAGE') && (
-            <Card title="Create leave policy">
-              <Form
+        <Card title="Policy catalogue">
+          <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 2 }}>
+            <Tabs value={policyTab} onChange={(_, value: number) => setPolicyTab(value)} aria-label="Policy types">
+              <Tab label={`Regular leave (${policies.leave.length})`} />
+              <Tab label={`Christmas (${policies.christmas.length})`} />
+            </Tabs>
+            <TextField
+              label="Search policies"
+              value={policySearch}
+              onChange={(event) => setPolicySearch(event.target.value)}
+            />
+          </Stack>
+          {policyTab === 0
+            ? policies.leave
+                .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
+                .map((p) => (
+                  <Typography component="div" key={p.id} sx={{ mb: 1 }}>
+                    {p.name} <Chip label={p.status.toLowerCase()} size="small" /> ·{' '}
+                    {p.leavePolicyVersion_policy?.[0]?.vacationDays} VL / {p.leavePolicyVersion_policy?.[0]?.sickDays}{' '}
+                    SL
+                  </Typography>
+                ))
+            : policies.christmas
+                .filter((policy) => policy.name.toLowerCase().includes(policySearch.toLowerCase()))
+                .map((p) => (
+                  <Typography component="div" key={p.id} sx={{ mb: 1 }}>
+                    {p.name} <Chip label={p.status.toLowerCase()} size="small" /> ·{' '}
+                    {p.christmasPolicyVersion_policy?.[0]?.days} days
+                  </Typography>
+                ))}
+        </Card>
+        <Card title="Policy actions" className="action-bar">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            {can('LEAVE_POLICY_MANAGE') && (
+              <ModalForm
+                buttonLabel="Create leave policy"
+                icon={<AddOutlined />}
+                title="Create leave policy"
+                variant="contained"
                 fields={[
                   { name: 'name', label: 'Policy name' },
                   { name: 'vacationDays', label: 'Vacation days', type: 'number' },
@@ -305,20 +344,21 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 ]}
                 onSubmit={(v) => save('leave-policies', v)}
               />
-            </Card>
-          )}
-          {can('CHRISTMAS_POLICY_MANAGE') && (
-            <Card title="Create Christmas policy">
-              <Form
+            )}
+            {can('CHRISTMAS_POLICY_MANAGE') && (
+              <ModalForm
+                buttonLabel="Create Christmas policy"
+                icon={<AddOutlined />}
+                title="Create Christmas policy"
                 fields={[
                   { name: 'name', label: 'Policy name' },
                   { name: 'days', label: 'Days', type: 'number' },
                 ]}
                 onSubmit={(v) => save('christmas-policies', v)}
               />
-            </Card>
-          )}
-        </div>
+            )}
+          </Stack>
+        </Card>
       </Stack>
     );
   if (path.startsWith('/organization'))
@@ -340,7 +380,9 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                   </Typography>
                 ))}
               {can('DEPARTMENT_UPDATE') && (
-                <Form
+                <ModalForm
+                  buttonLabel="Edit department"
+                  title={`Edit ${d.name}`}
                   fields={[
                     { name: 'name', label: 'Department name', value: d.name },
                     { name: 'description', label: 'Description', optional: true },
@@ -351,23 +393,28 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
             </Card>
           ))}
         </div>
-        <div className="grid-two">
-          {can('DEPARTMENT_CREATE') && (
-            <Card title="Create department">
-              <Form
+        <Card title="Organization actions" className="action-bar">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            {can('DEPARTMENT_CREATE') && (
+              <ModalForm
+                buttonLabel="Create department"
+                icon={<AddBusinessOutlined />}
+                title="Create a department"
+                variant="contained"
+                submitLabel="Create department"
                 fields={[
                   { name: 'code', label: 'Department code' },
                   { name: 'name', label: 'Department name' },
                   { name: 'description', label: 'Description', optional: true },
                 ]}
-                label="Create department"
                 onSubmit={(v) => save('departments', v)}
               />
-            </Card>
-          )}
-          {can('DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR') && (
-            <Card title="Assign Account Director">
-              <Form
+            )}
+            {can('DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR') && (
+              <ModalForm
+                buttonLabel="Assign Account Director"
+                icon={<BadgeOutlined />}
+                title="Assign Account Director"
                 fields={[
                   { name: 'departmentId', label: 'Department', options },
                   { name: 'employeeId', label: 'Employee', options: employeeOptions },
@@ -375,11 +422,11 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 ]}
                 onSubmit={async ({ departmentId, ...v }) => save(`departments/${departmentId}/director`, v)}
               />
-            </Card>
-          )}
-          {user.position === 'SENIOR_DIRECTOR' && (
-            <Card title="Governance assignments">
-              <Form
+            )}
+            {user.position === 'SENIOR_DIRECTOR' && (
+              <ModalForm
+                buttonLabel="Governance assignment"
+                title="Governance assignment"
                 fields={[
                   {
                     name: 'action',
@@ -394,9 +441,9 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 ]}
                 onSubmit={async ({ action, ...v }) => save(`organization/${action}`, v)}
               />
-            </Card>
-          )}
-        </div>
+            )}
+          </Stack>
+        </Card>
       </Stack>
     );
   return (
@@ -406,12 +453,22 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
           <TextField
             label="Search people"
+            placeholder="Name or Employee ID"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
             size="small"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlined />
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
           <TextField
             select
@@ -431,6 +488,40 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
               </MenuItem>
             ))}
           </TextField>
+          <TextField
+            select
+            label="Position"
+            value={position}
+            onChange={(event) => {
+              setPosition(event.target.value);
+              setPage(1);
+            }}
+            sx={{ minWidth: 170 }}
+          >
+            <MenuItem value="">All positions</MenuItem>
+            <MenuItem value="MEMBER">Member</MenuItem>
+            <MenuItem value="ACCOUNT_DIRECTOR">Account Director</MenuItem>
+            <MenuItem value="SENIOR_DIRECTOR">Senior Director</MenuItem>
+          </TextField>
+          {can('EMPLOYEE_READ') && (
+            <TextField
+              select
+              label="Status"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value);
+                setPage(1);
+              }}
+              sx={{ minWidth: 150 }}
+            >
+              <MenuItem value="">All statuses</MenuItem>
+              {['ACTIVE', 'SUSPENDED', 'INACTIVE', 'TERMINATED'].map((value) => (
+                <MenuItem key={value} value={value}>
+                  {value.toLowerCase()}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
         </Stack>
         <div className="table-scroll">
           <Table>
@@ -468,9 +559,16 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         </Stack>
       </Card>
       {can('EMPLOYEE_CREATE') && (
-        <Card title="Create employee">
-          <Form
-            label="Create employee"
+        <Card title="People actions" className="action-bar">
+          <Typography color="text.secondary" sx={{ mb: 2 }}>
+            Add a new employee without leaving the directory.
+          </Typography>
+          <ModalForm
+            buttonLabel="Add employee"
+            icon={<PersonAddAltOutlined />}
+            title="Add a new employee"
+            variant="contained"
+            submitLabel="Create employee"
             fields={[
               { name: 'firstName', label: 'First name' },
               { name: 'middleName', label: 'Middle name', optional: true },

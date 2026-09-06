@@ -3,12 +3,16 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import AddOutlined from '@mui/icons-material/AddOutlined';
+import EditCalendarOutlined from '@mui/icons-material/EditCalendarOutlined';
+import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, Form, message, type Field } from './ui';
+import { Card, message, ModalForm, type Field } from './ui';
 interface RequestRow {
   id: string;
   type: string;
@@ -67,7 +71,9 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
     [people, setPeople] = useState<DirectoryEmployee[]>([]),
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0),
-    [preview, setPreview] = useState('');
+    [preview, setPreview] = useState(''),
+    [requestSearch, setRequestSearch] = useState(''),
+    [requestStatus, setRequestStatus] = useState('ALL');
   const id = path.startsWith('/leave/') ? path.split('/')[2] : undefined;
   useEffect(() => {
     let active = true;
@@ -154,8 +160,11 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             {detail.status === 'PENDING' &&
               detail.steps.find((s) => s.status === 'PENDING')?.approverId === user.id && (
                 <Card title="Your decision">
-                  <Form
-                    label="Record decision"
+                  <ModalForm
+                    buttonLabel="Review request"
+                    title="Record your decision"
+                    variant="contained"
+                    submitLabel="Record decision"
                     fields={[
                       {
                         name: 'decision',
@@ -176,8 +185,10 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               )}
             {detail.employeeId === user.id && ['PENDING', 'APPROVED'].includes(detail.status) && (
               <Card title="Cancel leave">
-                <Form
-                  label="Request cancellation"
+                <ModalForm
+                  buttonLabel="Request cancellation"
+                  title="Request leave cancellation"
+                  submitLabel="Request cancellation"
                   fields={[{ name: 'reason', label: 'Cancellation reason' }]}
                   onSubmit={async (v) => {
                     await api(`leave/requests/${id}/cancel`, { ...v, operationId: crypto.randomUUID() });
@@ -189,7 +200,9 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             {detail.cancellations.map((c) => (
               <Card key={c.id} title={`Cancellation · ${c.status}`}>
                 {c.status === 'PENDING' && c.steps.find((s) => s.status === 'PENDING')?.approverId === user.id ? (
-                  <Form
+                  <ModalForm
+                    buttonLabel="Review cancellation"
+                    title="Review cancellation request"
                     fields={[
                       {
                         name: 'decision',
@@ -254,6 +267,11 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
       </Stack>
     );
   const employeeOptions = people.filter((p) => p.id !== user.id).map((p) => ({ value: p.id, label: p.displayName }));
+  const filteredRows = rows.filter(
+    (row) =>
+      (requestStatus === 'ALL' || row.status === requestStatus) &&
+      `${row.type} ${row.status} ${row.startDate} ${row.endDate}`.toLowerCase().includes(requestSearch.toLowerCase()),
+  );
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
@@ -274,8 +292,28 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
         ))}
       </div>
       <Card title={path === '/hr' ? 'Employee leave records' : 'My requests'}>
-        {rows.length ? (
-          rows.map((r) => (
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+          <TextField
+            label="Search requests"
+            placeholder="Type, status, or date"
+            value={requestSearch}
+            onChange={(event) => setRequestSearch(event.target.value)}
+            sx={{ minWidth: { md: 280 } }}
+          />
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+            {['ALL', 'DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map((status) => (
+              <Chip
+                key={status}
+                label={status === 'ALL' ? 'All' : status.toLowerCase()}
+                color={requestStatus === status ? 'primary' : 'default'}
+                variant={requestStatus === status ? 'filled' : 'outlined'}
+                onClick={() => setRequestStatus(status)}
+              />
+            ))}
+          </Stack>
+        </Stack>
+        {filteredRows.length ? (
+          filteredRows.map((r) => (
             <Stack
               key={r.id}
               direction={{ xs: 'column', sm: 'row' }}
@@ -294,82 +332,93 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             </Stack>
           ))
         ) : (
-          <Typography color="text.secondary">No leave requests yet.</Typography>
+          <Typography color="text.secondary">No requests match these filters.</Typography>
         )}
       </Card>
-      {path !== '/hr' ? (
-        <Card title="Plan your time away">
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Weekends and bank holidays don’t count. Pending requests reserve your allowance.
-          </Typography>
-          {preview && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              {preview}
-            </Alert>
-          )}
-          <Form
-            label="File leave"
-            fields={[
-              ...leaveFields,
-              {
-                name: 'action',
-                label: 'Action',
-                value: 'submit',
-                options: [
-                  { value: 'submit', label: 'Submit for approval' },
-                  { value: 'draft', label: 'Save draft' },
-                  { value: 'preview', label: 'Preview working days' },
-                ],
-              },
-            ]}
-            onSubmit={async ({ action, ...v }) => {
-              if (action === 'preview') {
-                const result = await api<{ workingDays: number }>('leave/preview', v);
-                setPreview(`${result.workingDays} working days`);
-                return;
-              }
-              const draft = await api<{ id: string }>('leave/requests', v);
-              if (action === 'submit')
-                await api(`leave/requests/${draft.id}/submit`, { operationId: crypto.randomUUID() });
-              reload();
-            }}
-          />
-        </Card>
-      ) : (
-        <div className="grid-two">
-          <Card title="Administrative leave entry">
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Creates approved leave immediately. An administrative reason is required.
-            </Alert>
-            <Form
+      <Card className="action-bar" title={path === '/hr' ? 'HR actions' : 'Ready to plan time away?'}>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          {path === '/hr'
+            ? 'Administrative entries and balance changes open in a focused review dialog.'
+            : 'Weekends and bank holidays do not count. You can preview dates before filing.'}
+        </Typography>
+        {preview && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {preview}
+          </Alert>
+        )}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          {path !== '/hr' ? (
+            <ModalForm
+              buttonLabel="File leave"
+              icon={<EditCalendarOutlined />}
+              title="File a leave request"
+              description="Review the dates and action carefully. Pending requests reserve your allowance."
+              variant="contained"
+              submitLabel="Continue"
               fields={[
-                { name: 'employeeId', label: 'Employee', options: employeeOptions },
                 ...leaveFields,
-                { name: 'administrativeReason', label: 'Administrative reason' },
+                {
+                  name: 'action',
+                  label: 'Action',
+                  value: 'submit',
+                  options: [
+                    { value: 'submit', label: 'Submit for approval' },
+                    { value: 'draft', label: 'Save draft' },
+                    { value: 'preview', label: 'Preview working days' },
+                  ],
+                },
               ]}
-              onSubmit={async (v) => {
-                await api('hr/leave', { ...v, operationId: crypto.randomUUID() });
+              onSubmit={async ({ action, ...v }) => {
+                if (action === 'preview') {
+                  const result = await api<{ workingDays: number }>('leave/preview', v);
+                  setPreview(`${result.workingDays} working days in this request`);
+                  return;
+                }
+                const draft = await api<{ id: string }>('leave/requests', v);
+                if (action === 'submit')
+                  await api(`leave/requests/${draft.id}/submit`, { operationId: crypto.randomUUID() });
                 reload();
               }}
             />
-          </Card>
-          <Card title="Balance adjustment">
-            <Form
-              fields={[
-                { name: 'employeeId', label: 'Employee', options: employeeOptions },
-                { name: 'year', label: 'Year', type: 'number', value: new Date().getFullYear() },
-                leaveFields[0],
-                { name: 'days', label: 'Days to add or subtract', type: 'number' },
-                { name: 'reason', label: 'Adjustment reason' },
-              ]}
-              onSubmit={async (v) => {
-                await api('hr/leave/adjustments', { ...v, operationId: crypto.randomUUID() });
-                reload();
-              }}
-            />
-          </Card>
-        </div>
-      )}
+          ) : (
+            <>
+              <ModalForm
+                buttonLabel="Add administrative leave"
+                icon={<AddOutlined />}
+                title="Administrative leave entry"
+                description="This creates approved leave immediately and requires an administrative reason."
+                variant="contained"
+                fields={[
+                  { name: 'employeeId', label: 'Employee', options: employeeOptions },
+                  ...leaveFields,
+                  { name: 'administrativeReason', label: 'Administrative reason' },
+                ]}
+                onSubmit={async (v) => {
+                  await api('hr/leave', { ...v, operationId: crypto.randomUUID() });
+                  reload();
+                }}
+              />
+              <ModalForm
+                buttonLabel="Adjust balance"
+                icon={<TuneOutlined />}
+                title="Adjust annual balance"
+                description="Use a positive number to add days or a negative number to subtract them."
+                fields={[
+                  { name: 'employeeId', label: 'Employee', options: employeeOptions },
+                  { name: 'year', label: 'Year', type: 'number', value: new Date().getFullYear() },
+                  leaveFields[0],
+                  { name: 'days', label: 'Days to add or subtract', type: 'number' },
+                  { name: 'reason', label: 'Adjustment reason' },
+                ]}
+                onSubmit={async (v) => {
+                  await api('hr/leave/adjustments', { ...v, operationId: crypto.randomUUID() });
+                  reload();
+                }}
+              />
+            </>
+          )}
+        </Stack>
+      </Card>
     </Stack>
   );
 }

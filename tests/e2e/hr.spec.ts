@@ -39,17 +39,15 @@ test('HR creates a department and employee; new employee must change password', 
   const suffix = Date.now().toString().slice(-7),
     department = `Demo team ${suffix}`;
   await page.getByRole('link', { name: 'Organization', exact: true }).click();
-  const form = page
-    .locator('form')
-    .filter({ has: page.getByRole('button', { name: 'Create department', exact: true }) });
+  await page.getByRole('button', { name: 'Create department', exact: true }).click();
+  const form = page.getByRole('dialog', { name: 'Create a department' }).locator('form');
   await form.getByLabel('Department code').fill(`E${suffix}`);
   await form.getByLabel('Department name').fill(department);
   await form.getByRole('button', { name: 'Create department', exact: true }).click();
   await expect(page.getByRole('heading', { name: department, exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'People', exact: true }).click();
-  const employeeForm = page
-    .locator('form')
-    .filter({ has: page.getByRole('button', { name: 'Create employee', exact: true }) });
+  await page.getByRole('button', { name: 'Add employee', exact: true }).click();
+  const employeeForm = page.getByRole('dialog', { name: 'Add a new employee' }).locator('form');
   await employeeForm.getByLabel('First name', { exact: true }).fill('Fictional');
   await employeeForm.getByLabel('Last name', { exact: true }).fill(suffix);
   await employeeForm.getByLabel('Birth date', { exact: true }).fill('1992-03-04');
@@ -137,6 +135,44 @@ test('ordinary employee cannot enter HR screens; calendar stays responsive', asy
     await expect(page.getByRole('heading', { name: 'Who’s out', exact: true }).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
+});
+
+test('leave action dialog fits mobile, tablet, desktop, and breakpoint boundaries', async ({ page }) => {
+  await login(page.request, usernames.hrMember);
+  await page.goto('/leave');
+  for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByRole('button', { name: 'File leave', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'File a leave request' });
+    await expect(dialog).toBeVisible();
+    expect(await dialog.evaluate((element) => element.getBoundingClientRect().width <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  }
+});
+
+test('HRIS navigation, search, filters, tabs, icons, and primary actions stay immediately available', async ({ page }) => {
+  await login(page.request, usernames.hr);
+  await page.goto('/employees');
+
+  const actionBar = page.locator('.action-bar');
+  await expect(actionBar.getByRole('button', { name: 'Add employee', exact: true })).toBeVisible();
+  expect((await actionBar.boundingBox())!.y).toBeLessThan(280);
+  expect(await page.locator('.nav-link svg').count()).toBeGreaterThan(5);
+
+  await page.getByLabel('Search people', { exact: true }).fill('Taylor Quinn');
+  await expect(page.getByRole('link', { name: 'Taylor Quinn', exact: true })).toBeVisible();
+  await select(page, 'Department', 'Human Resources');
+  await select(page, 'Position', 'Account Director');
+  await select(page, 'Status', 'active');
+  await expect(page.getByRole('link', { name: 'Taylor Quinn', exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Policies', exact: true }).click();
+  await expect(page.getByRole('tab', { name: /Regular leave/ })).toBeVisible();
+  await page.getByRole('tab', { name: /Christmas/ }).click();
+  await page.getByLabel('Search policies', { exact: true }).fill('Christmas');
+  await expect(page.getByText(/Christmas/).first()).toBeVisible();
+  expect((await page.locator('.action-bar').boundingBox())!.y).toBeLessThan(280);
 });
 
 test('HR adjustment is idempotent and suspension immediately denies authentication', async ({ playwright }) => {

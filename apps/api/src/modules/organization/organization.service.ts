@@ -50,9 +50,15 @@ export class OrganizationService {
         : {}),
       ...(q.search
         ? {
-            OR: ['employeeId', 'firstName', 'lastName'].map((field) => ({
-              [field]: { contains: q.search, mode: 'insensitive' },
-            })),
+            AND: q.search
+              .trim()
+              .split(/\s+/)
+              .filter(Boolean)
+              .map((term) => ({
+                OR: ['employeeId', 'firstName', 'middleName', 'lastName'].map((field) => ({
+                  [field]: { contains: term, mode: 'insensitive' },
+                })),
+              })),
           }
         : {}),
     };

@@ -6,13 +6,22 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 
 const theme = createTheme({
-  palette: { primary: { main: '#285540' }, background: { default: '#f5f6f2' } },
-  shape: { borderRadius: 10 },
+  palette: {
+    primary: { main: '#165c46', dark: '#0f4535', light: '#d9eee6' },
+    background: { default: '#f4f7f5', paper: '#ffffff' },
+    text: { primary: '#16251f', secondary: '#607068' },
+  },
+  shape: { borderRadius: 12 },
   typography: {
     fontFamily: 'Arial, Helvetica, sans-serif',
-    h3: { fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.8px' },
-    h4: { fontWeight: 600 },
+    h3: { fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.9px' },
+    h4: { fontWeight: 700, letterSpacing: '-0.5px' },
     button: { textTransform: 'none', fontWeight: 600 },
+  },
+  components: {
+    MuiButton: { styleOverrides: { root: { borderRadius: 10, boxShadow: 'none', minHeight: 40 } } },
+    MuiDialog: { styleOverrides: { paper: { borderRadius: 18 } } },
+    MuiTextField: { defaultProps: { size: 'small' } },
   },
 });
 
