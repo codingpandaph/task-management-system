@@ -1,11 +1,13 @@
-# CPPinSync — HR & Organization Foundation
+# CPPinSync — HRIS & Task Management
 
 A TypeScript monorepo for employee identity, organization administration, employment lifecycle, leave accounting,
-approvals, reporting, notifications, and audit. The browser app uses Next.js 16, React 19, MUI, and Tailwind. The REST
-API uses NestJS 12, Prisma 7, and PostgreSQL. Public cross-application types live in `@tms/contracts`.
+department task boards, personal work, milestones, capacity, approvals, reporting, notifications, and audit. The
+browser app uses Next.js 16, React 19, MUI, and Tailwind. The REST API uses NestJS 12, Prisma 7, and PostgreSQL. Public
+cross-application types live in `@tms/contracts`.
 
-Task Management is intentionally outside this foundation. See [the business and security specification](docs/hr-system.md)
-and the architecture decisions in [docs/adr](docs/adr).
+See the [HRIS business and security specification](docs/hr-system.md), the
+[Task Management product and acceptance guide](docs/task-management.md), and the architecture decisions in
+[docs/adr](docs/adr).
 
 ## Local setup
 
@@ -91,20 +93,26 @@ change, directory scope, departments, employee edits/transfers/employment record
 regular and Christmas policy creation/versioning/status/assignment, balances, all five approval chains, cancellation,
 editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
 responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the five-path
-matrix. Use `yarn demo:e2e` for the paced headed tour. The step-by-step manual checklist and expected results are in
-[docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist).
+matrix. It also covers personal tasks, team boards, task creation, comments, Definition of Done, management sign-off,
+movement, delivery reporting, and every defined breakpoint. Use `yarn demo:e2e` for the paced headed tour. Manual
+checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
+[docs/task-management.md](docs/task-management.md#complete-manual-acceptance-checklist).
 
 The complete command runs the workflow suite in Chromium, then resets again and runs the critical login, navigation,
 responsive, and automated accessibility path in Chromium, Firefox, and WebKit. Use `yarn test:e2e:chromium` or
-`yarn test:e2e:browsers` when isolating one layer. Browser-specific login and People baselines provide visual regression
-coverage for the shared shell and the highest-use HR workspace.
+`yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
+task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
+
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 21 real-PostgreSQL integration tests, 15 full
+Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
+WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
 `yarn test:integration` also resets `tms_test`, using the fuller lifecycle fixture set required for contractual,
 probationary, concurrency, ledger, and privacy assertions. Both commands refuse any database other than `tms_test`.
 
-The portal uses task-based employee tabs with visible employment history and access grants, searchable approval queues,
-department-filtered calendars, semantic tags, policy version/status actions, and global success messages. Business
-mutations remain enforced by the API regardless of which controls are visible in the browser.
+The portal uses employee tabs with visible employment history and access grants, searchable approval queues,
+department-filtered calendars, personal task search, horizontal team Kanban boards, semantic tags, policy actions, and
+scoped delivery summaries. Business mutations remain enforced by the API regardless of which controls are visible.
 
 ## Architecture
 
@@ -117,6 +125,11 @@ The leave ledger is authoritative: entitlement, reservation, use, reversal, adju
 postings with unique operation keys. Policy assignments and chargeable leave dates preserve historical calculations.
 Business time and contractual expiry use `Europe/London`; bank holidays come from the checked-in attributed GOV.UK
 snapshot under `prisma/fixtures`.
+
+Task workspaces reuse HRIS positions and membership. Serializable workspace counters produce human task keys. Task
+completion enforces Definition of Done, blockers, and management-locked columns. Capacity uses active employees,
+business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
+initial lane. Task deletion is reversible and its activity ledger is append-only.
 
 Production deployment still requires HTTPS, independently managed secrets, shared rate limiting for multiple API
 instances, distributed scheduling, approved retention rules, employer-reviewed UK GDPR lawful bases, monitoring, and

@@ -419,6 +419,32 @@ export class OrganizationService {
       await tx.employeeStatusChange.create({
         data: { employeeId: id, actorId: actor.employee.id, previous: e.status, next, reason },
       });
+      if (next === 'TERMINATED') {
+        const tasks = await tx.task.findMany({
+          where: { assigneeId: id, isDeleted: false, column: { isDone: false } },
+          include: { board: { include: { columns: { where: { isInitial: true } } } } },
+        });
+        for (const task of tasks) {
+          const initial = task.board.columns[0];
+          if (!initial) continue;
+          await tx.task.update({ where: { id: task.id }, data: { assigneeId: null, columnId: initial.id } });
+          await tx.taskActivityLog.create({
+            data: {
+              taskId: task.id,
+              actorEmployeeId: actor.employee.id,
+              actionType: 'UPDATE_FIELD',
+              fieldChanged: 'terminationCleanup',
+              oldValue: { assigneeId: id, columnId: task.columnId },
+              newValue: { assigneeId: null, columnId: initial.id },
+            },
+          });
+        }
+        const milestoneIds = [
+          ...new Set(tasks.map((task) => task.milestoneId).filter((value): value is string => !!value)),
+        ];
+        if (milestoneIds.length)
+          await tx.milestone.updateMany({ where: { id: { in: milestoneIds } }, data: { isOvercapacity: true } });
+      }
       await audit(tx, actor.employee.id, 'ACCOUNT_STATUS_CHANGED', 'Employee', id, { previous: e.status, next });
       return { ok: true };
     });

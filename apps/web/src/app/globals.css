@@ -242,6 +242,115 @@ a {
   text-align: center;
   background: #fafcf9;
 }
+
+.task-hero {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: linear-gradient(120deg, #ffffff 0%, #f1f7f3 100%);
+}
+.task-hero > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.kanban {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(280px, 1fr);
+  gap: 16px;
+  overflow-x: auto;
+  padding: 2px 2px 18px;
+  scroll-snap-type: x proximity;
+}
+.kanban-column {
+  min-height: 420px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #eaf0ec;
+  scroll-snap-align: start;
+}
+.task-card {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #d7e1da;
+  border-radius: 12px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+.task-card:hover {
+  border-color: #28745a;
+  transform: translateY(-1px);
+}
+.task-card:focus-visible {
+  outline: 3px solid #82c9ae;
+  outline-offset: 2px;
+}
+.task-avatar,
+.task-count {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #dce9e0;
+  color: #184d3a;
+  font-size: 12px;
+  font-weight: 800;
+}
+.task-count {
+  width: auto;
+  min-width: 26px;
+  padding: 0 8px;
+}
+.task-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 32px;
+}
+.my-task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 899px) {
+  .task-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .task-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .kanban {
+    grid-auto-columns: minmax(260px, 84vw);
+  }
+}
+@media (max-width: 599px) {
+  .workspace-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .workspace-actions .MuiButton-root {
+    min-width: 0;
+    width: 100%;
+  }
+}
 .profile-card {
   background: linear-gradient(135deg, #fff 65%, #eef5e9) !important;
 }

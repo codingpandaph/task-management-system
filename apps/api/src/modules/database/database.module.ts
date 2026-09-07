@@ -17,8 +17,10 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy {
       try {
         return await this.$transaction(work, { isolationLevel: 'Serializable', timeout: 15_000 });
       } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2034' || attempt >= 2)
-          throw error;
+        const retryable =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' || /40001|40P01|serialize|deadlock/i.test(JSON.stringify(error.meta ?? {})));
+        if (!retryable || attempt >= 4) throw error;
       }
     }
   }

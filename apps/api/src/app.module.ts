@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { DatabaseModule } from './modules/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
+import { TaskModule } from './modules/tasks/task.module';
 
 import { validateEnvironment } from './config/environment';
 import { HealthController } from './health.controller';
@@ -21,6 +22,7 @@ import { HealthController } from './health.controller';
     LeavePoliciesModule,
     LeaveModule,
     ReportingModule,
+    TaskModule,
   ],
   controllers: [HealthController],
 })

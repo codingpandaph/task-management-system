@@ -141,6 +141,83 @@ export async function seed(db: DatabaseService) {
     await tx.organizationSettings.create({
       data: { name: 'CPPinSync', calendarId: calendar.id, hrApproverId: ids[4] },
     });
+    for (const [code, functionName, boardName] of [
+      ['ACC', 'SALES_ACCOUNT_MANAGEMENT', 'Client delivery'],
+      ['MKT', 'MARKETING_CREATIVE', 'Campaign delivery'],
+    ] as const) {
+      const workspace = await tx.workspace.create({
+        data: {
+          code,
+          name: `${code === 'ACC' ? 'Client Services' : 'Marketing'} workspace`,
+          function: functionName,
+          departmentId: departments.get(code)!,
+          nextTaskNumber: 3,
+        },
+      });
+      const board = await tx.taskBoard.create({
+        data: {
+          workspaceId: workspace.id,
+          name: boardName,
+          kind: 'KANBAN',
+          columns: {
+            create: [
+              { name: 'To do', position: 0, isInitial: true },
+              { name: 'In progress', position: 1 },
+              { name: 'Review', position: 2 },
+              { name: 'Done', position: 3, isDone: true, managementLocked: true },
+            ],
+          },
+        },
+        include: { columns: true },
+      });
+      const departmentPeople = await tx.employee.findMany({
+        where: { departmentId: departments.get(code)!, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      await tx.workspaceMembership.createMany({
+        data: departmentPeople.map(({ id }) => ({ workspaceId: workspace.id, employeeId: id })),
+      });
+      const milestone = await tx.milestone.create({
+        data: {
+          workspaceId: workspace.id,
+          name: `${code} delivery cycle`,
+          goal: 'Deliver the current team priorities with clear ownership.',
+          startDate: dateOnly(`${year}-11-01`),
+          dueDate: new Date(`${year}-12-18T17:00:00.000Z`),
+        },
+      });
+      const initial = board.columns.find((column) => column.isInitial)!;
+      const progress = board.columns.find((column) => column.name === 'In progress')!;
+      const reporterId = code === 'ACC' ? ids[1] : ids[2];
+      const assigneeId = code === 'ACC' ? ids[6] : limited ? ids[2] : ids[7];
+      for (const [index, task] of (
+        [
+          ['Prepare weekly client update', 'HIGH', 8, progress.id],
+          ['Review upcoming priorities', 'MEDIUM', 4, initial.id],
+        ] as const
+      ).entries()) {
+        const created = await tx.task.create({
+          data: {
+            workspaceId: workspace.id,
+            boardId: board.id,
+            columnId: task[3],
+            milestoneId: milestone.id,
+            number: index + 1,
+            publicKey: `${code}-#${index + 1}`,
+            title: task[0],
+            description: 'Fictional task-management demonstration item.',
+            priority: task[1],
+            estimatedHours: task[2],
+            reporterId,
+            assigneeId,
+            definitionOfDone: { create: [{ item: 'Work reviewed by the team', isChecked: index === 0 }] },
+          },
+        });
+        await tx.taskActivityLog.create({
+          data: { taskId: created.id, actorEmployeeId: reporterId, actionType: 'CREATE' },
+        });
+      }
+    }
     const balances = new LeaveBalanceService();
     for (const id of ids) await balances.accounts(tx, id, year);
     for (const [i, status] of (limited ? [] : (['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const)).entries()) {

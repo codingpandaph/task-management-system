@@ -78,6 +78,39 @@ enum LedgerType {
   CANCELLATION_REVERSAL
 }
 
+enum WorkspaceFunction {
+  ENGINEERING_PRODUCT
+  MARKETING_CREATIVE
+  SALES_ACCOUNT_MANAGEMENT
+  HR_OPERATIONS
+  FINANCE_LEGAL
+}
+
+enum MilestoneStatus {
+  OPEN
+  CLOSED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskLinkType {
+  BLOCKS
+  BLOCKED_BY
+  RELATES_TO
+}
+
+enum TaskActivityType {
+  CREATE
+  UPDATE_FIELD
+  COLUMN_CHANGE
+  DELETION
+  RESTORATION
+}
+
 model OrganizationSettings {
   id           String          @id @default(uuid()) @db.Uuid
   createdAt    DateTime        @default(now()) @db.Timestamptz(3)
@@ -104,6 +137,7 @@ model Department {
   employeeOrganizationHistory_department   EmployeeOrganizationHistory[]   @relation("EmployeeOrganizationHistory_department")
   leaveApprovalStep_department             LeaveApprovalStep[]             @relation("LeaveApprovalStep_department")
   leaveCancellationApprovalStep_department LeaveCancellationApprovalStep[] @relation("LeaveCancellationApprovalStep_department")
+  workspace_department                     Workspace?                      @relation("Workspace_department")
 }
 
 model Employee {
@@ -151,6 +185,11 @@ model Employee {
   leaveApprovalStep_approver                 LeaveApprovalStep[]                 @relation("LeaveApprovalStep_approver")
   leaveCancellationApprovalStep_approver     LeaveCancellationApprovalStep[]     @relation("LeaveCancellationApprovalStep_approver")
   notification_recipient                     Notification[]                      @relation("Notification_recipient")
+  workspaceMembership_employee               WorkspaceMembership[]               @relation("WorkspaceMembership_employee")
+  task_reporter                              Task[]                              @relation("Task_reporter")
+  task_assignee                              Task[]                              @relation("Task_assignee")
+  taskActivityLog_actor                      TaskActivityLog[]                   @relation("TaskActivityLog_actor")
+  taskComment_author                         TaskComment[]                       @relation("TaskComment_author")
 
   @@index([departmentId, status, position])
 }
@@ -557,4 +596,174 @@ model AuditEvent {
   actor      Employee? @relation("AuditEvent_actor", fields: [actorId], references: [id], onDelete: Restrict)
 
   @@index([targetType, targetId, createdAt])
+}
+
+model Workspace {
+  id             String                @id @default(uuid()) @db.Uuid
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+  code           String                @unique
+  name           String
+  function       WorkspaceFunction
+  nextTaskNumber Int                   @default(1)
+  departmentId   String                @unique @db.Uuid
+  department     Department            @relation("Workspace_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  boards         TaskBoard[]
+  milestones     Milestone[]
+  memberships    WorkspaceMembership[]
+  tasks          Task[]
+}
+
+model WorkspaceMembership {
+  id            String     @id @default(uuid()) @db.Uuid
+  createdAt     DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(3)
+  workspaceId   String     @db.Uuid
+  workspace     Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  employeeId    String     @db.Uuid
+  employee      Employee   @relation("WorkspaceMembership_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  milestoneId   String?    @db.Uuid
+  milestone     Milestone? @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+  effectiveFrom DateTime?  @db.Date
+  effectiveTo   DateTime?  @db.Date
+
+  @@index([workspaceId, employeeId])
+  @@index([milestoneId])
+}
+
+model TaskBoard {
+  id          String       @id @default(uuid()) @db.Uuid
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
+  name        String
+  kind        String
+  workspaceId String       @db.Uuid
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  columns     TaskColumn[]
+  tasks       Task[]
+
+  @@unique([workspaceId, name])
+}
+
+model TaskColumn {
+  id               String    @id @default(uuid()) @db.Uuid
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  name             String
+  position         Int
+  isInitial        Boolean   @default(false)
+  isDone           Boolean   @default(false)
+  managementLocked Boolean   @default(false)
+  boardId          String    @db.Uuid
+  board            TaskBoard @relation(fields: [boardId], references: [id], onDelete: Restrict)
+  tasks            Task[]
+
+  @@unique([boardId, position])
+  @@unique([boardId, name])
+}
+
+model Milestone {
+  id             String                @id @default(uuid()) @db.Uuid
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+  name           String
+  goal           String
+  startDate      DateTime              @db.Date
+  dueDate        DateTime              @db.Timestamptz(3)
+  status         MilestoneStatus       @default(OPEN)
+  isOvercapacity Boolean               @default(false)
+  workspaceId    String                @db.Uuid
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  tasks          Task[]
+  memberships    WorkspaceMembership[]
+
+  @@index([workspaceId, status, dueDate])
+}
+
+model Task {
+  id                   String             @id @default(uuid()) @db.Uuid
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+  number               Int
+  publicKey            String             @unique
+  title                String
+  description          String
+  priority             TaskPriority       @default(MEDIUM)
+  estimatedHours       Float              @default(0)
+  isManagementApproved Boolean            @default(false)
+  isEscalated          Boolean            @default(false)
+  isDeleted            Boolean            @default(false)
+  deletedAt            DateTime?          @db.Timestamptz(3)
+  lastColumnId         String?            @db.Uuid
+  workspaceId          String             @db.Uuid
+  workspace            Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  boardId              String             @db.Uuid
+  board                TaskBoard          @relation(fields: [boardId], references: [id], onDelete: Restrict)
+  columnId             String             @db.Uuid
+  column               TaskColumn         @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  milestoneId          String?            @db.Uuid
+  milestone            Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  reporterId           String             @db.Uuid
+  reporter             Employee           @relation("Task_reporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  assigneeId           String?            @db.Uuid
+  assignee             Employee?          @relation("Task_assignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  definitionOfDone     DefinitionOfDone[]
+  outgoingLinks        TaskLink[]         @relation("TaskLink_source")
+  incomingLinks        TaskLink[]         @relation("TaskLink_target")
+  activity             TaskActivityLog[]
+  comments             TaskComment[]
+
+  @@unique([workspaceId, number])
+  @@index([assigneeId, isDeleted])
+  @@index([workspaceId, columnId, isDeleted])
+  @@index([milestoneId])
+}
+
+model DefinitionOfDone {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  item      String
+  isChecked Boolean  @default(false)
+  taskId    String   @db.Uuid
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict)
+}
+
+model TaskLink {
+  id           String       @id @default(uuid()) @db.Uuid
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  type         TaskLinkType
+  sourceTaskId String       @db.Uuid
+  sourceTask   Task         @relation("TaskLink_source", fields: [sourceTaskId], references: [id], onDelete: Restrict)
+  targetTaskId String       @db.Uuid
+  targetTask   Task         @relation("TaskLink_target", fields: [targetTaskId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceTaskId, targetTaskId, type])
+  @@index([targetTaskId, type])
+}
+
+model TaskActivityLog {
+  id              String           @id @default(uuid()) @db.Uuid
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  actionType      TaskActivityType
+  fieldChanged    String?
+  oldValue        Json?
+  newValue        Json?
+  taskId          String           @db.Uuid
+  task            Task             @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  actorEmployeeId String           @db.Uuid
+  actor           Employee         @relation("TaskActivityLog_actor", fields: [actorEmployeeId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  body      String
+  taskId    String   @db.Uuid
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  authorId  String   @db.Uuid
+  author    Employee @relation("TaskComment_author", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt])
 }

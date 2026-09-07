@@ -1,9 +1,10 @@
 # HR & Organization Foundation
 
-This document is the authoritative business specification for the CPPinSync prototype. It implements one
+This document is the authoritative HRIS business specification for the CPPinSync prototype. It implements one
 organization, one PostgreSQL database, dynamic departments, employee identity, employment lifecycle, permission-based
-administration, annual leave, reporting, notifications, and append-oriented audit history. Task Management is a future
-module that may reuse these foundations but has no schema, API, or UI here.
+administration, annual leave, reporting, notifications, and append-oriented audit history. Integrated Task Management
+reuses this identity, hierarchy, lifecycle, leave calendar, notifications, and authentication authority; its behavior
+and acceptance guide are documented in [task-management.md](task-management.md).
 
 ## Identity and access
 
@@ -63,6 +64,11 @@ expiry restores Active only when the prior state was Active and no later blockin
 exists. Suspension, deactivation, termination, contract expiry, and password reset revoke sessions immediately.
 Eligibility is reconciled on request and by an idempotent one-minute job. History remains when an approver leaves;
 pending workflows are shown as blocked rather than silently reassigned.
+
+Task Management also reads current status before assignment. Permanent termination clears the employee from incomplete
+tasks, returns that work to each board's initial lane, records task activity, and flags affected milestones for capacity
+review in the same status-change transaction. Suspension and temporary inactivity deny access and new assignment but do
+not silently rewrite task ownership.
 
 ## Policies, calendar, and balances
 
@@ -308,6 +314,7 @@ in order; created names should include a unique suffix so repeated retained-data
 | Employment               | HR with employment permission             | Review the visible timeline, then add a contractual record with an inclusive end date                                           | Previous record closes; the current record appears first and history remains visible                              | browser, management and lifecycle flows                        |
 | Permissions              | Senior Director or permitted HR delegator | Grant then revoke an allowed permission; attempt self-grant                                                                     | Grant state changes and audits; self-escalation is denied                                                         | management and authorization flows                             |
 | Lifecycle                | HR with status permission                 | Suspend, deactivate, reactivate, reset password, then terminate a fixture                                                       | Sessions revoke immediately; reactivation requires Inactive; termination is final                                 | lifecycle and authentication flows                             |
+| Task termination bridge  | HR with status permission                 | Assign incomplete work to a fixture, then terminate that employee                                                               | Task assignee clears, card returns to its initial lane, and affected milestones require capacity review           | PostgreSQL task/lifecycle integration                          |
 | Policies                 | HR policy manager                         | Create/version/disable/enable regular and Christmas policies; assign next year                                                  | Versions remain immutable; inactive policy cannot be assigned; current year is unchanged                          | demo and management flows                                      |
 | Balances                 | Any employee                              | Open My Leave and inspect entitlement, used, reserved, available, and utilization bar                                           | Ledger-derived numbers reconcile and repeated loads do not duplicate entitlement                                  | leave and ledger flows                                         |
 | File leave               | Any eligible employee                     | Preview dates, save a draft, open and edit it, then submit; try weekend-only, overlap, cross-year, and non-December Christmas   | Valid request snapshots working days and approvers; invalid requests show safe validation errors                  | browser draft flow, demo, matrix, date integration flows       |
@@ -318,9 +325,9 @@ in order; created names should include a unique suffix so repeated retained-data
 | Notifications/audit      | Recipient; user with audit permission     | Filter All/Unread notifications, follow and mark an item read; search audit by action or target                                 | Only owned notifications change; audit stays immutable and contains no credentials or restricted narratives       | browser review, management reads and privacy integration flows |
 | Responsive/accessibility | Any role                                  | Repeat login, leave modal, directory, and calendar at 375, 599/600/601, 899/900/901, 1199/1200/1201, and 1440 px                | No page overflow; navigation, dialogs, forms, tags, and keyboard actions remain usable                            | breakpoint Playwright flows                                    |
 
-The cross-browser acceptance layer also runs automated axe checks on login and authenticated People views in Chromium,
-Firefox, and WebKit. It verifies the critical navigation path at 375, 900, and 1440 pixels in each engine and compares
-the login and People surfaces with browser-specific visual regression baselines.
+The cross-browser acceptance layer also runs automated axe checks on login, authenticated People, and Team Board views
+in Chromium, Firefox, and WebKit. It verifies the critical navigation path at 375, 900, and 1440 pixels in each engine
+and compares login, People, and desktop/mobile task-board surfaces with browser-specific visual regression baselines.
 
 Compact tags translate permission and workflow codes into plain labels such as **Add people**, **Manage status**, and
 **HR approvals**. Full internal codes remain available as hover titles. Buttons use at least a 44-pixel target and
@@ -337,6 +344,10 @@ Future work includes MFA/SSO and recovery links, user-facing session management,
 memberships, delegation/reassignment, partial-day leave, proration/carry-over, more leave types and calendars, medical
 documents, retention/anonymisation and data-subject workflows, exports, email/SMS, distributed jobs and throttling,
 advanced observability, calendar integrations, and backup/restore drills.
+
+Task-domain improvements, including authenticated GitHub/GitLab automation for repository-driven board movement, are
+tracked in [task-management.md](task-management.md#future-improvements--production-hardening). Repository automation
+must continue to honor HRIS eligibility, Definition of Done, blocker, and management-sign-off rules.
 
 Prisma 7.10’s PostgreSQL adapter currently emits a `client.query()` deprecation warning from its internal query call on
 some transactional writes. The verified operations complete correctly; reassess the upstream adapter fix before moving

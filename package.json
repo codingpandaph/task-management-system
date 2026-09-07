@@ -21,7 +21,7 @@
     "start:web": "yarn workspace @tms/web start",
     "start:api": "yarn workspace @tms/api start",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc --noEmit && yarn workspace @tms/api typecheck && yarn workspace @tms/web typecheck",
+    "typecheck": "yarn workspace @tms/contracts build && tsc --noEmit && yarn workspace @tms/api typecheck && yarn workspace @tms/web typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "yarn test:unit && yarn test:tooling && yarn test:integration && yarn test:e2e",

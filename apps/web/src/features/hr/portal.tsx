@@ -20,6 +20,10 @@ import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined';
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined';
 import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
+import ViewKanbanOutlined from '@mui/icons-material/ViewKanbanOutlined';
+import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
+import InsightsOutlined from '@mui/icons-material/InsightsOutlined';
+import DeleteSweepOutlined from '@mui/icons-material/DeleteSweepOutlined';
 import type { CurrentEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -29,6 +33,7 @@ import { Form, message } from './ui';
 import { OrganizationScreens } from './organization';
 import { LeaveScreens } from './leave';
 import { OverviewScreens } from './overview';
+import { TaskScreens } from '../tasks/tasks';
 
 export default function Portal() {
   const path = usePathname(),
@@ -148,6 +153,14 @@ export default function Portal() {
     { href: '/', label: 'Overview', icon: <DashboardOutlined /> },
     { href: '/organization', label: 'Organization', icon: <AccountTreeOutlined /> },
     { href: '/employees', label: 'People', icon: <GroupsOutlined /> },
+    { href: '/tasks', label: 'My tasks', icon: <WorkOutlineOutlined /> },
+    { href: '/workspaces', label: 'Team boards', icon: <ViewKanbanOutlined /> },
+    ...(user.position !== 'MEMBER'
+      ? [{ href: '/task-reports', label: 'Delivery reports', icon: <InsightsOutlined /> }]
+      : []),
+    ...(user.position !== 'MEMBER'
+      ? [{ href: '/task-archive', label: 'Task archive', icon: <DeleteSweepOutlined /> }]
+      : []),
     { href: '/leave', label: 'My leave', icon: <BeachAccessOutlined /> },
     { href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> },
     { href: '/calendar', label: 'Who’s out', icon: <CalendarMonthOutlined /> },
@@ -244,7 +257,12 @@ export default function Portal() {
             <Chip label="Europe / London" variant="outlined" size="small" />
           </div>
           {error && <Alert severity="error">{error}</Alert>}
-          {path.startsWith('/organization') || path.startsWith('/employees') || path === '/policies' ? (
+          {path.startsWith('/tasks') ||
+          path.startsWith('/workspaces') ||
+          path.startsWith('/task-reports') ||
+          path.startsWith('/task-archive') ? (
+            <TaskScreens path={path} user={user} />
+          ) : path.startsWith('/organization') || path.startsWith('/employees') || path === '/policies' ? (
             <OrganizationScreens path={path} user={user} />
           ) : path.startsWith('/leave') || path.startsWith('/approvals') || path.startsWith('/hr') ? (
             <LeaveScreens path={path} user={user} />

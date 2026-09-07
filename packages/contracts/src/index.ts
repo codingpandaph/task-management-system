@@ -61,3 +61,42 @@ export interface LeaveBalance {
   used: number;
   available: number;
 }
+
+export type WorkspaceFunction =
+  'ENGINEERING_PRODUCT' | 'MARKETING_CREATIVE' | 'SALES_ACCOUNT_MANAGEMENT' | 'HR_OPERATIONS' | 'FINANCE_LEGAL';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export interface TaskPerson {
+  id: string;
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  position: Position;
+}
+export interface TaskColumnContract {
+  id: string;
+  name: string;
+  position: number;
+  isInitial: boolean;
+  isDone: boolean;
+  managementLocked: boolean;
+  tasks: TaskContract[];
+}
+export interface TaskContract {
+  id: string;
+  publicKey: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  estimatedHours: number;
+  isManagementApproved: boolean;
+  isEscalated: boolean;
+  columnId: string;
+  column: { id: string; name: string; isInitial: boolean; isDone: boolean; managementLocked: boolean };
+  boardId: string;
+  workspaceId: string;
+  workspace: { id: string; code: string; name: string; departmentId: string };
+  reporter: TaskPerson;
+  assignee: TaskPerson | null;
+  milestone: { id: string; name: string; dueDate: string; isOvercapacity: boolean } | null;
+  definitionOfDone: { id: string; item: string; isChecked: boolean }[];
+}
