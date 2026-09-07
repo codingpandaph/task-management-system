@@ -24,7 +24,14 @@ import EditOutlined from '@mui/icons-material/EditOutlined';
 import ManageAccountsOutlined from '@mui/icons-material/ManageAccountsOutlined';
 import PersonAddAltOutlined from '@mui/icons-material/PersonAddAltOutlined';
 import SearchOutlined from '@mui/icons-material/SearchOutlined';
-import { PERMISSIONS, type CurrentEmployee, type DirectoryEmployee, type PageResult } from '@tms/contracts';
+import {
+  canRoleHoldPermission,
+  PERMISSIONS,
+  resolveAccessRole,
+  type CurrentEmployee,
+  type DirectoryEmployee,
+  type PageResult,
+} from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
@@ -290,7 +297,11 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
               )}
               {employeeTab === 3 && (
                 <Stack spacing={2} sx={{ mt: 3 }}>
-                  <Typography color="text.secondary">Current explicit access grants for this employee.</Typography>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Typography color="text.secondary">Effective role</Typography>
+                    <Tag value={resolveAccessRole(detail.position, detail.department.kind === 'HR')} tone="purple" />
+                  </Stack>
+                  <Typography color="text.secondary">Additional access grants within this role’s ceiling.</Typography>
                   {permissionGrants.length ? (
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
                       {permissionGrants.map((grant) => (
@@ -411,7 +422,9 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                       {
                         name: 'code',
                         label: 'Permission',
-                        options: PERMISSIONS.map((value) => ({ value, label: value })),
+                        options: PERMISSIONS.filter((permission) =>
+                          canRoleHoldPermission(detail.position, detail.department.kind === 'HR', permission),
+                        ).map((value) => ({ value, label: value })),
                       },
                       {
                         name: 'action',

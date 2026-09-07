@@ -84,12 +84,13 @@ export const HR_DELEGABLE: readonly PermissionCode[] = [
 ];
 export type Position = 'SENIOR_DIRECTOR' | 'ACCOUNT_DIRECTOR' | 'MEMBER';
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'INACTIVE' | 'TERMINATED';
+export type DepartmentKind = 'OPERATIONAL' | 'HR';
 export type LeaveType = 'VACATION' | 'SICK' | 'CHRISTMAS_VACATION';
 export interface DirectoryEmployee {
   id: string;
   employeeId: string;
   displayName: string;
-  department: { id: string; name: string; code: string };
+  department: { id: string; name: string; code: string; kind: DepartmentKind };
   position: Position;
 }
 export interface CurrentEmployee extends DirectoryEmployee {

@@ -131,6 +131,8 @@ Run `yarn design-check` to detect design-system drift against `apps/web/DESIGN.m
 RBAC assigns bounded defaults to Member, Account Director, HR Member, and HR Director roles. The Senior Director has
 every system capability. Backend permission and resource checks remain authoritative; the UI uses the same effective
 permissions to hide unavailable navigation and actions.
+Employee access details show the effective role, and permission forms only offer grants inside that role’s ceiling.
+Restricted direct URLs render a clear access-denied recovery screen. MFA and SSO remain documented future work.
 
 ## Architecture
 

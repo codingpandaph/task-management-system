@@ -22,6 +22,7 @@ import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import MenuOutlined from '@mui/icons-material/MenuOutlined';
 import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined';
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined';
+import LockOutlined from '@mui/icons-material/LockOutlined';
 import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
 import ViewKanbanOutlined from '@mui/icons-material/ViewKanbanOutlined';
 import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
@@ -198,6 +199,15 @@ export default function Portal() {
     'Audit log': 'Recorded business changes',
     Notifications: 'Updates requiring attention',
   };
+  const routeAllowed =
+    ((!path.startsWith('/task-reports') && !path.startsWith('/task-archive')) || user.position !== 'MEMBER') &&
+    (!path.startsWith('/approvals') || user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')) &&
+    (!path.startsWith('/policies') ||
+      user.permissions.includes('LEAVE_POLICY_MANAGE') ||
+      user.permissions.includes('CHRISTMAS_POLICY_MANAGE')) &&
+    (!path.startsWith('/hr') || user.permissions.includes('LEAVE_ADMIN')) &&
+    (!path.startsWith('/audit') || user.permissions.includes('AUDIT_READ')) &&
+    (!/^\/employees\/.+/.test(path) || user.permissions.includes('EMPLOYEE_READ'));
   return (
     <div className="portal">
       <Snackbar
@@ -325,19 +335,32 @@ export default function Portal() {
           <div className="page-heading">
             <div>
               <Typography component="h1" variant="h3">
-                {title}
+                {routeAllowed ? title : 'Access denied'}
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                {subtitle[title] ?? user.department.name}
+                {routeAllowed ? (subtitle[title] ?? user.department.name) : 'Your role cannot open this workspace'}
               </Typography>
             </div>
             <Chip label="London" title="Europe / London" variant="outlined" size="small" />
           </div>
           {error && <Alert severity="error">{error}</Alert>}
-          {path.startsWith('/tasks') ||
-          path.startsWith('/workspaces') ||
-          path.startsWith('/task-reports') ||
-          path.startsWith('/task-archive') ? (
+          {!routeAllowed ? (
+            <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, textAlign: 'center' }}>
+              <LockOutlined color="primary" sx={{ fontSize: 42, mb: 2 }} />
+              <Typography variant="h5" component="h2">
+                This area is restricted
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
+                Your current role does not include access to this workspace.
+              </Typography>
+              <Button component={Link} href="/" variant="contained">
+                Return to overview
+              </Button>
+            </Paper>
+          ) : path.startsWith('/tasks') ||
+            path.startsWith('/workspaces') ||
+            path.startsWith('/task-reports') ||
+            path.startsWith('/task-archive') ? (
             <TaskScreens path={path} user={user} />
           ) : path.startsWith('/organization') || path.startsWith('/employees') || path === '/policies' ? (
             <OrganizationScreens path={path} user={user} />

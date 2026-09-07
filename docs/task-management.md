@@ -18,6 +18,9 @@ The shared RBAC model gives Members personal and department-scoped work, Account
 department workspace, HR roles only their applicable people-operation capabilities, and the Senior Director full task
 and organization access. UI visibility mirrors the effective capability set, while API resource policies enforce the
 department and assignment boundary on every operation.
+Restricted task routes use the shared access-denied recovery screen. Cross-department assignment still requires an
+authorized milestone window, and management actions remain scoped to the Account Director’s department unless the
+actor is the Senior Director.
 There is no second user directory. An active employee can be a reporter, an optional single assignee, and a workspace
 member. A terminated employee cannot retain active assignments. The relational model supports Simon's fixed
 demonstration hierarchy without hard-coding a headcount ceiling.

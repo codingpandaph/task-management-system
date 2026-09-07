@@ -241,7 +241,7 @@ a {
   font-size: var(--text-micro);
   overflow: hidden;
   text-overflow: ellipsis;
-  var(--color-paper)-space: nowrap;
+  white-space: nowrap;
   color: var(--color-evergreen-deep);
 }
 .metric-card {

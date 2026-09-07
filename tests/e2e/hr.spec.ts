@@ -193,6 +193,9 @@ test('ordinary employee cannot enter HR screens; calendar stays responsive', asy
   await expect(page.getByRole('heading', { name: 'People', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Create employee', exact: true })).toHaveCount(0);
   expect((await page.request.get('/api/employees')).status()).toBe(403);
+  await page.goto('/hr');
+  await expect(page.getByRole('heading', { name: 'Access denied', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Return to overview', exact: true })).toBeVisible();
   await page.goto('/calendar');
   for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -246,6 +249,12 @@ test('five-role navigation mirrors backend RBAC capabilities', async ({ browser 
       await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
     for (const label of current.hidden)
       await expect(page.getByRole('link', { name: label, exact: true })).toHaveCount(0);
+    if (['HR_MEMBER', 'HR_DIRECTOR', 'SENIOR_DIRECTOR'].includes(current.role)) {
+      await page.getByRole('link', { name: 'People', exact: true }).click();
+      const addEmployee = page.getByRole('button', { name: 'Add employee', exact: true });
+      if (current.role === 'HR_MEMBER') await expect(addEmployee).toHaveCount(0);
+      else await expect(addEmployee).toBeVisible();
+    }
     await context.close();
   }
 });

@@ -29,7 +29,7 @@ export function directory(e: Employee & { department: Department }): DirectoryEm
     employeeId: e.employeeId,
     displayName: [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' '),
     position: e.position,
-    department: { id: e.departmentId, code: e.department.code, name: e.department.name },
+    department: { id: e.departmentId, code: e.department.code, name: e.department.name, kind: e.department.kind },
   };
 }
 @Injectable()

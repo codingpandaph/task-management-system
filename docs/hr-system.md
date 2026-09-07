@@ -52,6 +52,9 @@ Departments may be created without a manager, but dependent leave requests canno
 Role defaults and explicit grants are combined by the backend for every authenticated request. The frontend receives
 that effective permission set and removes unavailable destinations and controls. Department scope, self-action rules,
 current approval assignment and workflow state are still checked separately by the API.
+The employee Access tab displays the effective role and only lists permissions that role may hold. A direct visit to a
+restricted UI route produces an explicit access-denied screen with a safe route back to Overview; the corresponding API
+continues to return `403`.
 
 Positions and application permissions are independent. The API reads current grants from PostgreSQL, never from JWT
 claims. Guards enforce authentication, forced-password restrictions, positions, capabilities, department scope,
