@@ -70,6 +70,11 @@ tasks, returns that work to each board's initial lane, records task activity, an
 review in the same status-change transaction. Suspension and temporary inactivity deny access and new assignment but do
 not silently rewrite task ownership.
 
+Task workspace permissions remain separate from HR capabilities. Account Directors and the Senior Director may grant
+members ticket creation and board creation independently. Assignment is limited to active colleagues in the department
+unless an explicit cross-team milestone allocation exists. Ticket creation defaults the reporter to the signed-in
+creator, while an authorized edit may select another active colleague from the workspace department.
+
 ## Policies, calendar, and balances
 
 Regular policy supplies 25 vacation and 5 sick days; Christmas policy separately supplies 5 days. Policies are
@@ -337,6 +342,9 @@ Automated browser scenarios live in `tests/e2e`. PostgreSQL integration tests pr
 ledger/audit, date-boundary, replay, and privacy assertions that are impractical to demonstrate visually. Both suites
 reset only the guarded `tms_test` database: Playwright uses seven limited users, while integration tests request the full
 lifecycle fixture set needed for contractual and probationary assertions.
+
+Run `yarn demo:e2e:leave` to watch all five requester perspectives file leave and complete their exact approval chains
+in a slow headed browser. `yarn demo:e2e` includes that matrix between the broader HRIS and task-management tours.
 
 ## Future improvements / production hardening
 

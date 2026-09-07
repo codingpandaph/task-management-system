@@ -1,5 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 
+test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? Number(process.env.DEMO_SLOWMO_MS ?? 1200) : 0 } });
+test.beforeEach(async (_fixtures, testInfo) => {
+  if (process.env.PLAYWRIGHT_DEMO) testInfo.setTimeout(240_000);
+});
+
 const password = 'Demo only password 2026!';
 const users = {
   senior: '2026-DIR-000001',
@@ -128,4 +133,54 @@ test('Account Director creates a board, milestone, collaborator allocation, and 
     .getByRole('dialog', { name: 'Milestone capacity' })
     .getByRole('button', { name: 'Close', exact: true })
     .click();
+});
+
+test('director delegates creation; member assigns department work and edits the reporter', async ({ browser }) => {
+  const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  const memberContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  try {
+    const director = await directorContext.newPage();
+    await signIn(director, users.director);
+    await director.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await director.getByRole('button', { name: 'Add collaborator', exact: true }).click();
+    const access = director.getByRole('dialog', { name: 'Add workspace collaborator' });
+    await access.getByLabel('Active employee').click();
+    await director.getByRole('option', { name: 'Alex Finch' }).click();
+    await access.getByLabel('Can create tickets').click();
+    await director.getByRole('option', { name: 'Yes' }).click();
+    await access.getByLabel('Can create boards').click();
+    await director.getByRole('option', { name: 'Yes' }).click();
+    await access.getByRole('button', { name: 'Save changes' }).click();
+
+    const member = await memberContext.newPage();
+    await signIn(member, users.member);
+    await member.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await expect(member.getByRole('button', { name: 'New board', exact: true })).toBeVisible();
+    await member.getByRole('button', { name: 'New board', exact: true }).click();
+    const board = member.getByRole('dialog', { name: 'Create Kanban board' });
+    await board.getByLabel('Board name').fill('Member-created board');
+    await board.getByRole('button', { name: 'Save changes' }).click();
+    await expect(member.getByRole('tab', { name: 'Member-created board' })).toBeVisible();
+
+    await member.getByRole('button', { name: 'Create task', exact: true }).click();
+    const create = member.getByRole('dialog', { name: 'Create a task' });
+    await create.getByLabel('Task title').fill('Department-owned follow-up');
+    await create.getByLabel('Assignee').click();
+    await member.getByRole('option', { name: 'Jordan Ellis' }).click();
+    await expect(create.getByLabel('Reporter')).toContainText('Alex Finch');
+    await create.getByRole('button', { name: 'Create task', exact: true }).click();
+    await member.getByRole('tab', { name: 'Client delivery' }).click();
+    await member.getByRole('button', { name: /Open ACC-#\d+ Department-owned follow-up/ }).click();
+    const detail = member.getByRole('dialog');
+    await expect(detail.getByText(/Alex Finch/)).toBeVisible();
+    await detail.getByRole('button', { name: 'Edit task', exact: true }).click();
+    const edit = member.getByRole('dialog', { name: 'Edit task details' });
+    await edit.getByLabel('Reporter').click();
+    await member.getByRole('option', { name: 'Jordan Ellis' }).click();
+    await edit.getByRole('button', { name: 'Save changes' }).click();
+    await expect(detail.getByText(/Jordan Ellis/)).toHaveCount(2);
+  } finally {
+    await directorContext.close();
+    await memberContext.close();
+  }
 });

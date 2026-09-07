@@ -175,7 +175,11 @@ export async function seed(db: DatabaseService) {
         select: { id: true },
       });
       await tx.workspaceMembership.createMany({
-        data: departmentPeople.map(({ id }) => ({ workspaceId: workspace.id, employeeId: id })),
+        data: departmentPeople.map(({ id }) => ({
+          workspaceId: workspace.id,
+          employeeId: id,
+          canCreateTasks: true,
+        })),
       });
       const milestone = await tx.milestone.create({
         data: {

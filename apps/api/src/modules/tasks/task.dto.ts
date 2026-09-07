@@ -61,6 +61,7 @@ export class TaskDto {
   @IsEnum(TaskPriorityDto) priority!: keyof typeof TaskPriorityDto;
   @Type(() => Number) @IsNumber() @Min(0) @Max(10000) estimatedHours!: number;
   @IsOptional() @IsUUID() assigneeId?: string;
+  @IsOptional() @IsUUID() reporterId?: string;
   @IsOptional() @IsUUID() milestoneId?: string;
   @IsOptional() @IsArray() @ArrayMaxSize(50) @MaxLength(500, { each: true }) definitionOfDone?: string[];
 }
@@ -71,6 +72,7 @@ export class TaskEditDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(10000) estimatedHours?: number;
   @IsOptional() @IsUUID() assigneeId?: string;
   @IsOptional() @IsBoolean() clearAssignee?: boolean;
+  @IsOptional() @IsUUID() reporterId?: string;
   @IsOptional() @IsUUID() milestoneId?: string;
   @IsOptional() @IsBoolean() clearMilestone?: boolean;
 }
@@ -101,4 +103,6 @@ export class MembershipDto {
   @IsOptional() @IsUUID() milestoneId?: string;
   @IsOptional() @IsDateString({ strict: true }) effectiveFrom?: string;
   @IsOptional() @IsDateString({ strict: true }) effectiveTo?: string;
+  @IsOptional() @IsBoolean() canCreateTasks?: boolean;
+  @IsOptional() @IsBoolean() canCreateBoards?: boolean;
 }

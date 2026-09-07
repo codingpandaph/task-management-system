@@ -226,6 +226,60 @@ test('HR foundation against PostgreSQL', async (suite) => {
       assert.equal(new Set(created.map((task) => task.publicKey)).size, 2);
       assert.ok(created.every((task) => task.publicKey.startsWith('ACC-#')));
     });
+    await suite.test('directors delegate task and board creation while reporters remain editable', async () => {
+      const director = await actor('Jordan');
+      const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
+      await tasks.addMembership(director, workspace.id, {
+        employeeId: member.employee.id,
+        canCreateTasks: false,
+        canCreateBoards: false,
+      });
+      await assert.rejects(
+        tasks.createTask(member, {
+          workspaceId: workspace.id,
+          boardId: workspace.boards[0].id,
+          title: 'Permission denied',
+          priority: 'LOW',
+          estimatedHours: 1,
+        }),
+      );
+      await assert.rejects(
+        tasks.createBoard(member, workspace.id, {
+          name: 'Permission denied board',
+          columns: [{ name: 'Open' }, { name: 'Done', isDone: true }],
+        }),
+      );
+      await tasks.addMembership(director, workspace.id, {
+        employeeId: member.employee.id,
+        canCreateTasks: true,
+        canCreateBoards: true,
+      });
+      assert.equal(
+        (
+          await tasks.createBoard(member, workspace.id, {
+            name: 'Delegated board',
+            columns: [{ name: 'Open' }, { name: 'Done', isDone: true }],
+          })
+        ).name,
+        'Delegated board',
+      );
+      const created = await tasks.createTask(member, {
+        workspaceId: workspace.id,
+        boardId: workspace.boards[0].id,
+        title: 'Self-assigned work',
+        priority: 'MEDIUM',
+        estimatedHours: 2,
+        assigneeId: member.employee.id,
+      });
+      assert.equal(created.reporterId, member.employee.id);
+      assert.equal(created.assigneeId, member.employee.id);
+      const edited = await tasks.edit(member, created.id, {
+        assigneeId: director.employee.id,
+        reporterId: director.employee.id,
+      });
+      assert.equal(edited.assigneeId, director.employee.id);
+      assert.equal(edited.reporterId, director.employee.id);
+    });
     await suite.test('Senior Director provisions the correct adaptive workspace templates', async () => {
       const workspace = await tasks.createWorkspace(senior, dep.id, 'ENGINEERING_PRODUCT');
       const created = await db.workspace.findUniqueOrThrow({

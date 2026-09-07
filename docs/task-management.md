@@ -19,10 +19,11 @@ The three primary experiences are:
 - **Team boards:** department-scoped Kanban boards for shared planning and execution.
 - **Delivery reports:** team summaries for Account Directors and cross-team summaries for the Senior Director.
 
-Position-derived access keeps administration simple. Members create, edit, discuss, and move tasks in their workspaces.
-An Account Director manages boards, milestones, capacity, sign-off, restoration, and escalation for their department.
-The Senior Director can see and manage every workspace and receives escalated-task notifications. Every API checks
-current HRIS eligibility; hiding navigation is only a usability measure.
+Position-derived access gives Account Directors and the Senior Director task and board creation automatically. A
+director can grant or revoke **Create tickets** and **Create boards** independently for a base workspace member.
+Members may assign tasks to themselves or another active employee in their department; cross-team assignment retains
+the explicit workspace/milestone allocation rule. The Senior Director can see and manage every workspace and receives
+escalated-task notifications. Every API checks current HRIS eligibility and the current membership grant.
 
 ## Workspaces and adaptive templates
 
@@ -50,6 +51,8 @@ and gaps are harmless.
 A task has a title, Markdown-compatible description, Low/Medium/High priority, nonnegative estimated hours, one required
 reporter, zero or one active assignee, board column, optional milestone, Definition of Done items, links, comments,
 sign-off, escalation, and soft-delete state. Eight stored hours equal one work day; `12` renders as `1d 4h` in capacity.
+The creator is selected as reporter by default. The create and edit forms may assign another active colleague from the
+workspace department as reporter, and every reporter change is preserved in append-only task activity.
 
 Definition of Done items are stable child records with UUIDs and checked state. The API rejects entry into a completed
 column while any item is unchecked. A management-locked column also requires Account Director or Senior Director
@@ -77,8 +80,6 @@ Milestone capacity is calculated from active department employees plus explicit 
 
 Business days use the HRIS England and Wales calendar. Approved `LeaveRequestDay` records deduct eight hours. Planned
 hours are estimates of unfinished, non-deleted milestone tasks. Results include collaborators, business days, leave,
-available, planned, remaining, and overcapacity state.
-
 An explicit milestone membership can add an employee from another department for an effective window. During an
 overlap, the employee is removed from home-team milestone capacity and added to the borrowing milestone, shifting the
 full eight-hour daily contribution without duplicating capacity.
@@ -116,28 +117,33 @@ Inaccessible cross-department resources return Not Found where appropriate to av
 Start with `yarn dev:fresh`, open `http://localhost:3000`, and use the fictional credentials in README. The limited test
 seed uses the same key roles and resets `tms_test` before each Playwright layer.
 
-The verified baseline is 21 PostgreSQL integration scenarios, 15 full Chromium journeys shared with HRIS, and one
+For an automated visible tour, run `yarn demo:e2e:tasks`. Run `yarn demo:e2e` to include the HRIS setup and every leave
+requester/approver perspective before the task journeys.
+
+The verified baseline is 22 PostgreSQL integration scenarios, 16 full Chromium journeys shared with HRIS, and one
 critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 
-| Flow                 | Role                         | Manual steps                                                                  | Expected result                                                      | Automated coverage                           |
-| -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------- |
-| Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces       | Playwright individual/team/reporting flow    |
-| Create task          | Member                       | Open **Team boards**, choose **Create task**, fill all fields and DoD         | Card receives next workspace key and starts in initial lane          | Playwright creation; concurrency integration |
-| Edit task            | Member                       | Open a card, choose **Edit task**, change core fields or active assignee      | Facts update immediately and activity records old/new values         | Playwright task journey; service integration |
-| Discuss work         | Member                       | Open task, enter comment, press Enter                                         | Comment appears with author; activity appends                        | Playwright task journey                      |
-| DoD gate             | Member                       | Leave a check open and attempt Done, then complete it                         | Completion is rejected until all checks pass                         | Playwright and integration gate tests        |
-| Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                     | Playwright two-session journey               |
-| Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                         | PostgreSQL integration                       |
-| Escalation           | Account Director             | Open task and choose **Escalate**                                             | Flag appears; Senior Director receives notification                  | Service integration                          |
-| Team view            | Account Director             | Open **Team boards**, switch boards, inspect task facts                       | Own department and explicit memberships are visible                  | Playwright and authorization logic           |
-| Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist              | Playwright director; template integration    |
-| Leadership report    | Senior Director              | Open **Delivery reports**                                                     | Both teams show completion, ownership, escalation, hours, milestones | Playwright reporting/breakpoints             |
-| Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity      | PostgreSQL integration                       |
-| Milestone rollover   | Account Director             | Create two milestones, assign work to first, close it                         | Incomplete work moves to next or becomes unbound                     | PostgreSQL integration                       |
-| Soft delete/restore  | Reporter then manager        | Delete, verify hidden, restore                                                | Card returns to prior column; logs remain                            | PostgreSQL integration                       |
-| Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain         | PostgreSQL integration                       |
-| Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable     | Playwright breakpoint loop                   |
+| Flow                 | Role                         | Manual steps                                                                  | Expected result                                                       | Automated coverage                           |
+| -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------- |
+| Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces        | Playwright individual/team/reporting flow    |
+| Create task          | Member                       | Open **Team boards**, choose **Create task**, fill all fields and DoD         | Card receives next workspace key and starts in initial lane           | Playwright creation; concurrency integration |
+| Edit task            | Member                       | Open a card, choose **Edit task**, change core fields or active assignee      | Facts update immediately and activity records old/new values          | Playwright task journey; service integration |
+| Discuss work         | Member                       | Open task, enter comment, press Enter                                         | Comment appears with author; activity appends                         | Playwright task journey                      |
+| DoD gate             | Member                       | Leave a check open and attempt Done, then complete it                         | Completion is rejected until all checks pass                          | Playwright and integration gate tests        |
+| Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                      | Playwright two-session journey               |
+| Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                          | PostgreSQL integration                       |
+| Escalation           | Account Director             | Open task and choose **Escalate**                                             | Flag appears; Senior Director receives notification                   | Service integration                          |
+| Team view            | Account Director             | Open **Team boards**, switch boards, inspect task facts                       | Own department and explicit memberships are visible                   | Playwright and authorization logic           |
+| Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist               | Playwright director; template integration    |
+| Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities | Playwright and PostgreSQL integration        |
+| Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, then edit reporter         | Creator defaults as reporter; selected colleague and edits persist    | Playwright and PostgreSQL integration        |
+| Leadership report    | Senior Director              | Open **Delivery reports**                                                     | Both teams show completion, ownership, escalation, hours, milestones  | Playwright reporting/breakpoints             |
+| Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity       | PostgreSQL integration                       |
+| Milestone rollover   | Account Director             | Create two milestones, assign work to first, close it                         | Incomplete work moves to next or becomes unbound                      | PostgreSQL integration                       |
+| Soft delete/restore  | Reporter then manager        | Delete, verify hidden, restore                                                | Card returns to prior column; logs remain                             | PostgreSQL integration                       |
+| Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain          | PostgreSQL integration                       |
+| Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable      | Playwright breakpoint loop                   |
 
 ## Future improvements / production hardening
 

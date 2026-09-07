@@ -42,6 +42,7 @@ type Workspace = {
   function: string;
   boards: Board[];
   milestones: Milestone[];
+  memberships: { employeeId: string; canCreateTasks: boolean; canCreateBoards: boolean }[];
 };
 type BoardResponse = { workspace: Workspace; board: Board };
 type Report = {
@@ -237,6 +238,11 @@ function TaskDetail({
               {personName(task.assignee)}
             </Typography>
             <Typography variant="body2">
+              <strong>Reporter</strong>
+              <br />
+              {personName(task.reporter)}
+            </Typography>
+            <Typography variant="body2">
               <strong>Estimate</strong>
               <br />
               {task.estimatedHours} hours
@@ -268,6 +274,14 @@ function TaskDetail({
                     ...people.map((employee) => ({ value: employee.id, label: employee.displayName })),
                   ],
                 },
+                {
+                  name: 'reporterId',
+                  label: 'Reporter',
+                  value: task.reporter.id,
+                  options: people
+                    .filter((employee) => employee.department.id === task.workspace.departmentId)
+                    .map((employee) => ({ value: employee.id, label: employee.displayName })),
+                },
               ]}
               onSubmit={async (values) => {
                 const assigneeId = String(values.assigneeId ?? '');
@@ -279,6 +293,7 @@ function TaskDetail({
                     priority: values.priority,
                     estimatedHours: values.estimatedHours,
                     ...(assigneeId ? { assigneeId } : { clearAssignee: true }),
+                    reporterId: values.reporterId,
                   },
                   'PATCH',
                 );
@@ -371,10 +386,12 @@ function TaskDetail({
 function CreateTask({
   workspace,
   people,
+  user,
   refresh,
 }: {
   workspace: Workspace;
   people: DirectoryEmployee[];
+  user: CurrentEmployee;
   refresh: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -394,6 +411,7 @@ function CreateTask({
         priority: String(data.get('priority')),
         estimatedHours: Number(data.get('estimatedHours')),
         assigneeId: data.get('assigneeId') || undefined,
+        reporterId: data.get('reporterId') || undefined,
         milestoneId: data.get('milestoneId') || undefined,
         definitionOfDone: String(data.get('definitionOfDone') ?? '')
           .split('\n')
@@ -448,6 +466,15 @@ function CreateTask({
                   </MenuItem>
                 ))}
               </TextField>
+              <TextField name="reporterId" label="Reporter" select defaultValue={user.id}>
+                {people
+                  .filter((employee) => employee.department.id === workspace.departmentId)
+                  .map((employee) => (
+                    <MenuItem key={employee.id} value={employee.id}>
+                      {employee.displayName}
+                    </MenuItem>
+                  ))}
+              </TextField>
               <TextField name="milestoneId" label="Milestone" select defaultValue="">
                 <MenuItem value="">No milestone</MenuItem>
                 {workspace.milestones.map((milestone) => (
@@ -486,23 +513,26 @@ function WorkspaceActions({
   const manager =
     user.position === 'SENIOR_DIRECTOR' ||
     (user.position === 'ACCOUNT_DIRECTOR' && user.department.id === workspace.departmentId);
-  if (!manager) return null;
+  const canCreateBoards = manager || workspace.memberships.some((membership) => membership.canCreateBoards);
+  if (!canCreateBoards) return null;
   return (
     <Box className="workspace-actions">
-      <ModalForm
-        buttonLabel="New milestone"
-        title="Create milestone"
-        fields={[
-          { name: 'name', label: 'Milestone name' },
-          { name: 'goal', label: 'Goal' },
-          { name: 'startDate', label: 'Start date', type: 'date' },
-          { name: 'dueDate', label: 'Due date and time', type: 'datetime-local' },
-        ]}
-        onSubmit={async (values) => {
-          await api(`task-workspaces/${workspace.id}/milestones`, values);
-          await refresh();
-        }}
-      />
+      {manager && (
+        <ModalForm
+          buttonLabel="New milestone"
+          title="Create milestone"
+          fields={[
+            { name: 'name', label: 'Milestone name' },
+            { name: 'goal', label: 'Goal' },
+            { name: 'startDate', label: 'Start date', type: 'date' },
+            { name: 'dueDate', label: 'Due date and time', type: 'datetime-local' },
+          ]}
+          onSubmit={async (values) => {
+            await api(`task-workspaces/${workspace.id}/milestones`, values);
+            await refresh();
+          }}
+        />
+      )}
       <ModalForm
         buttonLabel="New board"
         title="Create Kanban board"
@@ -522,30 +552,54 @@ function WorkspaceActions({
           await refresh();
         }}
       />
-      <ModalForm
-        buttonLabel="Add collaborator"
-        title="Add workspace collaborator"
-        fields={[
-          {
-            name: 'employeeId',
-            label: 'Active employee',
-            options: people.map((employee) => ({ value: employee.id, label: employee.displayName })),
-          },
-          {
-            name: 'milestoneId',
-            label: 'Milestone scope',
-            optional: true,
-            options: [
-              { value: '', label: 'Entire workspace' },
-              ...workspace.milestones.map((milestone) => ({ value: milestone.id, label: milestone.name })),
-            ],
-          },
-        ]}
-        onSubmit={async (values) => {
-          await api(`task-workspaces/${workspace.id}/memberships`, values);
-          await refresh();
-        }}
-      />
+      {manager && (
+        <ModalForm
+          buttonLabel="Add collaborator"
+          title="Add workspace collaborator"
+          fields={[
+            {
+              name: 'employeeId',
+              label: 'Active employee',
+              options: people.map((employee) => ({ value: employee.id, label: employee.displayName })),
+            },
+            {
+              name: 'milestoneId',
+              label: 'Milestone scope',
+              optional: true,
+              options: [
+                { value: '', label: 'Entire workspace' },
+                ...workspace.milestones.map((milestone) => ({ value: milestone.id, label: milestone.name })),
+              ],
+            },
+            {
+              name: 'canCreateTasks',
+              label: 'Can create tickets',
+              value: 'true',
+              options: [
+                { value: 'true', label: 'Yes' },
+                { value: 'false', label: 'No' },
+              ],
+            },
+            {
+              name: 'canCreateBoards',
+              label: 'Can create boards',
+              value: 'false',
+              options: [
+                { value: 'false', label: 'No' },
+                { value: 'true', label: 'Yes' },
+              ],
+            },
+          ]}
+          onSubmit={async (values) => {
+            await api(`task-workspaces/${workspace.id}/memberships`, {
+              ...values,
+              canCreateTasks: values.canCreateTasks === 'true',
+              canCreateBoards: values.canCreateBoards === 'true',
+            });
+            await refresh();
+          }}
+        />
+      )}
     </Box>
   );
 }
@@ -817,6 +871,11 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
       </Stack>
     );
   const workspace = workspaces.find((item) => item.id === workspaceId);
+  const workspaceManager =
+    !!workspace &&
+    (user.position === 'SENIOR_DIRECTOR' ||
+      (user.position === 'ACCOUNT_DIRECTOR' && user.department.id === workspace.departmentId));
+  const canCreateTasks = workspaceManager || !!workspace?.memberships.some((membership) => membership.canCreateTasks);
   return (
     <Stack spacing={3}>
       <Paper variant="outlined" className="task-hero">
@@ -830,7 +889,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
         </Box>
         {workspace && (
           <Stack spacing={1.25} sx={{ alignItems: { xs: 'stretch', md: 'flex-end' } }}>
-            <CreateTask workspace={workspace} people={people} refresh={refresh} />
+            {canCreateTasks && <CreateTask workspace={workspace} people={people} user={user} refresh={refresh} />}
             <WorkspaceActions workspace={workspace} user={user} people={people} refresh={refresh} />
           </Stack>
         )}

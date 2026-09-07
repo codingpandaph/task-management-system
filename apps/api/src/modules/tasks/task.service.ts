@@ -192,6 +192,17 @@ export class TaskService {
     return workspace;
   }
 
+  private async canCreate(actor: Principal, workspaceId: string, capability: 'tasks' | 'boards') {
+    const workspace = await this.workspaceAccess(actor, workspaceId);
+    if (this.manages(actor, workspace.departmentId)) return workspace;
+    const membership = await this.db.workspaceMembership.findFirst({
+      where: { workspaceId, employeeId: actor.employee.id, milestoneId: null },
+    });
+    const allowed = capability === 'tasks' ? membership?.canCreateTasks : membership?.canCreateBoards;
+    if (!allowed) throw new ForbiddenException(`Workspace ${capability} permission required`);
+    return workspace;
+  }
+
   private async activity(
     tx: Transaction,
     taskId: string,
@@ -219,6 +230,7 @@ export class TaskService {
           },
       include: {
         department: true,
+        memberships: { where: { employeeId: actor.employee.id, milestoneId: null } },
         boards: { include: { columns: { orderBy: { position: 'asc' } } } },
         milestones: { where: { status: 'OPEN' }, orderBy: { dueDate: 'asc' } },
       },
@@ -269,7 +281,7 @@ export class TaskService {
   }
 
   async createBoard(actor: Principal, workspaceId: string, dto: BoardDto) {
-    await this.workspaceAccess(actor, workspaceId, true);
+    await this.canCreate(actor, workspaceId, 'boards');
     if (dto.columns.length < 2 || dto.columns.some((c) => !c.name?.trim()))
       throw new BadRequestException('Provide at least two named columns');
     return this.db.transaction(async (tx) => {
@@ -297,15 +309,20 @@ export class TaskService {
       if (!scopedMilestone) throw new BadRequestException('Open milestone not found in this workspace');
     }
     return this.db.transaction(async (tx) => {
-      const membership = await tx.workspaceMembership.create({
-        data: {
-          workspaceId,
-          employeeId: dto.employeeId,
-          milestoneId: dto.milestoneId,
-          effectiveFrom: dto.effectiveFrom ? dateOnly(dto.effectiveFrom) : scopedMilestone?.startDate,
-          effectiveTo: dto.effectiveTo ? dateOnly(dto.effectiveTo) : scopedMilestone?.dueDate,
-        },
+      const existing = await tx.workspaceMembership.findFirst({
+        where: { workspaceId, employeeId: dto.employeeId, milestoneId: dto.milestoneId ?? null },
       });
+      const data = {
+        effectiveFrom: dto.effectiveFrom ? dateOnly(dto.effectiveFrom) : scopedMilestone?.startDate,
+        effectiveTo: dto.effectiveTo ? dateOnly(dto.effectiveTo) : scopedMilestone?.dueDate,
+        canCreateTasks: dto.canCreateTasks ?? existing?.canCreateTasks ?? false,
+        canCreateBoards: dto.canCreateBoards ?? existing?.canCreateBoards ?? false,
+      };
+      const membership = existing
+        ? await tx.workspaceMembership.update({ where: { id: existing.id }, data })
+        : await tx.workspaceMembership.create({
+            data: { workspaceId, employeeId: dto.employeeId, milestoneId: dto.milestoneId, ...data },
+          });
       await audit(tx, actor.employee.id, 'TASK_MEMBERSHIP_CREATED', 'WorkspaceMembership', membership.id);
       return membership;
     });
@@ -348,13 +365,14 @@ export class TaskService {
   }
 
   async createTask(actor: Principal, dto: TaskDto) {
-    const workspace = await this.workspaceAccess(actor, dto.workspaceId);
-    const [board, assignee, milestone] = await Promise.all([
+    const workspace = await this.canCreate(actor, dto.workspaceId, 'tasks');
+    const [board, assignee, reporter, milestone] = await Promise.all([
       this.db.taskBoard.findFirst({
         where: { id: dto.boardId, workspaceId: dto.workspaceId },
         include: { columns: { where: { isInitial: true } } },
       }),
       dto.assigneeId ? this.db.employee.findUnique({ where: { id: dto.assigneeId } }) : null,
+      dto.reporterId ? this.db.employee.findUnique({ where: { id: dto.reporterId } }) : null,
       dto.milestoneId
         ? this.db.milestone.findFirst({ where: { id: dto.milestoneId, workspaceId: dto.workspaceId, status: 'OPEN' } })
         : null,
@@ -362,6 +380,11 @@ export class TaskService {
     if (!board?.columns[0]) throw new BadRequestException('Board requires an initial column');
     if (dto.assigneeId && (!assignee || assignee.status !== 'ACTIVE'))
       throw new BadRequestException('Assignee must be active');
+    if (
+      dto.reporterId &&
+      (!reporter || reporter.status !== 'ACTIVE' || reporter.departmentId !== workspace.departmentId)
+    )
+      throw new BadRequestException('Reporter must be an active employee in this department');
     if (dto.milestoneId && !milestone) throw new BadRequestException('Open milestone not found');
     const existingMembership = dto.assigneeId
       ? await this.db.workspaceMembership.findFirst({
@@ -384,7 +407,7 @@ export class TaskService {
           description: dto.description ?? '',
           priority: dto.priority,
           estimatedHours: dto.estimatedHours,
-          reporterId: actor.employee.id,
+          reporterId: reporter?.id ?? actor.employee.id,
           assigneeId: dto.assigneeId,
           milestoneId: dto.milestoneId,
           definitionOfDone: { create: (dto.definitionOfDone ?? []).filter(Boolean).map((item) => ({ item })) },
@@ -435,6 +458,7 @@ export class TaskService {
       : null;
     if (targetMilestoneId && !milestone) throw new BadRequestException('Open milestone not found');
     let employee: Employee | null = null;
+    let reporter: Employee | null = null;
     if (assigneeId) {
       employee = await this.db.employee.findUnique({ where: { id: assigneeId } });
       if (!employee || employee.status !== 'ACTIVE') throw new BadRequestException('Assignee must be active');
@@ -444,6 +468,11 @@ export class TaskService {
       if (employee.departmentId !== task.workspace.departmentId && !existingMembership && !milestone)
         throw new BadRequestException('Cross-team assignment requires a milestone window');
     }
+    if (dto.reporterId) {
+      reporter = await this.db.employee.findUnique({ where: { id: dto.reporterId } });
+      if (!reporter || reporter.status !== 'ACTIVE' || reporter.departmentId !== task.workspace.departmentId)
+        throw new BadRequestException('Reporter must be an active employee in this department');
+    }
     const data = {
       title: dto.title,
       description: dto.description,
@@ -451,6 +480,7 @@ export class TaskService {
       estimatedHours: dto.estimatedHours,
       ...(dto.clearAssignee || dto.assigneeId ? { assigneeId } : {}),
       ...(dto.clearMilestone ? { milestoneId: null } : dto.milestoneId ? { milestoneId: dto.milestoneId } : {}),
+      ...(reporter ? { reporterId: reporter.id } : {}),
     };
     return this.db.transaction(async (tx) => {
       if (employee && employee.departmentId !== task.workspace.departmentId && milestone) {
@@ -475,8 +505,18 @@ export class TaskService {
         actor.employee.id,
         'UPDATE_FIELD',
         'task',
-        { title: task.title, assigneeId: task.assigneeId, estimatedHours: task.estimatedHours },
-        { title: updated.title, assigneeId: updated.assigneeId, estimatedHours: updated.estimatedHours },
+        {
+          title: task.title,
+          assigneeId: task.assigneeId,
+          reporterId: task.reporterId,
+          estimatedHours: task.estimatedHours,
+        },
+        {
+          title: updated.title,
+          assigneeId: updated.assigneeId,
+          reporterId: updated.reporterId,
+          estimatedHours: updated.estimatedHours,
+        },
       );
       return updated;
     });

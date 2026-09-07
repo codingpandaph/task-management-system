@@ -80,6 +80,9 @@ yarn test
 | `yarn test:unit`               | API unit tests                                         |
 | `yarn test:integration`        | Real-PostgreSQL domain, privacy, and concurrency tests |
 | `yarn test:e2e`                | Playwright browser and API journeys                    |
+| `yarn demo:e2e`                | Slow headed HRIS, five-role leave, and task tour       |
+| `yarn demo:e2e:leave`          | Slow headed five-role filing and approval matrix       |
+| `yarn demo:e2e:tasks`          | Slow headed task perspectives and delegated creation   |
 | `yarn test`                    | Unit, integration, and E2E acceptance suite            |
 | `yarn db:seed`                 | Explicit guarded fictional demo seed                   |
 
@@ -94,7 +97,9 @@ regular and Christmas policy creation/versioning/status/assignment, balances, al
 editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
 responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the five-path
 matrix. It also covers personal tasks, team boards, task creation, comments, Definition of Done, management sign-off,
-movement, delivery reporting, and every defined breakpoint. Use `yarn demo:e2e` for the paced headed tour. Manual
+movement, delegated board/ticket creation, self/department assignment, editable reporters, delivery reporting, and
+every defined breakpoint. `yarn demo:e2e` runs the complete paced headed tour; its `:hr`, `:leave`, and `:tasks`
+subcommands run one section. Manual
 checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
 [docs/task-management.md](docs/task-management.md#complete-manual-acceptance-checklist).
 
@@ -103,7 +108,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 21 real-PostgreSQL integration tests, 15 full
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 22 real-PostgreSQL integration tests, 16 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 

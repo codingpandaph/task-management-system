@@ -1,4 +1,6 @@
 import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
+
+test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? Number(process.env.DEMO_SLOWMO_MS ?? 1200) : 0 } });
 const year = new Date().getFullYear();
 const password = 'Demo only password 2026!';
 const usernames = {
@@ -153,7 +155,7 @@ test('all five leave approval chains and approved cancellation complete', async 
 });
 
 test('all five roles file leave and complete their approval chains through the UI', async ({ browser }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 300_000 : 120_000);
   const contexts: BrowserContext[] = [];
   const pages = new Map<string, Page>();
   try {

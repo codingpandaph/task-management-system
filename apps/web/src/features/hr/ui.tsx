@@ -60,7 +60,7 @@ export function Form({
       <Stack spacing={2}>
         {fields.map((f) => (
           <TextField
-            key={f.name}
+            key={`${f.name}:${f.value ?? ''}`}
             name={f.name}
             label={f.label}
             type={f.type ?? 'text'}
