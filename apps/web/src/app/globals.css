@@ -146,6 +146,10 @@ a {
   gap: 12px;
   align-items: center;
 }
+.mobile-brand,
+.mobile-navigation {
+  display: none !important;
+}
 .page {
   padding: 38px 42px 56px;
   max-width: 1500px;
@@ -435,36 +439,25 @@ a {
     display: block;
   }
   .sidebar {
-    width: 100%;
-    padding: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    box-shadow: 0 5px 18px rgba(11, 46, 36, 0.2);
-  }
-  .sidebar nav {
-    display: flex;
-    overflow-x: auto;
-    gap: 6px;
-  }
-  .sidebar .brand {
-    font-size: 18px;
-  }
-  .sidebar nav a {
-    white-space: nowrap;
-  }
-  .nav-link {
-    padding: 10px 12px;
-  }
-  .sidebar-note,
-  .sidebar > .MuiTypography-root {
     display: none;
   }
+  .mobile-brand {
+    display: flex !important;
+  }
+  .mobile-navigation {
+    display: block !important;
+  }
   .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
     padding: 12px 16px;
-    flex-wrap: wrap;
+    min-height: 68px;
   }
   .topbar > .MuiTypography-root {
+    display: none;
+  }
+  .user-actions > .MuiTypography-root {
     display: none;
   }
   .page {

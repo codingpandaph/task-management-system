@@ -341,6 +341,8 @@ and compares login, People, and desktop/mobile task-board surfaces with browser-
 Compact tags use one-word labels such as **Onboard**, **Status**, and **Approvals**. Full internal codes remain available
 as hover titles. Buttons use at least a 44-pixel target; primary green buttons explicitly retain white text in default,
 hover, and keyboard-focus states. Deactivation is presented as a clearly labelled outlined action.
+At phone widths, the complete role-aware navigation is available from a labelled menu and keyboard-dismissible drawer;
+employees do not need to horizontally hunt for leave, approvals, calendar, notifications, or authorized HR tools.
 
 Automated browser scenarios live in `tests/e2e`. PostgreSQL integration tests provide the deeper concurrency, immutable
 ledger/audit, date-boundary, replay, and privacy assertions that are impractical to demonstrate visually. Both suites

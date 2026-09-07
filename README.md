@@ -124,6 +124,8 @@ department-filtered calendars, personal task search, horizontal team Kanban boar
 scoped delivery summaries. Business mutations remain enforced by the API regardless of which controls are visible.
 Status and permission pills use one-word labels, while their hover titles preserve the full internal value. Primary
 green actions explicitly use white text across default, hover, and keyboard-focus states.
+On phones, a labelled menu opens the complete role-aware navigation drawer, keeping leave, approval, reporting, and
+administration destinations discoverable without relying on a long horizontal strip.
 
 ## Architecture
 

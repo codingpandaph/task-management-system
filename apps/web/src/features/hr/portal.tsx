@@ -5,6 +5,8 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Drawer from '@mui/material/Drawer';
+import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Snackbar from '@mui/material/Snackbar';
@@ -17,6 +19,7 @@ import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
 import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined';
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
+import MenuOutlined from '@mui/icons-material/MenuOutlined';
 import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined';
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined';
 import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
@@ -41,7 +44,8 @@ export default function Portal() {
   const [user, setUser] = useState<CurrentEmployee | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState(''),
+    [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   useEffect(() => {
     const showNotice = (event: Event) => setNotice((event as CustomEvent<string>).detail);
     window.addEventListener('hris:notice', showNotice);
@@ -232,13 +236,58 @@ export default function Portal() {
           More room for people.
         </div>
       </aside>
+      <Drawer
+        open={mobileNavigationOpen}
+        onClose={() => setMobileNavigationOpen(false)}
+        className="mobile-navigation"
+        slotProps={{ paper: { sx: { width: 'min(88vw, 340px)', bgcolor: '#123d30', color: '#edf3ec' } } }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Link href="/" className="brand" onClick={() => setMobileNavigationOpen(false)}>
+            <span className="brand-mark">CP</span>
+            <span>
+              CPPinSync<small>PEOPLE & ORGANIZATION</small>
+            </span>
+          </Link>
+          <Typography variant="overline" sx={{ display: 'block', px: 2, mt: 3, color: '#a3b9ab' }}>
+            WORKSPACE
+          </Typography>
+          <nav aria-label="Mobile navigation">
+            {nav.map(({ href, label, icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileNavigationOpen(false)}
+                className={(href === '/' ? path === '/' : path.startsWith(href)) ? 'nav-link selected' : 'nav-link'}
+              >
+                {icon}
+                <span>{label}</span>
+              </Link>
+            ))}
+          </nav>
+        </Box>
+      </Drawer>
       <div className="workspace">
         <header className="topbar">
+          <Stack direction="row" spacing={1.25} className="mobile-brand" sx={{ alignItems: 'center' }}>
+            <IconButton
+              aria-label="Open navigation"
+              onClick={() => setMobileNavigationOpen(true)}
+              sx={{ color: 'primary.main' }}
+            >
+              <MenuOutlined />
+            </IconButton>
+            <Typography sx={{ fontWeight: 800 }}>CPPinSync</Typography>
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             Your organization, connected.
           </Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#dbe9df', color: '#244f40', fontSize: 13 }}>
+          <Stack direction="row" spacing={1} className="user-actions" sx={{ alignItems: 'center' }}>
+            <Avatar
+              title={user.displayName}
+              aria-label={`Signed in as ${user.displayName}`}
+              sx={{ width: 32, height: 32, bgcolor: '#dbe9df', color: '#244f40', fontSize: 13 }}
+            >
               {user.displayName.slice(0, 1)}
             </Avatar>
             <Typography variant="body2">{user.displayName}</Typography>

@@ -61,6 +61,8 @@ workspace department as reporter, and every reporter change is preserved in appe
 
 Board cards and reports use short one-word pills such as **High**, **Signed**, **Escalated**, and **Progress**. Counts use
 compact forms such as **Tasks:4**. The underlying complete value remains available as the pill title.
+On phones, My tasks, Team boards, Delivery reports, and Task archive remain available in the complete role-aware menu
+rather than a partially visible horizontal navigation strip.
 
 Definition of Done items are stable child records with UUIDs and checked state. The API rejects entry into a completed
 column while any item is unchecked. A management-locked column also requires Account Director or Senior Director

@@ -51,6 +51,12 @@ test('critical HRIS navigation is accessible and responsive', async ({ page, bro
         maxDiffPixelRatio: 0.01,
       });
   }
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Delivery reports', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeHidden();
   const taskAccessibility = await new AxeBuilder({ page }).analyze();
   expect(taskAccessibility.violations, `${browserName} task accessibility violations`).toEqual([]);
 });
