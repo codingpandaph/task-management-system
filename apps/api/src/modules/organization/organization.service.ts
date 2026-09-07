@@ -62,16 +62,14 @@ export class OrganizationService {
           }
         : {}),
     };
-    const [rows, total] = await Promise.all([
-      this.db.employee.findMany({
-        where,
-        include: { department: true },
-        skip: (q.page - 1) * q.pageSize,
-        take: q.pageSize,
-        orderBy: [{ lastName: 'asc' }, { id: 'asc' }],
-      }),
-      this.db.employee.count({ where }),
-    ]);
+    const rows = await this.db.employee.findMany({
+      where,
+      include: { department: true },
+      skip: (q.page - 1) * q.pageSize,
+      take: q.pageSize,
+      orderBy: [{ lastName: 'asc' }, { id: 'asc' }],
+    });
+    const total = await this.db.employee.count({ where });
     return {
       items: rows.map((e) => ({ ...directory(e), ...(hr ? { status: e.status, version: e.version } : {}) })),
       total,

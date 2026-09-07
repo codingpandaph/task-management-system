@@ -87,7 +87,6 @@ export default function Portal() {
       <main className="auth-layout">
         <section className="auth-story">
           <div className="brand-mark">CP</div>
-          <Typography variant="overline">CPPINSYNC</Typography>
           <Typography component="h1" variant="h2" sx={{ mt: 4, maxWidth: 560 }}>
             A clearer view of your people.
           </Typography>
@@ -235,11 +234,11 @@ export default function Portal() {
         <main className="page">
           <div className="page-heading">
             <div>
-              <Typography variant="overline" color="text.secondary">
-                CPPINSYNC / {user.department.name}
-              </Typography>
-              <Typography component="h1" variant="h3" sx={{ mt: 0.5 }}>
+              <Typography component="h1" variant="h3">
                 {title}
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                {user.department.name}
               </Typography>
             </div>
             <Chip label="Europe / London" variant="outlined" size="small" />

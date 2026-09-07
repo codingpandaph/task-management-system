@@ -28,7 +28,7 @@ import { PERMISSIONS, type CurrentEmployee, type DirectoryEmployee, type PageRes
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
+import { Card, EmptyState, LoadingState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
 interface Department {
   id: string;
   name: string;
@@ -74,6 +74,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     [detail, setDetail] = useState<EmployeeDetail | null>(null),
     [employment, setEmployment] = useState<EmploymentRecord[]>([]),
     [permissionGrants, setPermissionGrants] = useState<PermissionGrant[]>([]),
+    [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [search, setSearch] = useState(''),
     [page, setPage] = useState(1),
@@ -106,6 +107,9 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       })
       .catch((e) => {
         if (active) setError(message(e));
+      })
+      .finally(() => {
+        if (active && !id) setLoading(false);
       });
     if (id)
       api<EmployeeDetail>(`employees/${id}`)
@@ -114,6 +118,9 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         })
         .catch((e) => {
           if (active) setError(message(e));
+        })
+        .finally(() => {
+          if (active) setLoading(false);
         });
     if (id && can('EMPLOYMENT_MANAGE'))
       api<EmploymentRecord[]>(`employees/${id}/employment-records`)
@@ -166,6 +173,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       </DialogContent>
     </Dialog>
   );
+  if (loading) return <LoadingState label="Loading organization data" />;
   if (id)
     return (
       <Stack spacing={3}>

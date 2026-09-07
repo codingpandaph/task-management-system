@@ -143,19 +143,17 @@ export class LeaveService {
     const where: Prisma.LeaveRequestWhereInput = admin
       ? { employee: { departmentId: q.departmentId } }
       : { employeeId: actor.employee.id };
-    const [rows, total] = await Promise.all([
-      this.db.leaveRequest.findMany({
-        where,
-        include: {
-          employee: { select: { id: true, employeeId: true, firstName: true, lastName: true } },
-          _count: { select: { leaveRequestDay_request: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (q.page - 1) * q.pageSize,
-        take: q.pageSize,
-      }),
-      this.db.leaveRequest.count({ where }),
-    ]);
+    const rows = await this.db.leaveRequest.findMany({
+      where,
+      include: {
+        employee: { select: { id: true, employeeId: true, firstName: true, lastName: true } },
+        _count: { select: { leaveRequestDay_request: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (q.page - 1) * q.pageSize,
+      take: q.pageSize,
+    });
+    const total = await this.db.leaveRequest.count({ where });
     return {
       items: rows.map((r) => ({
         id: r.id,

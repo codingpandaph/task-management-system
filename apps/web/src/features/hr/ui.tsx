@@ -11,6 +11,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useState, type ReactElement, type ReactNode } from 'react';
 export interface Field {
   name: string;
@@ -160,6 +161,16 @@ export function EmptyState({ title, detail }: { title: string; detail: string })
         {detail}
       </Typography>
     </div>
+  );
+}
+export function LoadingState({ label = 'Loading content' }: { label?: string }) {
+  return (
+    <Stack role="status" spacing={1.5} sx={{ alignItems: 'center', justifyContent: 'center', minHeight: 180 }}>
+      <CircularProgress size={30} aria-hidden="true" />
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+    </Stack>
   );
 }
 export function ModalForm({

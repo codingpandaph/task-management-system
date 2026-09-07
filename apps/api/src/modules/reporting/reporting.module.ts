@@ -23,44 +23,47 @@ class ReportingController {
     requireHr(r.principal, 'REPORTING_READ');
     const day = dateOnly(today());
     const deadline = new Date(day.getTime() + 90 * 86400_000);
-    const [active, departments, employment, pending, onLeave, suspended, contracts, probation, usage] =
-      await Promise.all([
-        this.db.employee.count({ where: { status: 'ACTIVE' } }),
-        this.db.employee.groupBy({ by: ['departmentId'], where: { status: 'ACTIVE' }, _count: true }),
-        this.db.employmentRecord.groupBy({
-          by: ['type'],
-          where: { effectiveTo: null, employee: { status: 'ACTIVE' } },
-          _count: true,
-        }),
-        this.db.leaveRequest.count({ where: { status: 'PENDING' } }),
-        this.db.leaveRequest.count({ where: { status: 'APPROVED', startDate: { lte: day }, endDate: { gte: day } } }),
-        this.db.employee.count({ where: { status: 'SUSPENDED' } }),
-        this.db.employmentRecord.findMany({
-          where: { effectiveTo: null, type: 'CONTRACTUAL', endDate: { gte: day, lte: deadline } },
-          select: {
-            employeeId: true,
-            endDate: true,
-            employee: { select: { firstName: true, lastName: true, employeeId: true } },
-          },
-        }),
-        this.db.employmentRecord.findMany({
-          where: {
-            effectiveTo: null,
-            type: 'PROBATIONARY',
-            probationEnd: { lte: deadline },
-            employee: { status: 'ACTIVE' },
-          },
-          select: {
-            employeeId: true,
-            probationEnd: true,
-            employee: { select: { firstName: true, lastName: true, employeeId: true } },
-          },
-        }),
-        this.db.leaveLedgerEntry.aggregate({
-          _sum: { usedDelta: true },
-          where: { account: { leaveYear: { year: Number(today().slice(0, 4)) } } },
-        }),
-      ]);
+    const active = await this.db.employee.count({ where: { status: 'ACTIVE' } });
+    const departments = await this.db.employee.groupBy({
+      by: ['departmentId'],
+      where: { status: 'ACTIVE' },
+      _count: true,
+    });
+    const employment = await this.db.employmentRecord.groupBy({
+      by: ['type'],
+      where: { effectiveTo: null, employee: { status: 'ACTIVE' } },
+      _count: true,
+    });
+    const pending = await this.db.leaveRequest.count({ where: { status: 'PENDING' } });
+    const onLeave = await this.db.leaveRequest.count({
+      where: { status: 'APPROVED', startDate: { lte: day }, endDate: { gte: day } },
+    });
+    const suspended = await this.db.employee.count({ where: { status: 'SUSPENDED' } });
+    const contracts = await this.db.employmentRecord.findMany({
+      where: { effectiveTo: null, type: 'CONTRACTUAL', endDate: { gte: day, lte: deadline } },
+      select: {
+        employeeId: true,
+        endDate: true,
+        employee: { select: { firstName: true, lastName: true, employeeId: true } },
+      },
+    });
+    const probation = await this.db.employmentRecord.findMany({
+      where: {
+        effectiveTo: null,
+        type: 'PROBATIONARY',
+        probationEnd: { lte: deadline },
+        employee: { status: 'ACTIVE' },
+      },
+      select: {
+        employeeId: true,
+        probationEnd: true,
+        employee: { select: { firstName: true, lastName: true, employeeId: true } },
+      },
+    });
+    const usage = await this.db.leaveLedgerEntry.aggregate({
+      _sum: { usedDelta: true },
+      where: { account: { leaveYear: { year: Number(today().slice(0, 4)) } } },
+    });
     return {
       active,
       departments,
@@ -125,23 +128,21 @@ class ReportingController {
   }
   @Get('audit') async audit(@Req() r: AuthRequest, @Query() q: PageDto) {
     requirePermission(r.principal, 'AUDIT_READ');
-    const [items, total] = await Promise.all([
-      this.db.auditEvent.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: q.pageSize,
-        skip: (q.page - 1) * q.pageSize,
-        select: {
-          id: true,
-          actorId: true,
-          action: true,
-          targetType: true,
-          targetId: true,
-          createdAt: true,
-          metadata: true,
-        },
-      }),
-      this.db.auditEvent.count(),
-    ]);
+    const items = await this.db.auditEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: q.pageSize,
+      skip: (q.page - 1) * q.pageSize,
+      select: {
+        id: true,
+        actorId: true,
+        action: true,
+        targetType: true,
+        targetId: true,
+        createdAt: true,
+        metadata: true,
+      },
+    });
+    const total = await this.db.auditEvent.count();
     return { items, total, page: q.page, pageSize: q.pageSize };
   }
   @Interval(60_000) async reminders() {

@@ -28,8 +28,10 @@
     "test:unit": "yarn workspace @tms/api test",
     "test:tooling": "node --test tests/tooling/*.spec.mjs",
     "e2e:db:reset": "node tests/e2e/reset-database.mjs",
-    "test:e2e": "yarn e2e:db:reset && playwright test",
-    "demo:e2e": "yarn e2e:db:reset && PLAYWRIGHT_DEMO=1 playwright test tests/e2e/demo.spec.ts --headed",
+    "test:e2e": "yarn test:e2e:chromium && yarn test:e2e:browsers",
+    "test:e2e:chromium": "yarn e2e:db:reset && playwright test --project=chromium",
+    "test:e2e:browsers": "yarn e2e:db:reset && playwright test --config=playwright.cross-browser.config.ts",
+    "demo:e2e": "yarn e2e:db:reset && PLAYWRIGHT_DEMO=1 playwright test tests/e2e/demo.spec.ts --headed --project=chromium",
     "test:e2e:ui": "yarn e2e:db:reset && playwright test --ui",
     "test:e2e:install": "playwright install chromium",
     "db:validate": "prisma validate",
@@ -42,6 +44,7 @@
     "test:integration": "yarn workspace @tms/api test:integration"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.5",
     "@playwright/test": "~1.62.1",
     "@types/node": "^24.0.0",
@@ -51,6 +54,7 @@
     "eslint-config-next": "16.3.4",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^16.5.0",
+    "playwright-core": "~1.62.1",
     "prettier": "^3.6.2",
     "prisma": "7.10.0",
     "typescript": "~5.9.3",

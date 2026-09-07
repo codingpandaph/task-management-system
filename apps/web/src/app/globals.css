@@ -11,6 +11,18 @@ body {
   background: #f4f7f5;
   color: #16251f;
 }
+::selection {
+  background: #cbe3b8;
+  color: #123d30;
+}
+* {
+  scrollbar-color: #93aa9d #eef3ef;
+  scrollbar-width: thin;
+}
+:focus-visible {
+  outline: 3px solid #72a876;
+  outline-offset: 3px;
+}
 a {
   color: inherit;
   text-decoration: none;
@@ -259,7 +271,11 @@ a {
 }
 .MuiPaper-outlined {
   border-color: #e0e8e3 !important;
-  box-shadow: 0 5px 22px rgba(23, 62, 48, 0.045);
+}
+.MuiTableCell-root,
+.MuiChip-label,
+.metric-card .MuiTypography-h3 {
+  font-variant-numeric: tabular-nums;
 }
 .MuiDialog-paper .MuiDialogTitle-root {
   padding: 26px 28px 12px;

@@ -17,7 +17,7 @@ import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } fro
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
+import { Card, EmptyState, LoadingState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
 interface RequestRow {
   id: string;
   type: string;
@@ -74,6 +74,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
     [inbox, setInbox] = useState<Inbox>({ steps: [], cancellations: [] }),
     [detail, setDetail] = useState<Detail | null>(null),
     [people, setPeople] = useState<DirectoryEmployee[]>([]),
+    [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0),
     [preview, setPreview] = useState(''),
@@ -109,6 +110,8 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
         if (active) setError('');
       } catch (e) {
         if (active) setError(message(e));
+      } finally {
+        if (active) setLoading(false);
       }
     };
     void load();
@@ -117,6 +120,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
     };
   }, [id, path, revision]);
   const reload = () => setRevision((r) => r + 1);
+  if (loading) return <LoadingState label="Loading leave workspace" />;
   if (id)
     return (
       <Stack spacing={3}>

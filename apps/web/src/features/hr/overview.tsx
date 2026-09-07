@@ -21,7 +21,7 @@ import type { CurrentEmployee, PageResult } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, message, StatusTag, Tag } from './ui';
+import { Card, EmptyState, LoadingState, message, StatusTag, Tag } from './ui';
 interface Absence {
   id: string;
   startDate: string;
@@ -63,6 +63,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     [notices, setNotices] = useState<Notice[]>([]),
     [audit, setAudit] = useState<Audit[]>([]),
     [dashboard, setDashboard] = useState<Dashboard | null>(null),
+    [loading, setLoading] = useState(true),
     [auditSearch, setAuditSearch] = useState(''),
     [noticeTab, setNoticeTab] = useState(0),
     [error, setError] = useState('');
@@ -90,6 +91,8 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
         if (active) setError('');
       } catch (e) {
         if (active) setError(message(e));
+      } finally {
+        if (active) setLoading(false);
       }
     };
     void load();
@@ -102,6 +105,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     d.setUTCMonth(d.getUTCMonth() + offset);
     setMonth(d.toISOString().slice(0, 7));
   }
+  if (loading) return <LoadingState label="Loading workspace" />;
   const calendarDepartments = Array.from(
       new Map(events.map((event) => [event.employee.department.id, event.employee.department])).values(),
     ),
@@ -264,13 +268,12 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
               direction={{ xs: 'column', sm: 'row' }}
               sx={{ justifyContent: 'space-between', py: 1.5, borderBottom: '1px solid #eee' }}
             >
-              <Typography sx={{ fontWeight: 600 }}>
-                {e.employee.firstName} {e.employee.lastName}
-                <Typography component="span" variant="body2" color="text.secondary">
-                  {' '}
-                  · <Tag value={e.employee.department.name} tone="teal" />
+              <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                <Typography sx={{ fontWeight: 600 }}>
+                  {e.employee.firstName} {e.employee.lastName}
                 </Typography>
-              </Typography>
+                <Tag value={e.employee.department.name} tone="teal" />
+              </Stack>
               <Typography variant="body2">
                 {e.startDate.slice(0, 10)} — {e.endDate.slice(0, 10)}
               </Typography>

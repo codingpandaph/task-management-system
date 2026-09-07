@@ -318,6 +318,10 @@ in order; created names should include a unique suffix so repeated retained-data
 | Notifications/audit      | Recipient; user with audit permission     | Filter All/Unread notifications, follow and mark an item read; search audit by action or target                               | Only owned notifications change; audit stays immutable and contains no credentials or restricted narratives       | browser review, management reads and privacy integration flows |
 | Responsive/accessibility | Any role                                  | Repeat login, leave modal, directory, and calendar at 375, 599/600/601, 899/900/901, 1199/1200/1201, and 1440 px              | No page overflow; navigation, dialogs, forms, tags, and keyboard actions remain usable                            | breakpoint Playwright flows                                    |
 
+The cross-browser acceptance layer also runs automated axe checks on login and authenticated People views in Chromium,
+Firefox, and WebKit. It verifies the critical navigation path at 375, 900, and 1440 pixels in each engine and compares
+the login and People surfaces with browser-specific visual regression baselines.
+
 Automated browser scenarios live in `tests/e2e`. PostgreSQL integration tests provide the deeper concurrency, immutable
 ledger/audit, date-boundary, replay, and privacy assertions that are impractical to demonstrate visually. Both suites
 reset only the guarded `tms_test` database: Playwright uses seven limited users, while integration tests request the full
@@ -329,3 +333,7 @@ Future work includes MFA/SSO and recovery links, user-facing session management,
 memberships, delegation/reassignment, partial-day leave, proration/carry-over, more leave types and calendars, medical
 documents, retention/anonymisation and data-subject workflows, exports, email/SMS, distributed jobs and throttling,
 advanced observability, calendar integrations, and backup/restore drills.
+
+Prisma 7.10’s PostgreSQL adapter currently emits a `client.query()` deprecation warning from its internal query call on
+some transactional writes. The verified operations complete correctly; reassess the upstream adapter fix before moving
+to `pg` 9 rather than hiding the warning or weakening transaction coverage.

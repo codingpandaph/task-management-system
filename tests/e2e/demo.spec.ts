@@ -142,7 +142,12 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
 
     await page.getByRole('link', { name: 'People', exact: true }).click();
     await page.getByLabel('Search people', { exact: true }).fill(`Demo Employee ${suffix}`);
-    await expect(page.getByRole('link', { name: `Demo Employee ${suffix}`, exact: true })).toBeVisible();
+    await page.getByRole('link', { name: `Demo Employee ${suffix}`, exact: true }).click();
+    await page.getByRole('tab', { name: 'Employment', exact: true }).click();
+    await expect(page.getByRole('table', { name: 'Employment history' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Leave policies', exact: true }).click();
+    await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
 
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
     await page.getByLabel('Search policies', { exact: true }).fill(leavePolicy);
@@ -151,11 +156,36 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     await page.getByLabel('Search policies', { exact: true }).fill(christmasPolicy);
     await expect(page.getByText(christmasPolicy, { exact: false })).toBeVisible();
 
-    for (const destination of ['Approvals', 'Who’s out', 'Leave administration', 'Audit log', 'Notifications']) {
+    for (const destination of ['Approvals', 'Who’s out']) {
       await page.getByRole('link', { name: destination, exact: true }).click();
       await expect(page.locator('h1')).toBeVisible();
       if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_200);
     }
+
+    await page.getByRole('link', { name: 'Leave administration', exact: true }).click();
+    await page.getByRole('button', { name: 'Add administrative leave', exact: true }).click();
+    let dialog = page.getByRole('dialog', { name: 'Administrative leave entry' });
+    await choose(page, dialog, 'Employee', 'Morgan Reed');
+    await choose(page, dialog, 'Leave type', 'Vacation');
+    await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-10-20`);
+    await dialog.getByLabel('End date', { exact: true }).fill(`${year}-10-20`);
+    await dialog.getByLabel('Administrative reason', { exact: true }).fill('HR demo entry');
+    await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+    await page.getByRole('button', { name: 'Correct', exact: true }).first().click();
+    dialog = page.getByRole('dialog', { name: 'Correct administrative leave' });
+    await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-10-21`);
+    await dialog.getByLabel('End date', { exact: true }).fill(`${year}-10-21`);
+    await dialog.getByLabel('Correction reason', { exact: true }).fill('Corrected during the HR demo');
+    await dialog.getByRole('button', { name: 'Save changes', exact: true }).click();
+
+    await page.getByRole('link', { name: 'Notifications', exact: true }).click();
+    await page.getByRole('tab', { name: /Unread/ }).click();
+    const markRead = page.getByRole('button', { name: 'Mark read', exact: true }).first();
+    if (await markRead.isVisible()) await markRead.click();
+
+    await page.getByRole('link', { name: 'Audit log', exact: true }).click();
+    await page.getByLabel('Search audit history', { exact: true }).fill('LEAVE_CORRECTED');
+    await expect(page.getByText('Leave corrected', { exact: true })).toBeVisible();
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(3_000);
   });
 });

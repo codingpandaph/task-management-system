@@ -92,6 +92,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@axe-core/playwright@npm:^4.13.0":
+  version: 4.13.0
+  resolution: "@axe-core/playwright@npm:4.13.0"
+  dependencies:
+    axe-core: "npm:~4.13.0"
+  peerDependencies:
+    playwright-core: ">= 1.0.0"
+  checksum: 10c0/0938f24f3955bfa11c77c326300646a4f1dcd513389320ace9985d68486a622c443b2a34cd86f6002f617a3395623ad1e99a622450830873166aaa7e0312aa68
+  languageName: node
+  linkType: hard
+
 "@babel/code-frame@npm:^7.0.0, @babel/code-frame@npm:^7.16.7, @babel/code-frame@npm:^7.29.7":
   version: 7.29.7
   resolution: "@babel/code-frame@npm:7.29.7"
@@ -3626,7 +3637,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axe-core@npm:^4.10.0":
+"axe-core@npm:^4.10.0, axe-core@npm:~4.13.0":
   version: 4.13.0
   resolution: "axe-core@npm:4.13.0"
   checksum: 10c0/0e3be8be10eea64beddefd3007e1425424ff60c26c5f4d5f748ec48c2825356839c02ad4167fc1f03a6d84ecd82108f49fb2846ab7fe949273787391745561ca
@@ -7650,7 +7661,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.62.1":
+"playwright-core@npm:1.62.1, playwright-core@npm:~1.62.1":
   version: 1.62.1
   resolution: "playwright-core@npm:1.62.1"
   bin:
@@ -8942,6 +8953,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "task-management-system@workspace:."
   dependencies:
+    "@axe-core/playwright": "npm:^4.13.0"
     "@eslint/js": "npm:^9.39.5"
     "@playwright/test": "npm:~1.62.1"
     "@types/node": "npm:^24.0.0"
@@ -8951,6 +8963,7 @@ __metadata:
     eslint-config-next: "npm:16.3.4"
     eslint-config-prettier: "npm:^10.1.8"
     globals: "npm:^16.5.0"
+    playwright-core: "npm:~1.62.1"
     prettier: "npm:^3.6.2"
     prisma: "npm:7.10.0"
     typescript: "npm:~5.9.3"

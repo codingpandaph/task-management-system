@@ -94,6 +94,11 @@ responsive UI, and direct authorization denial. Use `yarn demo:e2e` for the pace
 checklist and expected results are in
 [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist).
 
+The complete command runs the workflow suite in Chromium, then resets again and runs the critical login, navigation,
+responsive, and automated accessibility path in Chromium, Firefox, and WebKit. Use `yarn test:e2e:chromium` or
+`yarn test:e2e:browsers` when isolating one layer. Browser-specific login and People baselines provide visual regression
+coverage for the shared shell and the highest-use HR workspace.
+
 `yarn test:integration` also resets `tms_test`, using the fuller lifecycle fixture set required for contractual,
 probationary, concurrency, ledger, and privacy assertions. Both commands refuse any database other than `tms_test`.
 
