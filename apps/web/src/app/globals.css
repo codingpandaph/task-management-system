@@ -231,6 +231,10 @@ a {
   text-transform: capitalize;
   font-weight: 650;
 }
+.status-tag .MuiChip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .empty-state {
   border: 1px dashed #cddbd2;
   border-radius: 12px;

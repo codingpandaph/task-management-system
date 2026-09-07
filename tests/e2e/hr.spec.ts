@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 const year = new Date().getFullYear();
 const password = 'Demo only password 2026!';
 const usernames = {
@@ -28,6 +28,35 @@ async function post<T>(request: APIRequestContext, path: string, csrf: string, d
 async function select(page: Page, label: string, option: string) {
   await page.getByRole('combobox', { name: label, exact: true }).last().click();
   await page.getByRole('option', { name: option, exact: true }).click();
+}
+async function uiSignIn(page: Page, employeeId: string) {
+  await page.goto('/login');
+  await page.getByLabel('Employee ID', { exact: true }).fill(employeeId);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
+}
+async function uiFileLeave(page: Page, day: string) {
+  await page.goto('/leave');
+  await page.getByRole('button', { name: 'File leave', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'File a leave request' });
+  await select(page, 'Leave type', 'Vacation');
+  await dialog.getByLabel('Start date', { exact: true }).fill(day);
+  await dialog.getByLabel('End date', { exact: true }).fill(day);
+  await dialog.getByLabel('Reason (optional; no medical diagnosis)', { exact: true }).fill('Browser approval matrix');
+  await select(page, 'Action', 'Submit for approval');
+  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('link').filter({ hasText: day }).first().click();
+}
+async function uiApprove(page: Page, day: string) {
+  await page.goto('/approvals');
+  const date = page.getByText(new RegExp(`^${day} → ${day}`)).first();
+  await expect(date).toBeVisible();
+  await date.locator('..').getByRole('link').click();
+  await page.getByRole('button', { name: 'Review request', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Record your decision' });
+  await select(page, 'Decision', 'Approve');
+  await dialog.getByRole('button', { name: 'Record decision', exact: true }).click();
 }
 
 test('HR creates a department and employee; new employee must change password', async ({ page }) => {
@@ -123,6 +152,37 @@ test('all five leave approval chains and approved cancellation complete', async 
   }
 });
 
+test('all five roles file leave and complete their approval chains through the UI', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const contexts: BrowserContext[] = [];
+  const pages = new Map<string, Page>();
+  try {
+    for (const [role, employeeId] of Object.entries(usernames)) {
+      const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+      contexts.push(context);
+      const page = await context.newPage();
+      await uiSignIn(page, employeeId);
+      pages.set(role, page);
+    }
+    const matrix: { requester: string; day: string; approvers: string[] }[] = [
+      { requester: 'member', day: `${year}-12-07`, approvers: ['director', 'hrApprover'] },
+      { requester: 'director', day: `${year}-12-08`, approvers: ['senior', 'hrApprover'] },
+      { requester: 'hrMember', day: `${year}-12-09`, approvers: ['hr'] },
+      { requester: 'hr', day: `${year}-12-10`, approvers: ['senior'] },
+      { requester: 'senior', day: `${year}-12-11`, approvers: [] },
+    ];
+    for (const flow of matrix) {
+      const requester = pages.get(flow.requester)!;
+      await uiFileLeave(requester, flow.day);
+      for (const approver of flow.approvers) await uiApprove(pages.get(approver)!, flow.day);
+      await requester.reload();
+      await expect(requester.getByText('Approved', { exact: true }).first()).toBeVisible();
+    }
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});
+
 test('ordinary employee cannot enter HR screens; calendar stays responsive', async ({ page }) => {
   await login(page.request, usernames.hrMember);
   await page.goto('/employees');
@@ -181,7 +241,7 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   await expect(page.getByRole('table', { name: 'Employment history' })).toBeVisible();
   await expect(page.getByText('Full time', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
-  await expect(page.getByText('Employee create', { exact: true })).toBeVisible();
+  await expect(page.getByText('Add people', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Access controls', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Policies', exact: true }).click();

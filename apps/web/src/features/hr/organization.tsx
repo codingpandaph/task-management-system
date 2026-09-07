@@ -534,14 +534,15 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                       {((policyTab === 0 && can('LEAVE_POLICY_MANAGE')) ||
                         (policyTab === 1 && can('CHRISTMAS_POLICY_MANAGE'))) && (
                         <Button
-                          color={policy.status === 'ACTIVE' ? 'warning' : 'success'}
+                          color="primary"
+                          variant="outlined"
                           onClick={() =>
                             save(`${policyTab === 0 ? 'leave' : 'christmas'}-policies/${policy.id}/status`, {
                               status: policy.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
                             })
                           }
                         >
-                          {policy.status === 'ACTIVE' ? 'Make inactive' : 'Activate'}
+                          {policy.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                         </Button>
                       )}
                     </Stack>

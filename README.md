@@ -90,8 +90,8 @@ state and remain ignored in `test-results/` and `playwright-report/`.
 change, directory scope, departments, employee edits/transfers/employment records, permissions, lifecycle transitions,
 regular and Christmas policy creation/versioning/status/assignment, balances, all five approval chains, cancellation,
 editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
-responsive UI, and direct authorization denial. Use `yarn demo:e2e` for the paced headed tour. The step-by-step manual
-checklist and expected results are in
+responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the five-path
+matrix. Use `yarn demo:e2e` for the paced headed tour. The step-by-step manual checklist and expected results are in
 [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist).
 
 The complete command runs the workflow suite in Chromium, then resets again and runs the critical login, navigation,

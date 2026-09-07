@@ -19,7 +19,11 @@ const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
-    MuiButton: { styleOverrides: { root: { borderRadius: 10, boxShadow: 'none', minHeight: 40 } } },
+    MuiButton: {
+      styleOverrides: {
+        root: { borderRadius: 10, boxShadow: 'none', minHeight: 44, lineHeight: 1.2, whiteSpace: 'nowrap' },
+      },
+    },
     MuiDialog: { styleOverrides: { paper: { borderRadius: 18 } } },
     MuiTextField: { defaultProps: { size: 'small' } },
   },

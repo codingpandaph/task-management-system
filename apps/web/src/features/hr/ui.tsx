@@ -106,6 +106,26 @@ const tagLabels: Record<string, string> = {
   CHRISTMAS_VACATION: 'Christmas',
   FULL_TIME: 'Full time',
   PROBATIONARY: 'Probation',
+  EMPLOYEE_CREATE: 'Add people',
+  EMPLOYEE_READ: 'View people',
+  EMPLOYEE_UPDATE: 'Edit people',
+  EMPLOYEE_STATUS_MANAGE: 'Manage status',
+  EMPLOYEE_PASSWORD_RESET: 'Reset passwords',
+  EMPLOYEE_PRIVATE_READ: 'Personal data',
+  DEPARTMENT_CREATE: 'Add departments',
+  DEPARTMENT_UPDATE: 'Edit departments',
+  DEPARTMENT_ASSIGN_MEMBER: 'Move people',
+  DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR: 'Assign directors',
+  ORGANIZATION_MANAGE: 'Governance',
+  EMPLOYMENT_MANAGE: 'Employment',
+  LEAVE_POLICY_MANAGE: 'Leave policies',
+  CHRISTMAS_POLICY_MANAGE: 'Christmas policy',
+  LEAVE_ADMIN: 'Leave admin',
+  LEAVE_HR_APPROVE: 'HR approvals',
+  PERMISSION_ASSIGN: 'Grant access',
+  PERMISSION_REVOKE: 'Revoke access',
+  AUDIT_READ: 'View audit',
+  REPORTING_READ: 'View reports',
 };
 const tagTones: Record<string, keyof typeof tagPalette> = {
   ACTIVE: 'green',
@@ -145,8 +165,9 @@ export function Tag({ value, tone }: { value: string; tone?: keyof typeof tagPal
     <Chip
       className="status-tag"
       label={label}
+      title={value.replaceAll('_', ' ')}
       size="small"
-      sx={{ bgcolor: palette.background, color: palette.color }}
+      sx={{ bgcolor: palette.background, color: palette.color, maxWidth: 160 }}
     />
   );
 }
