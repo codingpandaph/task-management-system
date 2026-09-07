@@ -6,6 +6,10 @@ administration, annual leave, reporting, notifications, and append-oriented audi
 reuses this identity, hierarchy, lifecycle, leave calendar, notifications, and authentication authority; its behavior
 and acceptance guide are documented in [task-management.md](task-management.md).
 
+The full development organization has exactly three departments: Client Services and Marketing each have one Account
+Director with 15 members, while Human Resources is an additional support department and the Senior Director's primary
+department. The limited Playwright seed remains seven users so isolated browser journeys stay fast and deterministic.
+
 ## Identity and access
 
 Employees sign in with an immutable business ID and password. IDs have the form
@@ -31,7 +35,7 @@ rate limiting. Concurrent refreshes are serialized in the browser; an exceptiona
 ## Organization and authorization
 
 Every employee has one primary department and one fixed organizational position: Member, Account Director, or Senior
-Director. HR is a typed department and Leadership is a small normal department. There is at most one active Senior
+Director. HR is a typed department and is also the Senior Director's primary department in the demonstration. There is at most one active Senior
 Director and one active Account Director per department. An Account Director belongs to the department they manage.
 Departments may be created without a manager, but dependent leave requests cannot be submitted until one is assigned.
 
@@ -334,9 +338,9 @@ The cross-browser acceptance layer also runs automated axe checks on login, auth
 in Chromium, Firefox, and WebKit. It verifies the critical navigation path at 375, 900, and 1440 pixels in each engine
 and compares login, People, and desktop/mobile task-board surfaces with browser-specific visual regression baselines.
 
-Compact tags translate permission and workflow codes into plain labels such as **Add people**, **Manage status**, and
-**HR approvals**. Full internal codes remain available as hover titles. Buttons use at least a 44-pixel target and
-accessible primary contrast; deactivation is presented as a clearly labelled outlined action.
+Compact tags use one-word labels such as **Onboard**, **Status**, and **Approvals**. Full internal codes remain available
+as hover titles. Buttons use at least a 44-pixel target; primary green buttons explicitly retain white text in default,
+hover, and keyboard-focus states. Deactivation is presented as a clearly labelled outlined action.
 
 Automated browser scenarios live in `tests/e2e`. PostgreSQL integration tests provide the deeper concurrency, immutable
 ledger/audit, date-boundary, replay, and privacy assertions that are impractical to demonstrate visually. Both suites

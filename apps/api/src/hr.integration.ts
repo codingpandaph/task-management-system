@@ -45,6 +45,18 @@ test('HR foundation against PostgreSQL', async (suite) => {
       hrMember = await actor('Riley');
     const policy = await db.leavePolicyVersion.findFirstOrThrow(),
       christmas = await db.christmasPolicyVersion.findFirstOrThrow();
+    await suite.test('full seed matches the two 15-member teams plus the additional HR department', async () => {
+      assert.equal(await db.department.count(), 3);
+      assert.equal(await db.employee.count({ where: { department: { code: 'ACC' }, position: 'MEMBER' } }), 15);
+      assert.equal(await db.employee.count({ where: { department: { code: 'MKT' }, position: 'MEMBER' } }), 15);
+      assert.equal(await db.employee.count({ where: { position: 'SENIOR_DIRECTOR' } }), 1);
+      assert.equal(
+        await db.employee.count({
+          where: { department: { code: { in: ['ACC', 'MKT'] } }, position: 'ACCOUNT_DIRECTOR' },
+        }),
+        2,
+      );
+    });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 7).toUpperCase();
     const dep = await org.createDepartment(hr, { code: `T${suffix}`, name: `Integration ${suffix}` });
     const create = async (name: string) =>

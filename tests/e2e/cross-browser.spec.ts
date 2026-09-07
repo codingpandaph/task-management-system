@@ -12,7 +12,7 @@ test('critical HRIS navigation is accessible and responsive', async ({ page, bro
   const loginAccessibility = await new AxeBuilder({ page }).analyze();
   expect(loginAccessibility.violations).toEqual([]);
 
-  await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-DIR-000001`);
+  await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-HR-000001`);
   await page.getByLabel('Password', { exact: true }).fill('Demo only password 2026!');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
@@ -35,6 +35,12 @@ test('critical HRIS navigation is accessible and responsive', async ({ page, bro
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Team boards', exact: true })).toBeVisible();
   await expect(page.getByLabel(/board$/)).toBeVisible();
+  const primaryAction = page.getByRole('button', { name: 'Create task', exact: true });
+  await expect(primaryAction).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await primaryAction.hover();
+  await expect(primaryAction).toHaveCSS('color', 'rgb(255, 255, 255)');
+  const tagLabels = await page.locator('.status-tag').allTextContents();
+  expect(tagLabels.every((label) => /^\S+$/.test(label))).toBe(true);
   await expect(page).toHaveScreenshot('task-board.png', { animations: 'disabled', maxDiffPixelRatio: 0.01 });
   for (const width of [375, 900, 1440]) {
     await page.setViewportSize({ width, height: 900 });

@@ -90,7 +90,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
 
   await test.step('Senior Director files and cancels auto-approved leave', async () => {
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-    await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-DIR-000001`);
+    await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-HR-000001`);
     await page.getByLabel('Password', { exact: true }).fill(demoPassword);
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await page.getByRole('link', { name: 'My leave', exact: true }).click();

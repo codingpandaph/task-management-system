@@ -6,6 +6,11 @@ and two teams of 15, while giving each employee an individual view, each directo
 Director a top-level delivery view. The richer rules below are CPPinSync design decisions; they are not additional
 requirements attributed to Simon. The 30–45 minute meeting duration does not constrain this implementation.
 
+The full development seed interprets “15 people underneath” literally: Client Services and Marketing each contain one
+Account Director plus 15 members. Together with one Senior Director, Simon's core operating shape contains 33 people.
+Human Resources is the third department and is additional to that core headcount. The Senior Director uses HR as their
+primary department so the demonstration contains exactly three departments rather than a synthetic leadership unit.
+
 ## Product model
 
 CPPinSync uses the existing HRIS employee, department, position, account-status, leave, notification, and session data.
@@ -53,6 +58,9 @@ reporter, zero or one active assignee, board column, optional milestone, Definit
 sign-off, escalation, and soft-delete state. Eight stored hours equal one work day; `12` renders as `1d 4h` in capacity.
 The creator is selected as reporter by default. The create and edit forms may assign another active colleague from the
 workspace department as reporter, and every reporter change is preserved in append-only task activity.
+
+Board cards and reports use short one-word pills such as **High**, **Signed**, **Escalated**, and **Progress**. Counts use
+compact forms such as **Tasks:4**. The underlying complete value remains available as the pill title.
 
 Definition of Done items are stable child records with UUIDs and checked state. The API rejects entry into a completed
 column while any item is unchecked. A management-locked column also requires Account Director or Senior Director
@@ -120,7 +128,7 @@ seed uses the same key roles and resets `tms_test` before each Playwright layer.
 For an automated visible tour, run `yarn demo:e2e:tasks`. Run `yarn demo:e2e` to include the HRIS setup and every leave
 requester/approver perspective before the task journeys.
 
-The verified baseline is 22 PostgreSQL integration scenarios, 16 full Chromium journeys shared with HRIS, and one
+The verified baseline is 23 PostgreSQL integration scenarios, 16 full Chromium journeys shared with HRIS, and one
 critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 

@@ -1,13 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
 test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? Number(process.env.DEMO_SLOWMO_MS ?? 1200) : 0 } });
-test.beforeEach(async (_fixtures, testInfo) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  void page;
   if (process.env.PLAYWRIGHT_DEMO) testInfo.setTimeout(240_000);
 });
 
 const password = 'Demo only password 2026!';
 const users = {
-  senior: '2026-DIR-000001',
+  senior: '2026-HR-000001',
   director: '2026-ACC-000002',
   member: '2026-ACC-000007',
 };
@@ -60,7 +61,7 @@ test('member creates, discusses, completes DoD, and advances a signed-off task',
     await director.getByRole('link', { name: 'Team boards', exact: true }).click();
     await director.getByRole('button', { name: /Open ACC-#\d+ Publish customer handover/ }).click();
     await director.getByRole('button', { name: 'Sign off task', exact: true }).click();
-    await expect(director.getByText('Signed off', { exact: true })).toBeVisible();
+    await expect(director.getByText('Signed', { exact: true })).toBeVisible();
     await director.getByRole('button', { name: 'Close task' }).click();
 
     await member.reload();

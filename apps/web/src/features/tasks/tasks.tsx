@@ -629,12 +629,18 @@ function MilestoneStrip({
   if (!workspace.milestones.length) return null;
   return (
     <>
-      <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 0.5 }} aria-label="Open milestones">
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        sx={{ overflowX: { sm: 'auto' }, pb: 0.5 }}
+        aria-label="Open milestones"
+      >
         {workspace.milestones.map((milestone) => (
           <Button
             key={milestone.id}
             variant="outlined"
             color={milestone.isOvercapacity ? 'error' : 'primary'}
+            sx={{ flexShrink: 0, justifyContent: 'space-between', width: { xs: '100%', sm: 'auto' } }}
             onClick={() => api<typeof capacity>(`milestones/${milestone.id}/capacity`).then(setCapacity)}
           >
             {milestone.name} · {new Date(milestone.dueDate).toLocaleDateString('en-GB')}

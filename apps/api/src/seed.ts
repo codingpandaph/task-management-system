@@ -59,7 +59,6 @@ export async function seed(db: DatabaseService) {
     }
     const departments = new Map<string, string>();
     for (const [code, name] of [
-      ['DIR', 'Leadership'],
       ['ACC', 'Client Services'],
       ['MKT', 'Marketing'],
       ['HR', 'Human Resources'],
@@ -68,7 +67,7 @@ export async function seed(db: DatabaseService) {
       departments.set(code, d.id);
     }
     const people: [string, string, string, Position][] = [
-      ['Avery', 'Morgan', 'DIR', 'SENIOR_DIRECTOR'],
+      ['Avery', 'Morgan', 'HR', 'SENIOR_DIRECTOR'],
       ['Jordan', 'Ellis', 'ACC', 'ACCOUNT_DIRECTOR'],
       ['Casey', 'Rowan', 'MKT', 'ACCOUNT_DIRECTOR'],
       ['Taylor', 'Quinn', 'HR', 'ACCOUNT_DIRECTOR'],
@@ -80,7 +79,45 @@ export async function seed(db: DatabaseService) {
       ['Robin', 'Vale', 'MKT', 'MEMBER'],
       ['Drew', 'Lane', 'ACC', 'MEMBER'],
     ];
-    if (limited) people.splice(7);
+    if (limited) {
+      people.splice(7);
+    } else {
+      const clientMembers = [
+        ['Cameron', 'Blake'],
+        ['Emery', 'Stone'],
+        ['Frankie', 'Hart'],
+        ['Harper', 'Cole'],
+        ['Jules', 'Wells'],
+        ['Kai', 'Reeves'],
+        ['Logan', 'Price'],
+        ['Micah', 'Ford'],
+        ['Noel', 'Hayes'],
+        ['Parker', 'Dean'],
+        ['Quinn', 'Frost'],
+        ['Rowan', 'Bell'],
+      ] as const;
+      const marketingMembers = [
+        ['Ari', 'West'],
+        ['Billie', 'Cross'],
+        ['Charlie', 'North'],
+        ['Devon', 'Lake'],
+        ['Elliot', 'Green'],
+        ['Finley', 'Moore'],
+        ['Gray', 'Young'],
+        ['Hayden', 'Scott'],
+        ['Indigo', 'King'],
+        ['Justice', 'Wood'],
+        ['Kit', 'Ward'],
+        ['Lennon', 'Fox'],
+        ['Marley', 'Rose'],
+      ] as const;
+      people.push(
+        ...clientMembers.map(([first, last]) => [first, last, 'ACC', 'MEMBER'] as [string, string, string, Position]),
+        ...marketingMembers.map(
+          ([first, last]) => [first, last, 'MKT', 'MEMBER'] as [string, string, string, Position],
+        ),
+      );
+    }
     const ids: string[] = [];
     for (const [i, [firstName, lastName, code, position]] of people.entries()) {
       const [sequence] = await tx.$queryRaw<{ value: bigint }[]>`SELECT nextval('employee_id_sequence') AS value`;

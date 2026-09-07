@@ -298,7 +298,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
               backgroundImage: 'linear-gradient(120deg,#e5ecd9,#f0efdf)',
             }}
           >
-            <Chip label="A little clarity for the day ahead" size="small" sx={{ mb: 2 }} />
+            <Chip label="Today" size="small" sx={{ mb: 2 }} />
             <Typography component="h2" variant="h4">
               Good to see you, {user.displayName.split(' ')[0]}.
             </Typography>

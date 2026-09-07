@@ -102,30 +102,35 @@ export function Card({ title, children, className }: { title: string; children: 
 }
 const tagLabels: Record<string, string> = {
   ACCOUNT_DIRECTOR: 'Director',
-  SENIOR_DIRECTOR: 'Senior director',
+  SENIOR_DIRECTOR: 'Senior',
   CHRISTMAS_VACATION: 'Christmas',
-  FULL_TIME: 'Full time',
+  FULL_TIME: 'Permanent',
   PROBATIONARY: 'Probation',
-  EMPLOYEE_CREATE: 'Add people',
-  EMPLOYEE_READ: 'View people',
-  EMPLOYEE_UPDATE: 'Edit people',
-  EMPLOYEE_STATUS_MANAGE: 'Manage status',
-  EMPLOYEE_PASSWORD_RESET: 'Reset passwords',
-  EMPLOYEE_PRIVATE_READ: 'Personal data',
-  DEPARTMENT_CREATE: 'Add departments',
-  DEPARTMENT_UPDATE: 'Edit departments',
-  DEPARTMENT_ASSIGN_MEMBER: 'Move people',
-  DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR: 'Assign directors',
+  EMPLOYEE_CREATE: 'Onboard',
+  EMPLOYEE_READ: 'Directory',
+  EMPLOYEE_UPDATE: 'Profiles',
+  EMPLOYEE_STATUS_MANAGE: 'Status',
+  EMPLOYEE_PASSWORD_RESET: 'Passwords',
+  EMPLOYEE_PRIVATE_READ: 'Private',
+  DEPARTMENT_CREATE: 'Departments',
+  DEPARTMENT_UPDATE: 'Structure',
+  DEPARTMENT_ASSIGN_MEMBER: 'Transfers',
+  DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR: 'Directors',
   ORGANIZATION_MANAGE: 'Governance',
   EMPLOYMENT_MANAGE: 'Employment',
-  LEAVE_POLICY_MANAGE: 'Leave policies',
-  CHRISTMAS_POLICY_MANAGE: 'Christmas policy',
-  LEAVE_ADMIN: 'Leave admin',
-  LEAVE_HR_APPROVE: 'HR approvals',
-  PERMISSION_ASSIGN: 'Grant access',
-  PERMISSION_REVOKE: 'Revoke access',
-  AUDIT_READ: 'View audit',
-  REPORTING_READ: 'View reports',
+  LEAVE_POLICY_MANAGE: 'Policies',
+  CHRISTMAS_POLICY_MANAGE: 'Christmas',
+  LEAVE_ADMIN: 'Leave',
+  LEAVE_HR_APPROVE: 'Approvals',
+  PERMISSION_ASSIGN: 'Grant',
+  PERMISSION_REVOKE: 'Revoke',
+  AUDIT_READ: 'Audit',
+  REPORTING_READ: 'Reports',
+  LEAVE_CORRECTED: 'Corrected',
+  SIGNED_OFF: 'Signed',
+  IN_PROGRESS: 'Progress',
+  'In progress': 'Progress',
+  'To do': 'Todo',
 };
 const tagTones: Record<string, keyof typeof tagPalette> = {
   ACTIVE: 'green',
@@ -155,19 +160,29 @@ const tagPalette = {
 };
 export function Tag({ value, tone }: { value: string; tone?: keyof typeof tagPalette }) {
   const palette = tagPalette[tone ?? tagTones[value] ?? 'grey'];
-  const label =
+  const expanded =
     tagLabels[value] ??
     value
       .replaceAll('_', ' ')
       .toLowerCase()
       .replace(/^./, (letter) => letter.toUpperCase());
+  const count = expanded.match(/^(\d+)\s+(.+)$/);
+  const label = count
+    ? `${count[2].split(/\s+/)[0]}:${count[1]}`
+    : expanded.includes(' ')
+      ? expanded
+          .split(/\s+/)
+          .map((word) => word[0])
+          .join('')
+          .toUpperCase()
+      : expanded;
   return (
     <Chip
       className="status-tag"
       label={label}
       title={value.replaceAll('_', ' ')}
       size="small"
-      sx={{ bgcolor: palette.background, color: palette.color, maxWidth: 160 }}
+      sx={{ bgcolor: palette.background, color: palette.color, maxWidth: 112 }}
     />
   );
 }

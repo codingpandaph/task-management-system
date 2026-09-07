@@ -102,7 +102,7 @@ export default function Portal() {
         </section>
         <section className="auth-form">
           <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, width: '100%', maxWidth: 430 }}>
-            <Chip label="Employee portal" size="small" sx={{ mb: 3 }} />
+            <Chip label="Portal" size="small" sx={{ mb: 3 }} />
             <Typography variant="h4" component="h2">
               Welcome back
             </Typography>
@@ -176,6 +176,22 @@ export default function Portal() {
     { href: '/notifications', label: 'Notifications', icon: <NotificationsNoneOutlined /> },
   ];
   const title = nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People';
+  const subtitle: Record<string, string> = {
+    Overview: 'Your work and organization',
+    Organization: 'Departments and reporting lines',
+    People: 'Employee directory',
+    'My tasks': 'Assigned work',
+    'Team boards': 'Department delivery',
+    'Delivery reports': 'Portfolio overview',
+    'Task archive': 'Deleted work',
+    'My leave': 'Balances and requests',
+    Approvals: 'Decisions awaiting review',
+    'Who’s out': 'Team availability',
+    Policies: 'Leave entitlements',
+    'Leave administration': 'Corrections and adjustments',
+    'Audit log': 'Recorded business changes',
+    Notifications: 'Updates requiring attention',
+  };
   return (
     <div className="portal">
       <Snackbar
@@ -251,10 +267,10 @@ export default function Portal() {
                 {title}
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                {user.department.name}
+                {subtitle[title] ?? user.department.name}
               </Typography>
             </div>
-            <Chip label="Europe / London" variant="outlined" size="small" />
+            <Chip label="London" title="Europe / London" variant="outlined" size="small" />
           </div>
           {error && <Alert severity="error">{error}</Alert>}
           {path.startsWith('/tasks') ||

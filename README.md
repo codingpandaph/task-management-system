@@ -43,9 +43,13 @@ The web application runs at <http://localhost:3000>, the API at <http://localhos
 at <http://localhost:3001/health>. Browser API calls pass through the same-origin Next.js `/api` rewrite.
 
 The development-only seed is non-destructive and refuses production execution. Its fictional users all start with
-`Demo only password 2026!`. Examples for the current year are `<year>-DIR-000001` (Senior Director),
+`Demo only password 2026!`. Examples for the current year are `<year>-HR-000001` (Senior Director),
 `<year>-HR-000004` (HR Account Director), `<year>-HR-000005` (final HR approver), and `<year>-ACC-000007`
 (member). `<year>-ACC-000011` demonstrates mandatory first-login password change.
+
+The full seed creates three departments. Client Services and Marketing each contain one Account Director and 15
+members; Human Resources contains the additional HR roles and the Senior Director. Simon's core hierarchy therefore
+contains 33 people when “15 people underneath” excludes each team leader. E2E keeps a seven-user subset.
 
 ## Database and migrations
 
@@ -108,7 +112,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 22 real-PostgreSQL integration tests, 16 full
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 23 real-PostgreSQL integration tests, 16 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
@@ -118,6 +122,8 @@ probationary, concurrency, ledger, and privacy assertions. Both commands refuse 
 The portal uses employee tabs with visible employment history and access grants, searchable approval queues,
 department-filtered calendars, personal task search, horizontal team Kanban boards, semantic tags, policy actions, and
 scoped delivery summaries. Business mutations remain enforced by the API regardless of which controls are visible.
+Status and permission pills use one-word labels, while their hover titles preserve the full internal value. Primary
+green actions explicitly use white text across default, hover, and keyboard-focus states.
 
 ## Architecture
 

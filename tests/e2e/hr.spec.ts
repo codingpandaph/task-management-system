@@ -9,7 +9,7 @@ const usernames = {
   hrMember: `${year}-HR-000006`,
   member: `${year}-ACC-000007`,
   director: `${year}-ACC-000002`,
-  senior: `${year}-DIR-000001`,
+  senior: `${year}-HR-000001`,
 };
 async function login(request: APIRequestContext, employeeId: string) {
   const r = await request.post('/api/auth/login', {
@@ -241,9 +241,9 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   );
   await page.getByRole('tab', { name: 'Employment', exact: true }).click();
   await expect(page.getByRole('table', { name: 'Employment history' })).toBeVisible();
-  await expect(page.getByText('Full time', { exact: true })).toBeVisible();
+  await expect(page.getByText('Permanent', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
-  await expect(page.getByText('Add people', { exact: true })).toBeVisible();
+  await expect(page.getByText('Onboard', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Access controls', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Policies', exact: true }).click();
@@ -317,7 +317,7 @@ test('draft editing, HR correction, notifications, and audit review work through
 
   await page.getByRole('link', { name: 'Audit log', exact: true }).click();
   await page.getByLabel('Search audit history', { exact: true }).fill('LEAVE_CORRECTED');
-  await expect(page.getByText('Leave corrected', { exact: true })).toBeVisible();
+  await expect(page.getByText('Corrected', { exact: true })).toBeVisible();
 });
 
 test('HR adjustment is idempotent and suspension immediately denies authentication', async ({ playwright }) => {

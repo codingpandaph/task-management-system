@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 
 const theme = createTheme({
   palette: {
-    primary: { main: '#165c46', dark: '#0f4535', light: '#d9eee6' },
+    primary: { main: '#165c46', dark: '#0f4535', light: '#d9eee6', contrastText: '#ffffff' },
     background: { default: '#f4f7f5', paper: '#ffffff' },
     text: { primary: '#16251f', secondary: '#607068' },
   },
@@ -23,6 +23,16 @@ const theme = createTheme({
       styleOverrides: {
         root: { borderRadius: 10, boxShadow: 'none', minHeight: 44, lineHeight: 1.2, whiteSpace: 'nowrap' },
       },
+      variants: [
+        {
+          props: { variant: 'contained', color: 'primary' },
+          style: {
+            color: '#ffffff',
+            '&:hover': { color: '#ffffff', backgroundColor: '#0f4535' },
+            '&:focus-visible': { color: '#ffffff' },
+          },
+        },
+      ],
     },
     MuiDialog: { styleOverrides: { paper: { borderRadius: 18 } } },
     MuiTextField: { defaultProps: { size: 'small' } },
