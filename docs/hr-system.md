@@ -343,6 +343,8 @@ as hover titles. Buttons use at least a 44-pixel target; primary green buttons e
 hover, and keyboard-focus states. Deactivation is presented as a clearly labelled outlined action.
 At phone widths, the complete role-aware navigation is available from a labelled menu and keyboard-dismissible drawer;
 employees do not need to horizontally hunt for leave, approvals, calendar, notifications, or authorized HR tools.
+The shared CSS token layer is checked with `yarn design-check`; HR screens use its documented colors, type sizes,
+spacing, focus treatment, and radii rather than defining local visual values.
 
 Automated browser scenarios live in `tests/e2e`. PostgreSQL integration tests provide the deeper concurrency, immutable
 ledger/audit, date-boundary, replay, and privacy assertions that are impractical to demonstrate visually. Both suites

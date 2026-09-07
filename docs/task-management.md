@@ -63,6 +63,8 @@ Board cards and reports use short one-word pills such as **High**, **Signed**, *
 compact forms such as **Tasks:4**. The underlying complete value remains available as the pill title.
 On phones, My tasks, Team boards, Delivery reports, and Task archive remain available in the complete role-aware menu
 rather than a partially visible horizontal navigation strip.
+Task surfaces share the global design tokens and are covered by `yarn design-check`, including Kanban columns, task
+cards, milestone controls, semantic tags, focus states, and responsive navigation.
 
 Definition of Done items are stable child records with UUIDs and checked state. The API rejects entry into a completed
 column while any item is unchecked. A management-locked column also requires Account Director or Senior Director

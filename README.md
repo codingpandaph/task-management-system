@@ -126,6 +126,7 @@ Status and permission pills use one-word labels, while their hover titles preser
 green actions explicitly use white text across default, hover, and keyboard-focus states.
 On phones, a labelled menu opens the complete role-aware navigation drawer, keeping leave, approval, reporting, and
 administration destinations discoverable without relying on a long horizontal strip.
+Run `yarn design-check` to detect design-system drift against `apps/web/DESIGN.md` and `apps/web/PRODUCT.md`.
 
 ## Architecture
 

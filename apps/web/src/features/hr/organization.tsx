@@ -182,7 +182,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
           <>
             <Card title="Employee profile" className="profile-card">
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} sx={{ alignItems: { sm: 'center' } }}>
-                <Avatar sx={{ width: 68, height: 68, bgcolor: '#244f40', fontSize: 22 }}>
+                <Avatar sx={{ width: 68, height: 68, bgcolor: 'primary.dark', fontSize: 'var(--text-title)' }}>
                   {detail.displayName
                     .split(' ')
                     .map((part) => part[0])
@@ -760,7 +760,15 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
                 <TableRow key={e.id}>
                   <TableCell>
                     <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
-                      <Avatar sx={{ width: 34, height: 34, bgcolor: '#e2ede6', color: '#244f40', fontSize: 12 }}>
+                      <Avatar
+                        sx={{
+                          width: 34,
+                          height: 34,
+                          bgcolor: 'var(--color-success-soft)',
+                          color: 'primary.dark',
+                          fontSize: 'var(--text-caption)',
+                        }}
+                      >
                         {e.displayName
                           .split(' ')
                           .map((part) => part[0])

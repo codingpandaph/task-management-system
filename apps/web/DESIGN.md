@@ -15,6 +15,12 @@ colors:
   warning-soft: '#fff0c7'
   danger-soft: '#fde3e3'
 typography:
+  micro:
+    fontSize: '0.6875rem'
+    fontWeight: 600
+  caption:
+    fontSize: '0.75rem'
+    fontWeight: 400
   headline:
     fontFamily: 'Arial, Helvetica, sans-serif'
     fontSize: '2rem'
@@ -28,9 +34,15 @@ typography:
     fontFamily: 'Arial, Helvetica, sans-serif'
     fontSize: '0.875rem'
     fontWeight: 600
+  title:
+    fontSize: '1.375rem'
+    fontWeight: 700
 rounded:
+  compact: '4px'
+  nav: '8px'
   control: '10px'
   surface: '12px'
+  panel: '16px'
   dialog: '18px'
   pill: '999px'
 spacing:
@@ -99,6 +111,8 @@ sentence case so dense interfaces scan quickly.
 - **Title:** Semibold section and surface identity.
 - **Body:** Regular copy with comfortable line length and explicit secondary color.
 - **Label:** Semibold action, field, and navigation language.
+- **Caption:** 12-pixel supporting data and compact metadata.
+- **Micro:** 11-pixel branding details used sparingly with increased tracking.
 
 ## Layout
 

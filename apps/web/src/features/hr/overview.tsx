@@ -135,7 +135,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
         {audit
           .filter((a) => `${a.action} ${a.targetType} ${a.targetId}`.toLowerCase().includes(auditSearch.toLowerCase()))
           .map((a) => (
-            <Box key={a.id} sx={{ py: 2, borderBottom: '1px solid #eee', overflowWrap: 'anywhere' }}>
+            <Box key={a.id} sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider', overflowWrap: 'anywhere' }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <StatusTag value={a.action} />
                 <Typography variant="body2" color="text.secondary">
@@ -165,7 +165,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
           <Stack
             key={n.id}
             direction="row"
-            sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid #eee' }}
+            sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
           >
             <Typography>
               <Link href={n.resourceType === 'LeaveRequest' ? `/leave/${n.resourceId}` : `/employees/${n.resourceId}`}>
@@ -232,7 +232,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
       </Stack>
       <div className="calendar-grid">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-          <Typography key={d} sx={{ p: 1, fontSize: 12, color: 'text.secondary' }}>
+          <Typography key={d} sx={{ p: 1, fontSize: 'var(--text-caption)', color: 'text.secondary' }}>
             {d}
           </Typography>
         ))}
@@ -266,7 +266,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             <Stack
               key={e.id}
               direction={{ xs: 'column', sm: 'row' }}
-              sx={{ justifyContent: 'space-between', py: 1.5, borderBottom: '1px solid #eee' }}
+              sx={{ justifyContent: 'space-between', py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}
             >
               <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 <Typography sx={{ fontWeight: 600 }}>
@@ -294,8 +294,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             sx={{
               p: { xs: 3, sm: 4 },
               borderRadius: 3,
-              bgcolor: '#e5ecd9',
-              backgroundImage: 'linear-gradient(120deg,#e5ecd9,#f0efdf)',
+              bgcolor: 'var(--color-leaf)',
             }}
           >
             <Chip label="Today" size="small" sx={{ mb: 2 }} />

@@ -215,7 +215,7 @@ export default function Portal() {
             CPPinSync<small>PEOPLE & ORGANIZATION</small>
           </span>
         </Link>
-        <Typography variant="overline" sx={{ px: 2, mt: 4, color: '#87968f' }}>
+        <Typography variant="overline" sx={{ px: 2, mt: 4, color: 'var(--color-leaf)' }}>
           WORKSPACE
         </Typography>
         <nav aria-label="Main navigation">
@@ -240,7 +240,11 @@ export default function Portal() {
         open={mobileNavigationOpen}
         onClose={() => setMobileNavigationOpen(false)}
         className="mobile-navigation"
-        slotProps={{ paper: { sx: { width: 'min(88vw, 340px)', bgcolor: '#123d30', color: '#edf3ec' } } }}
+        slotProps={{
+          paper: {
+            sx: { width: 'min(88vw, 340px)', bgcolor: 'var(--color-forest)', color: 'var(--color-paper)' },
+          },
+        }}
       >
         <Box sx={{ p: 2 }}>
           <Link href="/" className="brand" onClick={() => setMobileNavigationOpen(false)}>
@@ -249,7 +253,7 @@ export default function Portal() {
               CPPinSync<small>PEOPLE & ORGANIZATION</small>
             </span>
           </Link>
-          <Typography variant="overline" sx={{ display: 'block', px: 2, mt: 3, color: '#a3b9ab' }}>
+          <Typography variant="overline" sx={{ display: 'block', px: 2, mt: 3, color: 'var(--color-leaf)' }}>
             WORKSPACE
           </Typography>
           <nav aria-label="Mobile navigation">
@@ -286,7 +290,13 @@ export default function Portal() {
             <Avatar
               title={user.displayName}
               aria-label={`Signed in as ${user.displayName}`}
-              sx={{ width: 32, height: 32, bgcolor: '#dbe9df', color: '#244f40', fontSize: 13 }}
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: 'var(--color-success-soft)',
+                color: 'var(--color-evergreen-deep)',
+                fontSize: 'var(--text-label)',
+              }}
             >
               {user.displayName.slice(0, 1)}
             </Avatar>

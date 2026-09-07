@@ -24,6 +24,7 @@
     "typecheck": "yarn workspace @tms/contracts build && tsc --noEmit && yarn workspace @tms/api typecheck && yarn workspace @tms/web typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "design-check": "npx impeccable detect .",
     "test": "yarn test:unit && yarn test:tooling && yarn test:integration && yarn test:e2e",
     "test:unit": "yarn workspace @tms/api test",
     "test:tooling": "node --test tests/tooling/*.spec.mjs",

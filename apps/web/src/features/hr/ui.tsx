@@ -150,13 +150,13 @@ const tagTones: Record<string, keyof typeof tagPalette> = {
   MEMBER: 'grey',
 };
 const tagPalette = {
-  green: { background: '#dff3e5', color: '#17633a' },
-  amber: { background: '#fff0c7', color: '#755000' },
-  red: { background: '#fde3e3', color: '#922b2b' },
-  blue: { background: '#e3efff', color: '#245795' },
-  purple: { background: '#eee5ff', color: '#5e3a9f' },
-  teal: { background: '#dcf3f0', color: '#176860' },
-  grey: { background: '#edf1ef', color: '#4c5d55' },
+  green: { background: 'var(--color-success-soft)', color: 'var(--color-evergreen-deep)' },
+  amber: { background: 'var(--color-warning-soft)', color: 'var(--color-ink)' },
+  red: { background: 'var(--color-danger-soft)', color: 'var(--color-ink)' },
+  blue: { background: 'var(--color-canvas)', color: 'var(--color-evergreen-deep)' },
+  purple: { background: 'var(--color-leaf)', color: 'var(--color-forest)' },
+  teal: { background: 'var(--color-success-soft)', color: 'var(--color-evergreen-deep)' },
+  grey: { background: 'var(--color-canvas)', color: 'var(--color-muted)' },
 };
 export function Tag({ value, tone }: { value: string; tone?: keyof typeof tagPalette }) {
   const palette = tagPalette[tone ?? tagTones[value] ?? 'grey'];

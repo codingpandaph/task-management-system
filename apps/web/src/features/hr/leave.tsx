@@ -140,7 +140,12 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             <Card title="Approval timeline">
               {detail.steps.length ? (
                 detail.steps.map((s) => (
-                  <Stack key={s.id} direction="row" spacing={2} sx={{ py: 2, borderBottom: '1px solid #eee' }}>
+                  <Stack
+                    key={s.id}
+                    direction="row"
+                    spacing={2}
+                    sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
+                  >
                     <Tag value={`Step ${s.sequence}`} tone="blue" />
                     <div>
                       <Tag value={s.type} tone="purple" />
@@ -307,7 +312,13 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                   <Stack
                     direction="row"
                     key={s.id}
-                    sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid #eee' }}
+                    sx={{
+                      justifyContent: 'space-between',
+                      gap: 2,
+                      py: 2,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                    }}
                   >
                     <div>
                       <Link href={`/leave/${s.request.id}`}>
@@ -374,7 +385,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               aria-label={`${b.type.replaceAll('_', ' ')} allowance used`}
               value={b.entitlement ? Math.min(100, ((b.used + b.reserved) / b.entitlement) * 100) : 0}
               variant="determinate"
-              sx={{ mt: 2, height: 7, borderRadius: 10, bgcolor: '#e7eee9' }}
+              sx={{ mt: 2, height: 7, borderRadius: 'var(--radius-control)', bgcolor: 'var(--color-line)' }}
             />
           </Card>
         ))}
@@ -405,7 +416,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             <Stack
               key={r.id}
               direction={{ xs: 'column', sm: 'row' }}
-              sx={{ justifyContent: 'space-between', gap: 1, py: 2, borderBottom: '1px solid #eee' }}
+              sx={{ justifyContent: 'space-between', gap: 1, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
             >
               <Link href={`/leave/${r.id}`}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
