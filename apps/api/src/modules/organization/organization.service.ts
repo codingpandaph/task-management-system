@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { HR_DELEGABLE, type DirectoryEmployee } from '@tms/contracts';
+import { canRoleHoldPermission, HR_DELEGABLE, type DirectoryEmployee } from '@tms/contracts';
 import { dateOnly, today } from '../../common/dates';
 import type { Prisma, Employee, Department } from '../../generated/prisma/client';
 import { audit } from '../audit/audit';
@@ -316,6 +316,8 @@ export class OrganizationService {
       const target = await tx.employee.findUniqueOrThrow({ where: { id }, include: { department: true } });
       if (target.department.kind !== 'HR' && target.position !== 'SENIOR_DIRECTOR')
         throw new ForbiddenException('Administrative grants require HR scope');
+      if (!revoke && !canRoleHoldPermission(target.position, target.department.kind === 'HR', dto.code))
+        throw new ForbiddenException('Permission exceeds the target role');
       const permission = await tx.permission.findUniqueOrThrow({ where: { code: dto.code } });
       if (revoke)
         await tx.employeePermission.updateMany({

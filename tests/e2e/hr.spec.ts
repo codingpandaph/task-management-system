@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
+import { PERMISSIONS } from '@tms/contracts';
 
 test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? Number(process.env.DEMO_SLOWMO_MS ?? 1200) : 0 } });
 const year = new Date().getFullYear();
@@ -176,9 +177,10 @@ test('all five roles file leave and complete their approval chains through the U
     for (const flow of matrix) {
       const requester = pages.get(flow.requester)!;
       await uiFileLeave(requester, flow.day);
+      const requestUrl = requester.url();
       for (const approver of flow.approvers) await uiApprove(pages.get(approver)!, flow.day);
-      await requester.reload();
-      await expect(requester.getByText('Approved', { exact: true }).first()).toBeVisible();
+      await requester.goto(requestUrl);
+      await expect(requester.getByText('Approved', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     }
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
@@ -186,7 +188,7 @@ test('all five roles file leave and complete their approval chains through the U
 });
 
 test('ordinary employee cannot enter HR screens; calendar stays responsive', async ({ page }) => {
-  await login(page.request, usernames.hrMember);
+  await login(page.request, usernames.member);
   await page.goto('/employees');
   await expect(page.getByRole('heading', { name: 'People', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Create employee', exact: true })).toHaveCount(0);
@@ -196,6 +198,55 @@ test('ordinary employee cannot enter HR screens; calendar stays responsive', asy
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('heading', { name: 'Who’s out', exact: true }).first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
+test('five-role navigation mirrors backend RBAC capabilities', async ({ browser }) => {
+  const cases = [
+    {
+      user: usernames.member,
+      role: 'MEMBER',
+      visible: ['My tasks'],
+      hidden: ['Approvals', 'Delivery reports', 'Leave administration'],
+    },
+    {
+      user: usernames.director,
+      role: 'ACCOUNT_DIRECTOR',
+      visible: ['Approvals', 'Delivery reports'],
+      hidden: ['Leave administration', 'Audit log'],
+    },
+    {
+      user: usernames.hrMember,
+      role: 'HR_MEMBER',
+      visible: ['People'],
+      hidden: ['Approvals', 'Leave administration', 'Audit log'],
+    },
+    {
+      user: usernames.hrApprover,
+      role: 'HR_MEMBER',
+      visible: ['People', 'Approvals'],
+      hidden: ['Leave administration', 'Audit log'],
+    },
+    { user: usernames.hr, role: 'HR_DIRECTOR', visible: ['People', 'Leave administration', 'Audit log'], hidden: [] },
+    {
+      user: usernames.senior,
+      role: 'SENIOR_DIRECTOR',
+      visible: ['Delivery reports', 'Leave administration', 'Audit log'],
+      hidden: [],
+    },
+  ] as const;
+  for (const current of cases) {
+    const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+    const page = await context.newPage();
+    await uiSignIn(page, current.user);
+    const me = (await (await page.request.get('/api/auth/me')).json()) as { role: string; permissions: string[] };
+    expect(me.role).toBe(current.role);
+    if (current.role === 'SENIOR_DIRECTOR') expect(new Set(me.permissions)).toEqual(new Set(PERMISSIONS));
+    for (const label of current.visible)
+      await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
+    for (const label of current.hidden)
+      await expect(page.getByRole('link', { name: label, exact: true })).toHaveCount(0);
+    await context.close();
   }
 });
 
@@ -451,9 +502,15 @@ test('remaining management, policy, lifecycle, reporting, and session flows comp
       items: { id: string; displayName: string; department: { code: string } }[];
     };
     const riley = people.items.find((person) => person.displayName === 'Riley Shaw')!;
-    await post(hr, `employees/${riley.id}/permissions`, hrCsrf, { code: 'EMPLOYEE_READ', reason: 'E2E grant' });
-    expect((await hr.get(`/api/employees/${riley.id}/permissions`)).ok()).toBe(true);
-    await post(hr, `employees/${riley.id}/permissions/revoke`, hrCsrf, { code: 'EMPLOYEE_READ', reason: 'E2E revoke' });
+    await post(senior, `employees/${riley.id}/permissions`, seniorCsrf, {
+      code: 'EMPLOYEE_READ',
+      reason: 'E2E grant',
+    });
+    expect((await senior.get(`/api/employees/${riley.id}/permissions`)).ok()).toBe(true);
+    await post(senior, `employees/${riley.id}/permissions/revoke`, seniorCsrf, {
+      code: 'EMPLOYEE_READ',
+      reason: 'E2E revoke',
+    });
 
     const acc = ((await (await hr.get('/api/departments')).json()) as { id: string; code: string }[]).find(
       (d) => d.code === 'ACC',

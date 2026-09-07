@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { NestFactory } from '@nestjs/core';
+import { PERMISSIONS } from '@tms/contracts';
 import { AppModule } from './app.module';
 import { seed } from './seed';
 import { AuthService } from './modules/auth/auth.service';
@@ -42,7 +43,8 @@ test('HR foundation against PostgreSQL', async (suite) => {
     const hr = await actor('Taylor'),
       senior = await actor('Avery'),
       member = await actor('Alex'),
-      hrMember = await actor('Riley');
+      hrMember = await actor('Riley'),
+      accountDirector = await actor('Jordan');
     const policy = await db.leavePolicyVersion.findFirstOrThrow(),
       christmas = await db.christmasPolicyVersion.findFirstOrThrow();
     await suite.test('full seed matches the two 15-member teams plus the additional HR department', async () => {
@@ -56,6 +58,20 @@ test('HR foundation against PostgreSQL', async (suite) => {
         }),
         2,
       );
+    });
+    await suite.test('role matrix grants bounded defaults and gives the Senior Director full access', () => {
+      assert.equal(auth.view(member).role, 'MEMBER');
+      assert.deepEqual(member.permissions, []);
+      assert.equal(auth.view(accountDirector).role, 'ACCOUNT_DIRECTOR');
+      assert.deepEqual(accountDirector.permissions, ['REPORTING_READ']);
+      assert.equal(auth.view(hrMember).role, 'HR_MEMBER');
+      assert.equal(hrMember.permissions.includes('EMPLOYEE_READ'), true);
+      assert.equal(hrMember.permissions.includes('EMPLOYEE_STATUS_MANAGE'), false);
+      assert.equal(auth.view(hr).role, 'HR_DIRECTOR');
+      assert.equal(hr.permissions.includes('LEAVE_ADMIN'), true);
+      assert.equal(hr.permissions.includes('PERMISSION_ASSIGN'), false);
+      assert.equal(auth.view(senior).role, 'SENIOR_DIRECTOR');
+      assert.deepEqual(new Set(senior.permissions), new Set(PERMISSIONS));
     });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 7).toUpperCase();
     const dep = await org.createDepartment(hr, { code: `T${suffix}`, name: `Integration ${suffix}` });
@@ -109,6 +125,9 @@ test('HR foundation against PostgreSQL', async (suite) => {
       await assert.rejects(org.permission(hr, hr.employee.id, { code: 'LEAVE_ADMIN', reason: 'Self grant' }));
       await assert.rejects(
         org.permission(hr, hrMember.employee.id, { code: 'LEAVE_ADMIN', reason: 'Forbidden delegation' }),
+      );
+      await assert.rejects(
+        org.permission(senior, hrMember.employee.id, { code: 'LEAVE_ADMIN', reason: 'Role ceiling' }),
       );
       await assert.rejects(org.detail(member, hr.employee.id));
       const result = await org.employees(member, new PageDto());

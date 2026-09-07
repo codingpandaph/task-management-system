@@ -166,7 +166,9 @@ export default function Portal() {
       ? [{ href: '/task-archive', label: 'Task archive', icon: <DeleteSweepOutlined /> }]
       : []),
     { href: '/leave', label: 'My leave', icon: <BeachAccessOutlined /> },
-    { href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> },
+    ...(user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')
+      ? [{ href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> }]
+      : []),
     { href: '/calendar', label: 'Who’s out', icon: <CalendarMonthOutlined /> },
     ...(user.permissions.includes('LEAVE_POLICY_MANAGE') || user.permissions.includes('CHRISTMAS_POLICY_MANAGE')
       ? [{ href: '/policies', label: 'Policies', icon: <PolicyOutlined /> }]

@@ -14,6 +14,10 @@ primary department so the demonstration contains exactly three departments rathe
 ## Product model
 
 CPPinSync uses the existing HRIS employee, department, position, account-status, leave, notification, and session data.
+The shared RBAC model gives Members personal and department-scoped work, Account Directors management of their own
+department workspace, HR roles only their applicable people-operation capabilities, and the Senior Director full task
+and organization access. UI visibility mirrors the effective capability set, while API resource policies enforce the
+department and assignment boundary on every operation.
 There is no second user directory. An active employee can be a reporter, an optional single assignee, and a workspace
 member. A terminated employee cannot retain active assignments. The relational model supports Simon's fixed
 demonstration hierarchy without hard-coding a headcount ceiling.
@@ -132,7 +136,7 @@ seed uses the same key roles and resets `tms_test` before each Playwright layer.
 For an automated visible tour, run `yarn demo:e2e:tasks`. Run `yarn demo:e2e` to include the HRIS setup and every leave
 requester/approver perspective before the task journeys.
 
-The verified baseline is 23 PostgreSQL integration scenarios, 16 full Chromium journeys shared with HRIS, and one
+The verified baseline is 24 PostgreSQL integration scenarios, 17 full Chromium journeys shared with HRIS, and one
 critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 

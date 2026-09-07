@@ -21,6 +21,59 @@ export const PERMISSIONS = [
   'REPORTING_READ',
 ] as const;
 export type PermissionCode = (typeof PERMISSIONS)[number];
+export type AccessRole = 'MEMBER' | 'ACCOUNT_DIRECTOR' | 'HR_MEMBER' | 'HR_DIRECTOR' | 'SENIOR_DIRECTOR';
+export const ROLE_PERMISSIONS: Record<AccessRole, readonly PermissionCode[]> = {
+  MEMBER: [],
+  ACCOUNT_DIRECTOR: ['REPORTING_READ'],
+  HR_MEMBER: ['EMPLOYEE_READ', 'EMPLOYEE_UPDATE', 'DEPARTMENT_ASSIGN_MEMBER', 'REPORTING_READ'],
+  HR_DIRECTOR: [
+    'EMPLOYEE_CREATE',
+    'EMPLOYEE_READ',
+    'EMPLOYEE_UPDATE',
+    'EMPLOYEE_STATUS_MANAGE',
+    'EMPLOYEE_PASSWORD_RESET',
+    'EMPLOYEE_PRIVATE_READ',
+    'DEPARTMENT_CREATE',
+    'DEPARTMENT_UPDATE',
+    'DEPARTMENT_ASSIGN_MEMBER',
+    'EMPLOYMENT_MANAGE',
+    'LEAVE_POLICY_MANAGE',
+    'CHRISTMAS_POLICY_MANAGE',
+    'LEAVE_ADMIN',
+    'LEAVE_HR_APPROVE',
+    'AUDIT_READ',
+    'REPORTING_READ',
+  ],
+  SENIOR_DIRECTOR: PERMISSIONS,
+};
+const ROLE_PERMISSION_CEILINGS: Record<AccessRole, readonly PermissionCode[]> = {
+  MEMBER: ROLE_PERMISSIONS.MEMBER,
+  ACCOUNT_DIRECTOR: ROLE_PERMISSIONS.ACCOUNT_DIRECTOR,
+  HR_MEMBER: [...ROLE_PERMISSIONS.HR_MEMBER, 'LEAVE_HR_APPROVE'],
+  HR_DIRECTOR: ROLE_PERMISSIONS.HR_DIRECTOR,
+  SENIOR_DIRECTOR: PERMISSIONS,
+};
+export function resolveAccessRole(position: Position, isHr: boolean): AccessRole {
+  if (position === 'SENIOR_DIRECTOR') return 'SENIOR_DIRECTOR';
+  if (isHr) return position === 'ACCOUNT_DIRECTOR' ? 'HR_DIRECTOR' : 'HR_MEMBER';
+  return position === 'ACCOUNT_DIRECTOR' ? 'ACCOUNT_DIRECTOR' : 'MEMBER';
+}
+export function canRoleHoldPermission(position: Position, isHr: boolean, permission: PermissionCode): boolean {
+  return ROLE_PERMISSION_CEILINGS[resolveAccessRole(position, isHr)].includes(permission);
+}
+export function effectivePermissions(
+  position: Position,
+  isHr: boolean,
+  grants: readonly PermissionCode[] = [],
+): PermissionCode[] {
+  const role = resolveAccessRole(position, isHr);
+  return [
+    ...new Set([
+      ...ROLE_PERMISSIONS[role],
+      ...grants.filter((permission) => canRoleHoldPermission(position, isHr, permission)),
+    ]),
+  ];
+}
 export const HR_DELEGABLE: readonly PermissionCode[] = [
   'EMPLOYEE_READ',
   'EMPLOYEE_UPDATE',
@@ -40,6 +93,7 @@ export interface DirectoryEmployee {
   position: Position;
 }
 export interface CurrentEmployee extends DirectoryEmployee {
+  role: AccessRole;
   mustChangePassword: boolean;
   permissions: PermissionCode[];
 }

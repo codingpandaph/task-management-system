@@ -112,7 +112,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 23 real-PostgreSQL integration tests, 16 full
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 24 real-PostgreSQL integration tests, 17 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
@@ -127,6 +127,10 @@ green actions explicitly use white text across default, hover, and keyboard-focu
 On phones, a labelled menu opens the complete role-aware navigation drawer, keeping leave, approval, reporting, and
 administration destinations discoverable without relying on a long horizontal strip.
 Run `yarn design-check` to detect design-system drift against `apps/web/DESIGN.md` and `apps/web/PRODUCT.md`.
+
+RBAC assigns bounded defaults to Member, Account Director, HR Member, and HR Director roles. The Senior Director has
+every system capability. Backend permission and resource checks remain authoritative; the UI uses the same effective
+permissions to hide unavailable navigation and actions.
 
 ## Architecture
 

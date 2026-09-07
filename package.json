@@ -45,7 +45,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:seed": "yarn workspace @tms/api seed",
-    "test:integration": "yarn workspace @tms/api test:integration"
+    "test:integration": "yarn workspace @tms/contracts build && yarn workspace @tms/api test:integration"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

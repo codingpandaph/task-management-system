@@ -39,6 +39,20 @@ Director. HR is a typed department and is also the Senior Director's primary dep
 Director and one active Account Director per department. An Account Director belongs to the department they manage.
 Departments may be created without a manager, but dependent leave requests cannot be submitted until one is assigned.
 
+### Role access matrix
+
+| Role             | Default scope                                                                                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Member           | Own profile, leave, notifications and tasks; organization directory and department calendar                                                                                              |
+| Account Director | Member access plus own-department boards, assignment, approvals, capacity and reporting                                                                                                  |
+| HR Member        | Basic employee records, basic updates, member assignment and reporting; no lifecycle, private-data, policy, audit or permission administration                                           |
+| HR Director      | HR employee administration, lifecycle, private employment data, policies, leave administration, HR approval, audit and reporting; leadership and permission governance remain restricted |
+| Senior Director  | All capabilities and organization-wide reporting, leadership and permission governance                                                                                                   |
+
+Role defaults and explicit grants are combined by the backend for every authenticated request. The frontend receives
+that effective permission set and removes unavailable destinations and controls. Department scope, self-action rules,
+current approval assignment and workflow state are still checked separately by the API.
+
 Positions and application permissions are independent. The API reads current grants from PostgreSQL, never from JWT
 claims. Guards enforce authentication, forced-password restrictions, positions, capabilities, department scope,
 request ownership, approval assignment, and state transitions. Ordinary directory output contains employee ID, display

@@ -185,7 +185,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
 
     await page.getByRole('link', { name: 'Audit log', exact: true }).click();
     await page.getByLabel('Search audit history', { exact: true }).fill('LEAVE_CORRECTED');
-    await expect(page.getByText('Leave corrected', { exact: true })).toBeVisible();
+    await expect(page.getByText('Corrected', { exact: true })).toBeVisible();
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(3_000);
   });
 });

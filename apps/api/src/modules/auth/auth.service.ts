@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
-import type { CurrentEmployee, PermissionCode } from '@tms/contracts';
+import { effectivePermissions, resolveAccessRole, type CurrentEmployee, type PermissionCode } from '@tms/contracts';
 import { audit } from '../audit/audit';
 import { DatabaseService, lockEmployee, Transaction } from '../database/database.module';
 import { AccountStatusService } from '../employment/account-status.service';
@@ -95,7 +95,15 @@ export class AuthService {
       where: { employeeId: employee.id, revokedAt: null },
       include: { permission: true },
     });
-    return { employee, sessionId: session.id, permissions: grants.map((g) => g.permission.code as PermissionCode) };
+    return {
+      employee,
+      sessionId: session.id,
+      permissions: effectivePermissions(
+        employee.position,
+        employee.department.kind === 'HR',
+        grants.map((g) => g.permission.code as PermissionCode),
+      ),
+    };
   }
   async csrfFor(refresh: string) {
     const credential = await this.db.refreshCredential.findUnique({
@@ -184,6 +192,7 @@ export class AuthService {
       displayName: [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' '),
       department: { id: e.departmentId, code: e.department.code, name: e.department.name },
       position: e.position,
+      role: resolveAccessRole(e.position, e.department.kind === 'HR'),
       mustChangePassword: e.mustChangePassword,
       permissions: e.mustChangePassword ? [] : actor.permissions,
     };
