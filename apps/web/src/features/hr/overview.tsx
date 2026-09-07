@@ -304,12 +304,14 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
               Keep your people connected, and make time away easier to plan.
             </Typography>
-            <Button component={Link} href="/leave" variant="contained">
-              Plan time away
+            <Button component={Link} href="/leave" variant="contained" startIcon={<BeachAccessOutlined />}>
+              File leave
             </Button>
-            <Button component={Link} href="/approvals" sx={{ ml: 1 }}>
-              View approvals →
-            </Button>
+            {(user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')) && (
+              <Button component={Link} href="/approvals" sx={{ ml: { sm: 1 }, mt: { xs: 1, sm: 0 } }}>
+                View approvals
+              </Button>
+            )}
           </Box>
           {dashboard && (
             <div className="stats">

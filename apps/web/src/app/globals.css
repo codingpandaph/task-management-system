@@ -49,7 +49,7 @@ body {
   outline: 3px solid var(--color-evergreen);
   outline-offset: 3px;
 }
-a {
+a:not(.MuiButton-root) {
   color: inherit;
   text-decoration: none;
 }
@@ -371,6 +371,9 @@ a {
   }
 }
 @media (max-width: 599px) {
+  .action-bar {
+    position: static;
+  }
   .workspace-actions {
     width: 100%;
     display: grid;

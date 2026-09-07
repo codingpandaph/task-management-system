@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { PERMISSIONS } from '@tms/contracts';
 
@@ -47,8 +48,7 @@ async function uiFileLeave(page: Page, day: string) {
   await dialog.getByLabel('Start date', { exact: true }).fill(day);
   await dialog.getByLabel('End date', { exact: true }).fill(day);
   await dialog.getByLabel('Reason (optional; no medical diagnosis)', { exact: true }).fill('Browser approval matrix');
-  await select(page, 'Action', 'Submit for approval');
-  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Submit for approval', exact: true }).click();
   await page.getByRole('link').filter({ hasText: day }).first().click();
 }
 async function uiApprove(page: Page, day: string) {
@@ -261,16 +261,38 @@ test('five-role navigation mirrors backend RBAC capabilities', async ({ browser 
 
 test('leave action dialog fits mobile, tablet, desktop, and breakpoint boundaries', async ({ page }) => {
   await login(page.request, usernames.hrMember);
+  await page.goto('/');
+  const overviewAction = page.getByRole('link', { name: 'File leave', exact: true });
+  await expect(overviewAction).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await overviewAction.hover();
+  await expect(overviewAction).toHaveCSS('color', 'rgb(255, 255, 255)');
   await page.goto('/leave');
   for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.getByRole('button', { name: 'File leave', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'File a leave request' });
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Preview days', exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Save draft', exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Submit for approval', exact: true })).toHaveCSS(
+      'color',
+      'rgb(255, 255, 255)',
+    );
+    await expect(dialog.getByRole('combobox', { name: 'Action', exact: true })).toHaveCount(0);
     expect(await dialog.evaluate((element) => element.getBoundingClientRect().width <= innerWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width === 375) {
+      await select(page, 'Leave type', 'Vacation');
+      await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-11-19`);
+      await dialog.getByLabel('End date', { exact: true }).fill(`${year}-11-19`);
+      await dialog.getByRole('button', { name: 'Preview days', exact: true }).click();
+      await expect(dialog.getByText(/working day/)).toBeVisible();
+      await expect(dialog).toBeVisible();
+    }
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   }
+  const leaveAccessibility = await new AxeBuilder({ page }).analyze();
+  expect(leaveAccessibility.violations).toEqual([]);
 });
 
 test('HRIS navigation, search, filters, tabs, icons, and primary actions stay immediately available', async ({
@@ -320,8 +342,9 @@ test('HRIS navigation, search, filters, tabs, icons, and primary actions stay im
   expect((await page.locator('.action-bar').boundingBox())!.y).toBeLessThan(280);
 
   await page.getByRole('link', { name: 'Approvals', exact: true }).click();
-  await expect(page.getByLabel('Search approvals', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Search leave approvals', { exact: true })).toBeVisible();
   await page.getByRole('tab', { name: /Cancellations/ }).click();
+  await expect(page.getByLabel('Search cancellations', { exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Who’s out', exact: true }).click();
   await expect(page.getByLabel('Calendar department', { exact: true })).toBeVisible();
@@ -336,8 +359,7 @@ test('draft editing, HR correction, notifications, and audit review work through
   await dialog.getByLabel('Start date', { exact: true }).fill(`${year}-11-05`);
   await dialog.getByLabel('End date', { exact: true }).fill(`${year}-11-05`);
   await dialog.getByLabel('Reason (optional; no medical diagnosis)', { exact: true }).fill('Initial draft');
-  await select(page, 'Action', 'Save draft');
-  await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save draft', exact: true }).click();
   await page
     .getByRole('link')
     .filter({ hasText: `${year}-11-05` })

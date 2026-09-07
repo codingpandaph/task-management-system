@@ -21,35 +21,49 @@ export interface Field {
   value?: string | number;
   options?: { value: string; label: string }[];
 }
+export interface FormResult {
+  close?: boolean;
+  notice?: string;
+}
+export interface SubmitAction {
+  label: string;
+  value: string;
+  variant?: 'text' | 'outlined' | 'contained';
+}
 export function Form({
   fields,
   onSubmit,
   label = 'Save',
+  actions,
 }: {
   fields: Field[];
-  onSubmit: (values: Record<string, string | number>) => Promise<void>;
+  onSubmit: (values: Record<string, string | number>) => Promise<void | FormResult>;
   label?: string;
+  actions?: SubmitAction[];
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [success, setSuccess] = useState(false);
+    [success, setSuccess] = useState('');
   return (
     <form
       onSubmit={async (event) => {
         event.preventDefault();
         setBusy(true);
         setError('');
-        setSuccess(false);
+        setSuccess('');
         const data = new FormData(event.currentTarget);
         const values: Record<string, string | number> = {};
         for (const field of fields) {
           const value = String(data.get(field.name) ?? '');
           if (value !== '' || !field.optional) values[field.name] = field.type === 'number' ? Number(value) : value;
         }
+        const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+        if (submitter?.name) values[submitter.name] = submitter.value;
         try {
-          await onSubmit(values);
-          setSuccess(true);
-          window.dispatchEvent(new CustomEvent('hris:notice', { detail: 'Changes saved successfully' }));
+          const result = await onSubmit(values);
+          const notice = result?.notice ?? 'Changes saved successfully';
+          if (result?.close === false) setSuccess(notice);
+          else window.dispatchEvent(new CustomEvent('hris:notice', { detail: notice }));
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Unable to save');
         } finally {
@@ -82,10 +96,27 @@ export function Form({
           </TextField>
         ))}
         {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">Saved successfully</Alert>}
-        <Button type="submit" variant="contained" disabled={busy}>
-          {busy ? 'Saving…' : label}
-        </Button>
+        {success && <Alert severity="success">{success}</Alert>}
+        {actions ? (
+          <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1} sx={{ justifyContent: 'flex-end' }}>
+            {actions.map((action) => (
+              <Button
+                key={action.value}
+                type="submit"
+                name="action"
+                value={action.value}
+                variant={action.variant ?? 'outlined'}
+                disabled={busy}
+              >
+                {busy ? 'Working…' : action.label}
+              </Button>
+            ))}
+          </Stack>
+        ) : (
+          <Button type="submit" variant="contained" disabled={busy}>
+            {busy ? 'Saving…' : label}
+          </Button>
+        )}
       </Stack>
     </form>
   );
@@ -218,15 +249,17 @@ export function ModalForm({
   submitLabel = 'Save changes',
   variant = 'outlined',
   icon,
+  actions,
 }: {
   buttonLabel: string;
   title: string;
   description?: string;
   fields: Field[];
-  onSubmit: (values: Record<string, string | number>) => Promise<void>;
+  onSubmit: (values: Record<string, string | number>) => Promise<void | FormResult>;
   submitLabel?: string;
   variant?: 'text' | 'outlined' | 'contained';
   icon?: ReactElement;
+  actions?: SubmitAction[];
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -245,9 +278,11 @@ export function ModalForm({
           <Form
             fields={fields}
             label={submitLabel}
+            actions={actions}
             onSubmit={async (values) => {
-              await onSubmit(values);
-              setOpen(false);
+              const result = await onSubmit(values);
+              if (result?.close !== false) setOpen(false);
+              return result;
             }}
           />
         </DialogContent>

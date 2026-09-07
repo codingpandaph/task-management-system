@@ -1,7 +1,6 @@
 'use client';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -13,6 +12,7 @@ import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
+import MenuItem from '@mui/material/MenuItem';
 import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -77,7 +77,6 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0),
-    [preview, setPreview] = useState(''),
     [approvalTab, setApprovalTab] = useState(0),
     [approvalSearch, setApprovalSearch] = useState(''),
     [requestSearch, setRequestSearch] = useState(''),
@@ -277,6 +276,11 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
           .toLowerCase()
           .includes(approvalSearch.toLowerCase()),
       );
+      const cancellationSteps = inbox.cancellations.filter((step) =>
+        `${step.cancellation.status} ${step.cancellation.requestId}`
+          .toLowerCase()
+          .includes(approvalSearch.toLowerCase()),
+      );
       return (
         <Stack spacing={3}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -291,7 +295,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                 <Tab label={`Cancellations (${inbox.cancellations.length})`} />
               </Tabs>
               <TextField
-                label="Search approvals"
+                label={approvalTab === 0 ? 'Search leave approvals' : 'Search cancellations'}
                 size="small"
                 value={approvalSearch}
                 onChange={(event) => setApprovalSearch(event.target.value)}
@@ -343,8 +347,8 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                 <EmptyState title="You’re all caught up" detail="New approval requests will appear here." />
               ))}
             {approvalTab === 1 &&
-              (inbox.cancellations.length ? (
-                inbox.cancellations.map((c) => (
+              (cancellationSteps.length ? (
+                cancellationSteps.map((c) => (
                   <Typography key={c.id} sx={{ my: 1 }}>
                     <Link href={`/leave/${c.cancellation.requestId}`}>Cancellation · {c.status}</Link>
                   </Typography>
@@ -399,17 +403,22 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             onChange={(event) => setRequestSearch(event.target.value)}
             sx={{ minWidth: { md: 280 } }}
           />
-          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField
+            select
+            label="Status"
+            value={requestStatus}
+            onChange={(event) => setRequestStatus(event.target.value)}
+            sx={{ minWidth: 160 }}
+          >
             {['ALL', 'DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map((status) => (
-              <Chip
-                key={status}
-                label={status === 'ALL' ? 'All' : status.toLowerCase()}
-                color={requestStatus === status ? 'primary' : 'default'}
-                variant={requestStatus === status ? 'filled' : 'outlined'}
-                onClick={() => setRequestStatus(status)}
-              />
+              <MenuItem key={status} value={status}>
+                {status === 'ALL' ? 'All statuses' : status.toLowerCase()}
+              </MenuItem>
             ))}
-          </Stack>
+          </TextField>
+          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }} aria-live="polite">
+            {filteredRows.length} {filteredRows.length === 1 ? 'request' : 'requests'}
+          </Typography>
         </Stack>
         {filteredRows.length ? (
           filteredRows.map((r) => (
@@ -471,11 +480,6 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             ? 'Administrative entries and balance changes open in a focused review dialog.'
             : 'Weekends and bank holidays do not count. You can preview dates before filing.'}
         </Typography>
-        {preview && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            {preview}
-          </Alert>
-        )}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           {path !== '/hr' ? (
             <ModalForm
@@ -484,25 +488,19 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               title="File a leave request"
               description="Review the dates and action carefully. Pending requests reserve your allowance."
               variant="contained"
-              submitLabel="Continue"
-              fields={[
-                ...leaveFields,
-                {
-                  name: 'action',
-                  label: 'Action',
-                  value: 'submit',
-                  options: [
-                    { value: 'submit', label: 'Submit for approval' },
-                    { value: 'draft', label: 'Save draft' },
-                    { value: 'preview', label: 'Preview working days' },
-                  ],
-                },
+              fields={leaveFields}
+              actions={[
+                { label: 'Preview days', value: 'preview', variant: 'text' },
+                { label: 'Save draft', value: 'draft', variant: 'outlined' },
+                { label: 'Submit for approval', value: 'submit', variant: 'contained' },
               ]}
               onSubmit={async ({ action, ...v }) => {
                 if (action === 'preview') {
                   const result = await api<{ workingDays: number }>('leave/preview', v);
-                  setPreview(`${result.workingDays} working days in this request`);
-                  return;
+                  return {
+                    close: false,
+                    notice: `${result.workingDays} working ${result.workingDays === 1 ? 'day' : 'days'} in this request`,
+                  };
                 }
                 const draft = await api<{ id: string }>('leave/requests', v);
                 if (action === 'submit')

@@ -21,6 +21,8 @@ department and assignment boundary on every operation.
 Restricted task routes use the shared access-denied recovery screen. Cross-department assignment still requires an
 authorized milestone window, and management actions remain scoped to the Account Director’s department unless the
 actor is the Senior Director.
+Shared navigation and action styling guarantees white text on evergreen primary buttons, including buttons rendered as
+links. Task and HRIS surfaces use the same contrast rule and responsive action hierarchy.
 There is no second user directory. An active employee can be a reporter, an optional single assignee, and a workspace
 member. A terminated employee cannot retain active assignments. The relational model supports Simon's fixed
 demonstration hierarchy without hard-coding a headcount ceiling.

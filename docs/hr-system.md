@@ -55,6 +55,9 @@ current approval assignment and workflow state are still checked separately by t
 The employee Access tab displays the effective role and only lists permissions that role may hold. A direct visit to a
 restricted UI route produces an explicit access-denied screen with a safe route back to Overview; the corresponding API
 continues to return `403`.
+The leave dialog presents Preview days, Save draft, and Submit for approval as distinct actions. Preview remains in the
+dialog, request status uses one labelled filter with a live result count, and the mobile action panel stops sticking so
+balances and request history remain visible. Primary green actions retain white text in every interaction state.
 
 Positions and application permissions are independent. The API reads current grants from PostgreSQL, never from JWT
 claims. Guards enforce authentication, forced-password restrictions, positions, capabilities, department scope,

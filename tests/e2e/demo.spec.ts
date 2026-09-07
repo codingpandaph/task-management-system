@@ -120,8 +120,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     await dialog.getByLabel('Start date', { exact: true }).fill(leaveDay);
     await dialog.getByLabel('End date', { exact: true }).fill(leaveDay);
     await dialog.getByLabel('Reason (optional; no medical diagnosis)', { exact: true }).fill('Year-end break');
-    await choose(page, dialog, 'Action', 'Submit for approval');
-    await dialog.getByRole('button', { name: 'Continue', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Submit for approval', exact: true }).click();
     await expect(dialog).toBeHidden();
 
     const requestLink = page.locator('a').filter({ hasText: leaveDay }).first();

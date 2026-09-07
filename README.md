@@ -133,6 +133,8 @@ every system capability. Backend permission and resource checks remain authorita
 permissions to hide unavailable navigation and actions.
 Employee access details show the effective role, and permission forms only offer grants inside that role’s ceiling.
 Restricted direct URLs render a clear access-denied recovery screen. MFA and SSO remain documented future work.
+The leave flow uses explicit Preview, Save draft, and Submit actions, preserves preview results inside the dialog, and
+keeps primary evergreen buttons readable with white text in every link, hover, and focus state.
 
 ## Architecture
 
