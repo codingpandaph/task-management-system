@@ -221,8 +221,18 @@ export function OrganizationDirectoryView({
                 })),
               },
               { name: 'startDate', label: 'Employment start', type: 'date' },
-              { name: 'endDate', label: 'Contract end', type: 'date', optional: true },
-              { name: 'probationEnd', label: 'Probation review', type: 'date', optional: true },
+              {
+                name: 'endDate',
+                label: 'Contract end',
+                type: 'date',
+                showWhen: { field: 'employmentType', values: ['CONTRACTUAL'] },
+              },
+              {
+                name: 'probationEnd',
+                label: 'Probation review',
+                type: 'date',
+                showWhen: { field: 'employmentType', values: ['PROBATIONARY'] },
+              },
               { name: 'leavePolicyVersionId', label: 'Leave policy', options: policyOptions },
               { name: 'christmasPolicyVersionId', label: 'Christmas policy', options: christmasOptions },
             ]}

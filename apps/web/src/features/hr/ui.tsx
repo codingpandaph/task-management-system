@@ -13,24 +13,9 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useState, type ReactElement, type ReactNode } from 'react';
-export interface Field {
-  name: string;
-  label: string;
-  type?: string;
-  optional?: boolean;
-  value?: string | number;
-  options?: { value: string; label: string }[];
-}
-export interface FormResult {
-  close?: boolean;
-  notice?: string;
-}
-export interface SubmitAction {
-  label: string;
-  value: string;
-  variant?: 'text' | 'outlined' | 'contained';
-  color?: 'primary' | 'error';
-}
+import type { Field, FormResult, SubmitAction } from './ui-types';
+
+export type { Field, FormResult, SubmitAction } from './ui-types';
 export function Form({
   fields,
   onSubmit,
@@ -44,7 +29,13 @@ export function Form({
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [success, setSuccess] = useState('');
+    [success, setSuccess] = useState(''),
+    [values, setValues] = useState<Record<string, string | number>>(() =>
+      Object.fromEntries(fields.map((field) => [field.name, field.value ?? ''])),
+    );
+  const visibleFields = fields.filter(
+    (field) => !field.showWhen || field.showWhen.values.includes(String(values[field.showWhen.field] ?? '')),
+  );
   return (
     <form
       onSubmit={async (event) => {
@@ -54,7 +45,7 @@ export function Form({
         setSuccess('');
         const data = new FormData(event.currentTarget);
         const values: Record<string, string | number> = {};
-        for (const field of fields) {
+        for (const field of visibleFields) {
           const value = String(data.get(field.name) ?? '');
           if (value !== '' || !field.optional) values[field.name] = field.type === 'number' ? Number(value) : value;
         }
@@ -73,13 +64,14 @@ export function Form({
       }}
     >
       <Stack spacing={2}>
-        {fields.map((f) => (
+        {visibleFields.map((f) => (
           <TextField
             key={`${f.name}:${f.value ?? ''}`}
             name={f.name}
             label={f.label}
             type={f.type ?? 'text'}
             defaultValue={f.value ?? ''}
+            onChange={(event) => setValues((current) => ({ ...current, [f.name]: event.target.value }))}
             required={!f.optional}
             select={!!f.options}
             fullWidth

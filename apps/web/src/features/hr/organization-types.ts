@@ -37,3 +37,8 @@ export interface PermissionGrant {
   id: string;
   permission: { code: string };
 }
+
+export interface OrganizationHierarchy {
+  departments: Department[];
+  employees: DirectoryEmployee[];
+}

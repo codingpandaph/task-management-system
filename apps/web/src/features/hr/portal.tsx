@@ -20,7 +20,6 @@ import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined';
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import MenuOutlined from '@mui/icons-material/MenuOutlined';
-import NotificationsNoneOutlined from '@mui/icons-material/NotificationsNoneOutlined';
 import PolicyOutlined from '@mui/icons-material/PolicyOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
 import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
@@ -40,6 +39,8 @@ import { OrganizationScreens } from './organization';
 import { LeaveScreens } from './leave';
 import { OverviewScreens } from './overview';
 import { TaskScreens } from '../tasks/tasks';
+import { useUnreadNotifications } from './use-unread-notifications';
+import { NotificationIcon } from './notification-icon';
 
 export default function Portal() {
   const path = usePathname(),
@@ -54,6 +55,7 @@ export default function Portal() {
     window.addEventListener('hris:notice', showNotice);
     return () => window.removeEventListener('hris:notice', showNotice);
   }, []);
+  const unread = useUnreadNotifications(user?.id);
   useEffect(() => {
     let active = true;
     api<CurrentEmployee>('auth/me')
@@ -122,7 +124,11 @@ export default function Portal() {
     ...(user.permissions.includes('AUDIT_READ')
       ? [{ href: '/audit', label: 'Audit log', icon: <FactCheckOutlined /> }]
       : []),
-    { href: '/notifications', label: 'Notifications', icon: <NotificationsNoneOutlined /> },
+    {
+      href: '/notifications',
+      label: 'Notifications',
+      icon: <NotificationIcon unread={unread} />,
+    },
   ];
   const title = nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People';
   const routeAllowed = canOpen(path, user);

@@ -14,6 +14,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { CurrentEmployee, DirectoryEmployee, TaskContract } from '@tms/contracts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { EmptyState, LoadingState, message, Tag } from '../hr/ui';
 import { TaskBoardView } from './task-board-view';
@@ -23,6 +24,7 @@ import { TaskReportsView } from './task-reports-view';
 import type { BoardResponse, DepartmentOption, TaskReport, Workspace } from './task-types';
 
 export function TaskScreens({ path, user }: { path: string; user: CurrentEmployee }) {
+  const searchParams = useSearchParams();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]),
     [workspaceId, setWorkspaceId] = useState(''),
     [boardId, setBoardId] = useState(''),
@@ -69,6 +71,15 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
         .finally(() => setLoading(false));
     });
   }, [loadWorkspaces, path]);
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (!taskId) return;
+    void api<TaskContract>(`tasks/${taskId}`).then((task) => {
+      setWorkspaceId(task.workspace.id);
+      setBoardId(task.boardId);
+      setSelected(task.id);
+    });
+  }, [searchParams]);
   useEffect(() => {
     queueMicrotask(() => void loadBoard());
   }, [loadBoard]);

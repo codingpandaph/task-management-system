@@ -44,7 +44,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     [calendarDepartment, setCalendarDepartment] = useState('ALL'),
     [events, setEvents] = useState<Absence[]>([]),
     [notices, setNotices] = useState<Notice[]>([]),
-    [audit, setAudit] = useState<Audit[]>([]),
+    [audit, setAudit] = useState<PageResult<Audit>>({ items: [], total: 0, page: 1, pageSize: 20 }),
     [dashboard, setDashboard] = useState<Dashboard | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
@@ -57,7 +57,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
       try {
         if (path === '/audit') {
           const r = await api<PageResult<Audit>>('audit');
-          if (active) setAudit(r.items);
+          if (active) setAudit(r);
         } else if (path === '/notifications') {
           const r = await api<Notice[]>('notifications');
           if (active) setNotices(r);
@@ -93,7 +93,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     visibleEvents = events.filter(
       (event) => calendarDepartment === 'ALL' || event.employee.department.id === calendarDepartment,
     );
-  if (path === '/audit') return <AuditScreen audit={audit} error={error} />;
+  if (path === '/audit') return <AuditScreen initial={audit} error={error} />;
   if (path === '/notifications')
     return <NotificationsScreen notices={notices} setNotices={setNotices} error={error} setError={setError} />;
   const calendar = (

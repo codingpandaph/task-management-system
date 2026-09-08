@@ -67,7 +67,9 @@ export function TaskBoardView(props: TaskBoardViewProps) {
     !!workspace &&
     (user.position === 'SENIOR_DIRECTOR' ||
       (user.position === 'ACCOUNT_DIRECTOR' && user.department.id === workspace.departmentId));
-  const canCreateTasks = workspaceManager || !!workspace?.memberships.some((membership) => membership.canCreateTasks);
+  const canCreateTasks =
+    workspaceManager ||
+    !!workspace?.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateTasks);
   return (
     <Stack spacing={3}>
       <Paper variant="outlined" className="task-hero">

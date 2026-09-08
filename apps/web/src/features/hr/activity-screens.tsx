@@ -10,6 +10,7 @@ import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Link from 'next/link';
+import type { PageResult } from '@tms/contracts';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { api } from '@/lib/api';
 import { Card, EmptyState, message, StatusTag } from './ui';
@@ -31,18 +32,22 @@ export interface Audit {
 
 function href(notice: Notice) {
   if (notice.resourceType === 'LeaveRequest') return `/leave/${notice.resourceId}`;
-  if (notice.resourceType === 'Task') return '/workspaces';
+  if (notice.resourceType === 'Task') return `/workspaces?task=${notice.resourceId}`;
   return `/employees/${notice.resourceId}`;
 }
 
-export function AuditScreen({ audit, error }: { audit: Audit[]; error: string }) {
-  const [search, setSearch] = useState('');
+export function AuditScreen({ initial, error }: { initial: PageResult<Audit>; error: string }) {
+  const [search, setSearch] = useState(''),
+    [audit, setAudit] = useState(initial.items),
+    [page, setPage] = useState(initial.page),
+    [loadError, setLoadError] = useState('');
   const visible = audit.filter((item) =>
     `${item.action} ${item.targetType} ${item.targetId}`.toLowerCase().includes(search.toLowerCase()),
   );
   return (
     <Card title="Audit history">
       {error && <Alert severity="error">{error}</Alert>}
+      {loadError && <Alert severity="error">{loadError}</Alert>}
       <TextField
         label="Search audit history"
         value={search}
@@ -73,6 +78,23 @@ export function AuditScreen({ audit, error }: { audit: Audit[]; error: string })
         </Box>
       ))}
       {!visible.length && <EmptyState title="No audit events found" detail="Try a different action or target." />}
+      {audit.length < initial.total && (
+        <Button
+          onClick={async () => {
+            try {
+              const next = await api<PageResult<Audit>>(`audit?page=${page + 1}`);
+              setAudit((items) => [...items, ...next.items]);
+              setPage(next.page);
+              setLoadError('');
+            } catch (cause) {
+              setLoadError(message(cause));
+            }
+          }}
+          sx={{ mt: 2 }}
+        >
+          Load older events
+        </Button>
+      )}
     </Card>
   );
 }
@@ -92,6 +114,7 @@ export function NotificationsScreen({ notices, setNotices, error, setError }: No
       await api('notifications/read-all', {});
       const readAt = new Date().toISOString();
       setNotices((current) => current.map((notice) => ({ ...notice, readAt: notice.readAt ?? readAt })));
+      window.dispatchEvent(new Event('notifications:changed'));
     } catch (cause) {
       setError(message(cause));
     }
@@ -126,6 +149,7 @@ export function NotificationsScreen({ notices, setNotices, error, setError }: No
                   setNotices((items) =>
                     items.map((item) => (item.id === notice.id ? { ...item, readAt: new Date().toISOString() } : item)),
                   );
+                  window.dispatchEvent(new Event('notifications:changed'));
                 } catch (cause) {
                   setError(message(cause));
                 }

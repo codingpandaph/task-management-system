@@ -13,7 +13,14 @@ import { OrganizationDirectoryView } from './organization-directory-view';
 import { OrganizationEmployeeView } from './organization-employee-view';
 import { OrganizationOverviewView } from './organization-overview-view';
 import { OrganizationPoliciesView } from './organization-policies-view';
-import type { Department, EmployeeDetail, EmploymentRecord, PermissionGrant, Policy } from './organization-types';
+import type {
+  Department,
+  EmployeeDetail,
+  EmploymentRecord,
+  OrganizationHierarchy,
+  PermissionGrant,
+  Policy,
+} from './organization-types';
 
 export function OrganizationScreens({ path, user }: { path: string; user: CurrentEmployee }) {
   const [departments, setDepartments] = useState<Department[]>([]),
@@ -22,6 +29,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     [detail, setDetail] = useState<EmployeeDetail | null>(null),
     [employment, setEmployment] = useState<EmploymentRecord[]>([]),
     [permissionGrants, setPermissionGrants] = useState<PermissionGrant[]>([]),
+    [hierarchy, setHierarchy] = useState<OrganizationHierarchy>({ departments: [], employees: [] }),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [search, setSearch] = useState(''),
@@ -44,12 +52,14 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       api<PageResult<DirectoryEmployee>>(
         `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}${position ? `&position=${position}` : ''}${status ? `&status=${status}` : ''}`,
       ),
+      api<OrganizationHierarchy>('organization'),
     ])
-      .then(([d, p, e]) => {
+      .then(([d, p, e, organization]) => {
         if (active) {
           setDepartments(d);
           setPolicies(p);
           setPeople(e);
+          setHierarchy(organization);
           setError('');
         }
       })
@@ -163,7 +173,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         employeeOptions={employeeOptions}
         error={error}
         options={options}
-        people={people}
+        people={hierarchy.employees}
         save={save}
         user={user}
       />

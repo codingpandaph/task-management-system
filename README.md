@@ -119,7 +119,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 24 real-PostgreSQL integration tests, 18 full
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 24 real-PostgreSQL integration tests, 21 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
@@ -144,6 +144,10 @@ The leave flow uses explicit Preview, Save draft, and Submit actions, preserves 
 keeps primary evergreen buttons readable with white text in every link, hover, and focus state.
 Approval dialogs use direct Approve and Reject actions. Cancellation queues show the employee, leave dates, request
 reason, workflow step, and status so reviewers can decide without interpreting an opaque reference.
+Organization cards use the complete active hierarchy for their people counts and expose edit plus lifecycle actions in
+place. Employee and employment dialogs reveal contract-end or probation-review fields only when the chosen employment
+type requires them. The navigation badge reads live unread state, task notifications open the referenced task directly,
+and authorized users can load older audit pages without losing their current review context.
 
 ## Remaining work
 

@@ -4,7 +4,7 @@ import Typography from '@mui/material/Typography';
 import { ModalForm, Card, StatusTag, Tag, type Field } from './ui';
 import AddBusinessOutlined from '@mui/icons-material/AddBusinessOutlined';
 import BadgeOutlined from '@mui/icons-material/BadgeOutlined';
-import type { CurrentEmployee, DirectoryEmployee, PageResult } from '@tms/contracts';
+import type { CurrentEmployee, DirectoryEmployee } from '@tms/contracts';
 import type { Department } from './organization-types';
 
 export function OrganizationOverviewView({
@@ -22,7 +22,7 @@ export function OrganizationOverviewView({
   employeeOptions: { value: string; label: string }[];
   error: string;
   options: { value: string; label: string }[];
-  people: PageResult<DirectoryEmployee>;
+  people: DirectoryEmployee[];
   save: (endpoint: string, values: Record<string, string | number>, method?: string) => Promise<void>;
   user: CurrentEmployee;
 }) {
@@ -36,9 +36,9 @@ export function OrganizationOverviewView({
             <Tag value={d.code} tone="teal" />
             <Stack direction="row" spacing={1} sx={{ my: 2 }}>
               <StatusTag value={d.status} />
-              <Tag value={`${people.items.filter((e) => e.department.id === d.id).length} people`} />
+              <Tag value={`${people.filter((e) => e.department.id === d.id).length} people`} />
             </Stack>
-            {people.items
+            {people
               .filter((e) => e.department.id === d.id)
               .map((e) => (
                 <Typography key={e.id}>
@@ -46,15 +46,29 @@ export function OrganizationOverviewView({
                 </Typography>
               ))}
             {can('DEPARTMENT_UPDATE') && (
-              <ModalForm
-                buttonLabel="Edit department"
-                title={`Edit ${d.name}`}
-                fields={[
-                  { name: 'name', label: 'Department name', value: d.name },
-                  { name: 'description', label: 'Description', optional: true },
-                ]}
-                onSubmit={(v) => save(`departments/${d.id}`, { ...v, version: d.version }, 'PATCH')}
-              />
+              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 2 }}>
+                <ModalForm
+                  buttonLabel="Edit department"
+                  title={`Edit ${d.name}`}
+                  fields={[
+                    { name: 'name', label: 'Department name', value: d.name },
+                    { name: 'description', label: 'Description', optional: true },
+                  ]}
+                  onSubmit={(v) => save(`departments/${d.id}`, { ...v, version: d.version }, 'PATCH')}
+                />
+                <ModalForm
+                  buttonLabel={d.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                  title={`${d.status === 'ACTIVE' ? 'Deactivate' : 'Activate'} ${d.name}`}
+                  description={
+                    d.status === 'ACTIVE'
+                      ? 'Deactivation is blocked until active employees and approval responsibilities are moved.'
+                      : 'Activation makes this department available for employee assignments.'
+                  }
+                  submitLabel={d.status === 'ACTIVE' ? 'Deactivate department' : 'Activate department'}
+                  fields={[]}
+                  onSubmit={() => save(`departments/${d.id}/${d.status === 'ACTIVE' ? 'deactivate' : 'activate'}`, {})}
+                />
+              </Stack>
             )}
           </Card>
         ))}

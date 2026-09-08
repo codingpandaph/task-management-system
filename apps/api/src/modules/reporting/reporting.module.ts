@@ -118,6 +118,11 @@ class ReportingController {
       skip: (q.page - 1) * q.pageSize,
     });
   }
+  @Get('notifications/unread-count') async unreadCount(@Req() r: AuthRequest) {
+    return {
+      count: await this.db.notification.count({ where: { recipientId: r.principal.employee.id, readAt: null } }),
+    };
+  }
   @Post('notifications/read-all') async readAll(@Req() r: AuthRequest) {
     const result = await this.db.notification.updateMany({
       where: { recipientId: r.principal.employee.id, readAt: null },
