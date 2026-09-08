@@ -66,7 +66,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
   const workspaceManager =
     !!workspace &&
     (user.position === 'SENIOR_DIRECTOR' ||
-      (user.position === 'ACCOUNT_DIRECTOR' && user.department.id === workspace.departmentId));
+      (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === workspace.departmentId));
   const canCreateTasks =
     workspaceManager ||
     !!workspace?.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateTasks);
@@ -197,7 +197,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             <MenuItem value="ALL">All assignees</MenuItem>
             <MenuItem value="UNASSIGNED">Unassigned</MenuItem>
             {people
-              .filter((person) => person.department.id === workspace?.departmentId)
+              .filter((person) => person.department?.id === workspace?.departmentId)
               .map((person) => (
                 <MenuItem key={person.id} value={person.id}>
                   {person.displayName}

@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import type { ApprovalType, Employee } from '../../generated/prisma/client';
 import { Transaction } from '../database/database.module';
 import { AccountStatusService } from '../employment/account-status.service';
@@ -13,6 +13,7 @@ export class LeaveApprovalResolver {
   constructor(private readonly status: AccountStatusService) {}
   async resolve(tx: Transaction, employee: Employee): Promise<ResolvedStep[]> {
     if (employee.position === 'SENIOR_DIRECTOR') return [];
+    if (!employee.departmentId) throw new UnprocessableEntityException('Requester must belong to a department');
     const department = await tx.department.findUniqueOrThrow({ where: { id: employee.departmentId } });
     const settings = await tx.organizationSettings.findFirstOrThrow();
     const steps: ResolvedStep[] = [];
@@ -49,7 +50,7 @@ export class LeaveApprovalResolver {
       return employee.position === 'ACCOUNT_DIRECTOR' && employee.departmentId === step.departmentId;
     if (step.type === 'SENIOR_DIRECTOR') return employee.position === 'SENIOR_DIRECTOR';
     return (
-      employee.department.kind === 'HR' &&
+      employee.department?.kind === 'HR' &&
       !!(await tx.employeePermission.findFirst({
         where: { employeeId: employee.id, revokedAt: null, permission: { code: 'LEAVE_HR_APPROVE' } },
       }))

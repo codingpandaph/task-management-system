@@ -12,7 +12,7 @@ test('critical HRIS navigation is accessible and responsive', async ({ page, bro
   const loginAccessibility = await new AxeBuilder({ page }).analyze();
   expect(loginAccessibility.violations).toEqual([]);
 
-  await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-HR-000001`);
+  await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-ORG-000001`);
   await page.getByLabel('Password', { exact: true }).fill('Demo only password 2026!');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();

@@ -179,7 +179,7 @@ export class LeaveRequestService extends LeaveBaseService {
         if (step.approverId === actor.employee.id && (await this.resolver.eligible(tx, step))) assigned = true;
       }
       const hr =
-        (actor.employee.department.kind === 'HR' || actor.employee.position === 'SENIOR_DIRECTOR') &&
+        (actor.employee.department?.kind === 'HR' || actor.employee.position === 'SENIOR_DIRECTOR') &&
         actor.permissions.includes('LEAVE_ADMIN');
       if (r.employeeId !== actor.employee.id && !assigned && !hr) throw new NotFoundException();
       const steps = [];

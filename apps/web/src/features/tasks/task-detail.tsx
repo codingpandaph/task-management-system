@@ -23,10 +23,11 @@ import { LoadingState, message, ModalForm, StatusTag, Tag } from '../hr/ui';
 import { personName } from './task-card';
 import { canManageTask, type TaskDetailProps, type TaskDetailResponse } from './task-detail-types';
 import { priorityTone } from './task-types';
+import { TaskActivity } from './task-activity';
 
 export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: TaskDetailProps) {
-  const [task, setTask] = useState<TaskDetailResponse>();
-  const [dodText, setDodText] = useState(''),
+  const [task, setTask] = useState<TaskDetailResponse>(),
+    [dodText, setDodText] = useState(''),
     [commentText, setCommentText] = useState(''),
     [error, setError] = useState(''),
     [blockerId, setBlockerId] = useState('');
@@ -38,8 +39,6 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
         <LoadingState label="Loading task" />
       </Dialog>
     );
-  const availableColumns = columns.length ? columns : task.board.columns;
-  const manager = canManageTask(user, task);
   async function mutate(path: string, body: unknown, method = 'POST') {
     try {
       setError('');
@@ -143,6 +142,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                 </Box>
               ))}
             </Box>
+            <TaskActivity activity={task.activity} />
           </Stack>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
@@ -196,7 +196,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                   label: 'Reporter',
                   value: task.reporter.id,
                   options: people
-                    .filter((employee) => employee.department.id === task.workspace.departmentId)
+                    .filter((employee) => employee.department?.id === task.workspace.departmentId)
                     .map((employee) => ({ value: employee.id, label: employee.displayName })),
                 },
               ]}
@@ -226,7 +226,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                 value={task.columnId}
                 onChange={(event) => mutate(`tasks/${task.id}/move`, { columnId: event.target.value })}
               >
-                {availableColumns.map((column) => (
+                {(columns.length ? columns : task.board.columns).map((column) => (
                   <MenuItem key={column.id} value={column.id}>
                     {column.name}
                     {column.managementLocked ? ' · sign-off' : ''}
@@ -261,7 +261,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
             >
               Add blocker
             </Button>
-            {manager && (
+            {canManageTask(user, task) && (
               <Button
                 variant="outlined"
                 startIcon={<CheckCircleOutlineOutlined />}
@@ -270,7 +270,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                 {task.isManagementApproved ? 'Remove sign-off' : 'Sign off task'}
               </Button>
             )}
-            {(manager || task.reporter.id === user.id) && (
+            {(canManageTask(user, task) || task.reporter.id === user.id) && (
               <Button
                 color="error"
                 variant="text"
@@ -284,7 +284,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                 Delete task
               </Button>
             )}
-            {manager && (
+            {canManageTask(user, task) && (
               <Button
                 variant="outlined"
                 startIcon={<FlagOutlined />}

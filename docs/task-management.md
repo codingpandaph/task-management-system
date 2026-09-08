@@ -8,8 +8,8 @@ requirements attributed to Simon. The 30–45 minute meeting duration does not c
 
 The full development seed interprets “15 people underneath” literally: Client Services and Marketing each contain one
 Account Director plus 15 members. Together with one Senior Director, Simon's core operating shape contains 33 people.
-Human Resources is the third department and is additional to that core headcount. The Senior Director uses HR as their
-primary department so the demonstration contains exactly three departments rather than a synthetic leadership unit.
+Human Resources is the third department and is additional to that core headcount. The Senior Director sits above the
+department structure with organization-wide scope and does not consume a place in any team or HR headcount.
 
 ## Product model
 
@@ -94,6 +94,11 @@ An Account Director can escalate a team task; a Senior Director can escalate or 
 deduplicated notification for the active Senior Director and appears in leadership reporting. Automatic overdue-blocker
 escalation is reserved for production hardening because it needs an agreed reminder and acknowledgement policy.
 
+Delivery reports give the Senior Director an immediate portfolio comparison: completion percentage, open and blocked
+work, escalations, and capacity risks. Each team card then shows workflow distribution, unassigned work, open estimates,
+milestones, and the five highest active workloads by employee. Account Directors receive the same detail for their own
+department. Task detail renders the immutable activity ledger as a readable actor/action/change timeline.
+
 Milestones define a goal, start date, due instant, Open/Closed state, and overcapacity flag. Closing a milestone moves
 unfinished tasks to the next chronological open milestone in the same workspace, or removes the milestone when no next
 cycle exists. Completed tasks retain their historical milestone.
@@ -165,7 +170,7 @@ seed uses the same key roles and resets `tms_test` before each Playwright layer.
 For an automated visible tour, run `yarn demo:e2e:tasks`. Run `yarn demo:e2e` to include the HRIS setup and every leave
 requester/approver perspective before the task journeys.
 
-The verified baseline is 24 PostgreSQL integration scenarios, 21 full Chromium journeys shared with HRIS, and one
+The verified baseline is 25 PostgreSQL integration scenarios, 21 full Chromium journeys shared with HRIS, and one
 critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 
@@ -187,7 +192,8 @@ responsibility-based split as HRIS services and browser scenario files.
 | Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist                 | Playwright director; template integration    |
 | Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities   | Playwright and PostgreSQL integration        |
 | Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, then edit reporter         | Creator defaults as reporter; selected colleague and edits persist      | Playwright and PostgreSQL integration        |
-| Leadership report    | Senior Director              | Open **Delivery reports**                                                     | Both teams show completion, ownership, escalation, hours, milestones    | Playwright reporting/breakpoints             |
+| Leadership report    | Senior Director              | Open **Delivery reports** and compare portfolio and team workload cards       | Both teams show completion, blockers, risks, workflow, hours and load   | Playwright reporting/breakpoints             |
+| Activity timeline    | Any task participant         | Open a task after creating, editing, moving, or assigning it                  | Actor, action, changed field, prior/new value and time remain readable  | Playwright journey and immutable ledger      |
 | Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity         | PostgreSQL integration                       |
 | Milestone rollover   | Account Director             | Create two milestones, assign work to first, close it                         | Incomplete work moves to next or becomes unbound                        | PostgreSQL integration                       |
 | Soft delete/restore  | Reporter then manager        | Delete, verify hidden, restore                                                | Card returns to prior column; logs remain                               | PostgreSQL integration                       |

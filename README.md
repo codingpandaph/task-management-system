@@ -43,7 +43,7 @@ The web application runs at <http://localhost:3000>, the API at <http://localhos
 at <http://localhost:3001/health>. Browser API calls pass through the same-origin Next.js `/api` rewrite.
 
 The development-only seed is non-destructive and refuses production execution. Its fictional users all start with
-`Demo only password 2026!`. Examples for the current year are `<year>-HR-000001` (Senior Director),
+`Demo only password 2026!`. Examples for the current year are `<year>-ORG-000001` (Senior Director),
 `<year>-HR-000004` (HR Account Director), `<year>-HR-000005` (final HR approver), and `<year>-ACC-000007`
 (member). `<year>-ACC-000011` demonstrates mandatory first-login password change.
 
@@ -119,7 +119,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 24 real-PostgreSQL integration tests, 21 full
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 25 real-PostgreSQL integration tests, 21 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
@@ -185,6 +185,10 @@ Task workspaces reuse HRIS positions and membership. Serializable workspace coun
 completion enforces Definition of Done, blockers, and management-locked columns. Capacity uses active employees,
 business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
 initial lane. Task deletion is reversible and its activity ledger is append-only.
+The Senior Director is an organization-level employee with no department assignment; a PostgreSQL constraint requires
+every Member and Account Director to remain attached to exactly one department. Delivery reports compare portfolio
+completion, open and blocked work, escalations, capacity risks, workflow distribution, and named workload concentration
+across both teams. Task detail exposes the immutable activity timeline in plain language.
 The multi-user task journey proves the handoff itself: an Account Director creates and assigns work, the named employee
 finds it in My tasks, comments and advances it, and the director verifies progress, signs it off, and reviews reporting.
 Personal work and team boards include searchable status, priority, and assignee filters with one-action reset. Delivery

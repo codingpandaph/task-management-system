@@ -30,7 +30,8 @@ separate, drifting directory.
 The product is a responsive browser application used for everyday employee self-service, HR administration, leave
 filing and approval, Kanban delivery planning, milestone capacity review, audit review, and technical demonstrations.
 The full demonstration organization has three departments: two 15-member delivery teams led by Account Directors and
-an additional HR department that includes the Senior Director. Automated demos begin from a guarded, limited fictional
+an additional HR department, while the Senior Director sits at organization level above all departments. Automated
+demos begin from a guarded, limited fictional
 database seed.
 
 ## Capabilities and Constraints

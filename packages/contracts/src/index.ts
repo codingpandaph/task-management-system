@@ -90,7 +90,7 @@ export interface DirectoryEmployee {
   id: string;
   employeeId: string;
   displayName: string;
-  department: { id: string; name: string; code: string; kind: DepartmentKind };
+  department: { id: string; name: string; code: string; kind: DepartmentKind } | null;
   position: Position;
 }
 export interface CurrentEmployee extends DirectoryEmployee {

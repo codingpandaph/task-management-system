@@ -17,7 +17,7 @@ export function WorkspaceActions({
 }) {
   const manager =
     user.position === 'SENIOR_DIRECTOR' ||
-    (user.position === 'ACCOUNT_DIRECTOR' && user.department.id === workspace.departmentId);
+    (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === workspace.departmentId);
   const canCreateBoards =
     manager ||
     workspace.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateBoards);

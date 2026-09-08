@@ -23,7 +23,7 @@ interface Absence {
   id: string;
   startDate: string;
   endDate: string;
-  employee: { id: string; firstName: string; lastName: string; department: { id: string; name: string } };
+  employee: { id: string; firstName: string; lastName: string; department: { id: string; name: string } | null };
 }
 interface Dashboard {
   active: number;
@@ -88,10 +88,14 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
   }
   if (loading) return <LoadingState label="Loading workspace" />;
   const calendarDepartments = Array.from(
-      new Map(events.map((event) => [event.employee.department.id, event.employee.department])).values(),
+      new Map(
+        events
+          .filter((event) => event.employee.department)
+          .map((event) => [event.employee.department!.id, event.employee.department!]),
+      ).values(),
     ),
     visibleEvents = events.filter(
-      (event) => calendarDepartment === 'ALL' || event.employee.department.id === calendarDepartment,
+      (event) => calendarDepartment === 'ALL' || event.employee.department?.id === calendarDepartment,
     );
   if (path === '/audit') return <AuditScreen initial={audit} error={error} />;
   if (path === '/notifications')
@@ -151,7 +155,11 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
               {visibleEvents
                 .filter((e) => e.startDate.slice(0, 10) <= day && e.endDate.slice(0, 10) >= day)
                 .map((e) => (
-                  <span className="calendar-event" key={e.id} title={e.employee.department.name}>
+                  <span
+                    className="calendar-event"
+                    key={e.id}
+                    title={e.employee.department?.name ?? 'Organization-wide'}
+                  >
                     {e.employee.firstName} {e.employee.lastName}
                   </span>
                 ))}
@@ -171,7 +179,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
                 <Typography sx={{ fontWeight: 600 }}>
                   {e.employee.firstName} {e.employee.lastName}
                 </Typography>
-                <Tag value={e.employee.department.name} tone="teal" />
+                <Tag value={e.employee.department?.name ?? 'Organization-wide'} tone="teal" />
               </Stack>
               <Typography variant="body2">
                 {e.startDate.slice(0, 10)} — {e.endDate.slice(0, 10)}

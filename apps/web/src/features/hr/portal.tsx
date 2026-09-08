@@ -34,7 +34,7 @@ import { useEffect, useState } from 'react';
 import { api, clearSession } from '@/lib/api';
 import { message } from './ui';
 import { ChangePasswordScreen, LoginScreen } from './auth-screens';
-import { canOpen, subtitles } from './portal-access';
+import { canOpen, subtitle } from './portal-access';
 import { OrganizationScreens } from './organization';
 import { LeaveScreens } from './leave';
 import { OverviewScreens } from './overview';
@@ -262,7 +262,7 @@ export default function Portal() {
                 {routeAllowed ? title : 'Access denied'}
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                {routeAllowed ? (subtitles[title] ?? user.department.name) : 'Your role cannot open this workspace'}
+                {routeAllowed ? subtitle(title, user) : 'Your role cannot open this workspace'}
               </Typography>
             </div>
             <Chip label="London" title="Europe / London" variant="outlined" size="small" />

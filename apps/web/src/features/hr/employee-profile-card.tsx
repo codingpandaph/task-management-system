@@ -42,7 +42,7 @@ export function EmployeeProfileCard({
           <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1 }}>
             <StatusTag value={detail.status} />
             <Tag value={detail.position} />
-            <Tag value={detail.department.name} tone="teal" />
+            <Tag value={detail.department?.name ?? 'Organization-wide'} tone="teal" />
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             {detail.employeeId}
@@ -65,7 +65,7 @@ export function EmployeeProfileCard({
         <div className="profile-facts">
           <div>
             <span>Department</span>
-            <strong>{detail.department.name}</strong>
+            <strong>{detail.department?.name ?? 'Organization-wide'}</strong>
           </div>
           <div>
             <span>Position</span>
@@ -138,7 +138,7 @@ export function EmployeeProfileCard({
         <Stack spacing={2} sx={{ mt: 3 }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Typography color="text.secondary">Effective role</Typography>
-            <Tag value={resolveAccessRole(detail.position, detail.department.kind === 'HR')} tone="purple" />
+            <Tag value={resolveAccessRole(detail.position, detail.department?.kind === 'HR')} tone="purple" />
           </Stack>
           <Typography color="text.secondary">Additional access grants within this role’s ceiling.</Typography>
           {permissionGrants.length ? (

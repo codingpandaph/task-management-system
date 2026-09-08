@@ -71,11 +71,11 @@ export async function seed(db: DatabaseService) {
       const status = i === 8 ? 'SUSPENDED' : i === 9 ? 'INACTIVE' : 'ACTIVE';
       const employee = await tx.employee.create({
         data: {
-          employeeId: `${year}-${code}-${String(sequence.value).padStart(6, '0')}`,
+          employeeId: `${year}-${code ?? 'ORG'}-${String(sequence.value).padStart(6, '0')}`,
           firstName,
           lastName,
           birthDate: dateOnly('1990-06-15'),
-          departmentId: departments.get(code)!,
+          departmentId: code ? departments.get(code)! : null,
           position,
           status,
           passwordHash,

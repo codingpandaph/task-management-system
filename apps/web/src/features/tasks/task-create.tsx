@@ -99,7 +99,7 @@ export function CreateTask({
               </TextField>
               <TextField name="reporterId" label="Reporter" select defaultValue={user.id}>
                 {people
-                  .filter((employee) => employee.department.id === workspace.departmentId)
+                  .filter((employee) => employee.department?.id === workspace.departmentId)
                   .map((employee) => (
                     <MenuItem key={employee.id} value={employee.id}>
                       {employee.displayName}

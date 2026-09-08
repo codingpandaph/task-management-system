@@ -7,15 +7,16 @@ reuses this identity, hierarchy, lifecycle, leave calendar, notifications, and a
 and acceptance guide are documented in [task-management.md](task-management.md).
 
 The full development organization has exactly three departments: Client Services and Marketing each have one Account
-Director with 15 members, while Human Resources is an additional support department and the Senior Director's primary
-department. The limited Playwright seed remains seven users so isolated browser journeys stay fast and deterministic.
+Director with 15 members, while Human Resources is an additional support department and the Senior Director is
+organization-wide rather than assigned to any department. The limited Playwright seed remains seven users so isolated
+browser journeys stay fast and deterministic.
 
 ## Identity and access
 
 Employees sign in with an immutable business ID and password. IDs have the form
 `<London creation year>-<department code at creation>-<global sequence padded to six digits>`. The PostgreSQL sequence
 is global, bounded, concurrency-safe, permits rollback gaps, and never recycles values. Transfers and department edits
-cannot change an issued ID.
+cannot change an issued ID. The organization-level Senior Director uses `ORG` in place of a department code.
 
 HR creation returns a cryptographically random temporary password once with `Cache-Control: no-store`. Only its bcrypt
 hash is stored (12 rounds by default). First-use accounts may access session information, CSRF, refresh, password
@@ -34,8 +35,9 @@ rate limiting. Concurrent refreshes are serialized in the browser; an exceptiona
 
 ## Organization and authorization
 
-Every employee has one primary department and one fixed organizational position: Member, Account Director, or Senior
-Director. HR is a typed department and is also the Senior Director's primary department in the demonstration. There is at most one active Senior
+Every Member and Account Director has one primary department and one fixed organizational position. The Senior Director
+sits above all departments with organization-wide scope and a null department assignment. HR remains a normal typed
+department. There is at most one active Senior
 Director and one active Account Director per department. An Account Director belongs to the department they manage.
 Departments may be created without a manager, but dependent leave requests cannot be submitted until one is assigned.
 
@@ -224,10 +226,13 @@ audited where it changes business state.
    safely until leadership is assigned.
 3. Account Director assignment validates active employment and membership, atomically demotes any previous holder,
    promotes the replacement, writes organization history, and audits the change.
-4. The Senior Director may atomically appoint a successor and designate the final active HR leave approver.
-5. Department activation is explicit. Deactivation is refused while active/suspended employees or unresolved approval
+4. The Senior Director appears above department cards in **Executive leadership** and has no current department. A
+   database check requires departments for Members and Account Directors and rejects one for the Senior Director.
+5. The Senior Director may atomically appoint a successor and designate the final active HR leave approver. Succession
+   moves the outgoing director into the successor's former department while the successor becomes organization-wide.
+6. Department activation is explicit. Deactivation is refused while active/suspended employees or unresolved approval
    responsibilities remain; HR transfers staff and resolves workflows first.
-6. `/organization` and `/directory/employees` provide the organization-wide minimal hierarchy without confidential data.
+7. `/organization` and `/directory/employees` provide the organization-wide minimal hierarchy without confidential data.
 
 ### 6. Leave and Christmas policy administration
 

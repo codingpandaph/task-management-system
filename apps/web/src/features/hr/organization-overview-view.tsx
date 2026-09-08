@@ -27,19 +27,30 @@ export function OrganizationOverviewView({
   user: CurrentEmployee;
 }) {
   const reason: Field = { name: 'reason', label: 'Reason' };
+  const leadership = people.filter((employee) => employee.position === 'SENIOR_DIRECTOR');
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
+      <Card title="Executive leadership">
+        {leadership.map((employee) => (
+          <Stack key={employee.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Typography sx={{ fontWeight: 700 }}>{employee.displayName}</Typography>
+            <Tag value="Senior" tone="purple" />
+            <Tag value="Organization-wide" tone="teal" />
+          </Stack>
+        ))}
+        {!leadership.length && <Alert severity="warning">A Senior Director must be assigned.</Alert>}
+      </Card>
       <div className="grid-two">
         {departments.map((d) => (
           <Card key={d.id} title={d.name}>
             <Tag value={d.code} tone="teal" />
             <Stack direction="row" spacing={1} sx={{ my: 2 }}>
               <StatusTag value={d.status} />
-              <Tag value={`${people.filter((e) => e.department.id === d.id).length} people`} />
+              <Tag value={`${people.filter((e) => e.department?.id === d.id).length} people`} />
             </Stack>
             {people
-              .filter((e) => e.department.id === d.id)
+              .filter((e) => e.department?.id === d.id)
               .map((e) => (
                 <Typography key={e.id}>
                   {e.displayName} · {e.position.replaceAll('_', ' ')}

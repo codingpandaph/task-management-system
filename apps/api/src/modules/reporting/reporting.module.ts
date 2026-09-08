@@ -91,7 +91,7 @@ class ReportingController {
       throw new UnprocessableEntityException('Choose a date range up to 93 days');
     const broad =
       r.principal.employee.position === 'SENIOR_DIRECTOR' ||
-      (r.principal.employee.department.kind === 'HR' && r.principal.permissions.includes('REPORTING_READ'));
+      (r.principal.employee.department?.kind === 'HR' && r.principal.permissions.includes('REPORTING_READ'));
     return this.db.leaveRequest.findMany({
       where: {
         status: 'APPROVED',

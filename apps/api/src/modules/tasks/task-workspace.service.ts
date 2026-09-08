@@ -16,7 +16,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
         ? {}
         : {
             OR: [
-              { departmentId: actor.employee.departmentId },
+              { departmentId: actor.employee.departmentId! },
               { memberships: { some: { employeeId: actor.employee.id } } },
             ],
           },

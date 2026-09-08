@@ -33,7 +33,7 @@ export function MilestoneStrip({
   }>();
   const manager =
     user.position === 'SENIOR_DIRECTOR' ||
-    (user.position === 'ACCOUNT_DIRECTOR' && user.department.id === workspace.departmentId);
+    (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === workspace.departmentId);
   if (!workspace.milestones.length) return null;
   return (
     <>

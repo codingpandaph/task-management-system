@@ -5,7 +5,7 @@ export function registerPolishScenarios() {
   test('organization totals, lifecycle actions, and employment-specific fields are trustworthy', async ({ page }) => {
     const csrf = await login(page.request, usernames.hr);
     const hierarchy = (await (await page.request.get('/api/organization')).json()) as {
-      employees: { department: { id: string; name: string } }[];
+      employees: { department: { id: string; name: string } | null }[];
     };
     const suffix = Date.now().toString().slice(-6);
     await post(page.request, 'departments', csrf, {
@@ -14,8 +14,17 @@ export function registerPolishScenarios() {
     });
 
     await page.goto('/organization');
-    for (const departmentName of new Set(hierarchy.employees.map((employee) => employee.department.name))) {
-      const count = hierarchy.employees.filter((employee) => employee.department.name === departmentName).length;
+    const leadership = page.getByRole('heading', { name: 'Executive leadership', exact: true }).locator('..');
+    await expect(leadership.getByText('Avery Morgan', { exact: true })).toBeVisible();
+    await expect(leadership.locator('[title="Organization-wide"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Human Resources', exact: true }).locator('..')).not.toContainText(
+      'Avery Morgan',
+    );
+    const departmentNames = hierarchy.employees.flatMap((employee) =>
+      employee.department ? [employee.department.name] : [],
+    );
+    for (const departmentName of new Set(departmentNames)) {
+      const count = hierarchy.employees.filter((employee) => employee.department?.name === departmentName).length;
       const departmentCard = page.getByRole('heading', { name: departmentName, exact: true }).locator('..');
       await expect(departmentCard.locator(`[title="${count} people"]`)).toBeVisible();
     }

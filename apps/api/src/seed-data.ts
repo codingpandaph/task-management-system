@@ -1,9 +1,9 @@
 import type { Position } from './generated/prisma/client';
 
-type SeedPerson = [string, string, string, Position];
+type SeedPerson = [string, string, string | null, Position];
 
 const corePeople: SeedPerson[] = [
-  ['Avery', 'Morgan', 'HR', 'SENIOR_DIRECTOR'],
+  ['Avery', 'Morgan', null, 'SENIOR_DIRECTOR'],
   ['Jordan', 'Ellis', 'ACC', 'ACCOUNT_DIRECTOR'],
   ['Casey', 'Rowan', 'MKT', 'ACCOUNT_DIRECTOR'],
   ['Taylor', 'Quinn', 'HR', 'ACCOUNT_DIRECTOR'],

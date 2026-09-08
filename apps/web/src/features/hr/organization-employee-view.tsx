@@ -172,7 +172,7 @@ export function OrganizationEmployeeView({
                       name: 'code',
                       label: 'Permission',
                       options: PERMISSIONS.filter((permission) =>
-                        canRoleHoldPermission(detail.position, detail.department.kind === 'HR', permission),
+                        canRoleHoldPermission(detail.position, detail.department?.kind === 'HR', permission),
                       ).map((value) => ({ value, label: value })),
                     },
                     {

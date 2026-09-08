@@ -7,18 +7,15 @@ import { DatabaseService } from '../database/database.module';
 import { AccountStatusService } from '../employment/account-status.service';
 import { EmploymentDto } from './dto';
 
-export function directory(e: Employee & { department: Department }): DirectoryEmployee {
+export function directory(e: Employee & { department: Department | null }): DirectoryEmployee {
   return {
     id: e.id,
     employeeId: e.employeeId,
     displayName: [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' '),
     position: e.position,
-    department: {
-      id: e.departmentId,
-      code: e.department.code,
-      name: e.department.name,
-      kind: e.department.kind,
-    },
+    department: e.department
+      ? { id: e.department.id, code: e.department.code, name: e.department.name, kind: e.department.kind }
+      : null,
   };
 }
 

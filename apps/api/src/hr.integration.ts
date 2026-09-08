@@ -53,6 +53,8 @@ test('HR foundation against PostgreSQL', async (suite) => {
       assert.equal(await db.employee.count({ where: { department: { code: 'ACC' }, position: 'MEMBER' } }), 15);
       assert.equal(await db.employee.count({ where: { department: { code: 'MKT' }, position: 'MEMBER' } }), 15);
       assert.equal(await db.employee.count({ where: { position: 'SENIOR_DIRECTOR' } }), 1);
+      assert.equal(await db.employee.count({ where: { position: 'SENIOR_DIRECTOR', departmentId: null } }), 1);
+      assert.equal(await db.employee.count({ where: { position: { not: 'SENIOR_DIRECTOR' }, departmentId: null } }), 0);
       assert.equal(
         await db.employee.count({
           where: { department: { code: { in: ['ACC', 'MKT'] } }, position: 'ACCOUNT_DIRECTOR' },
@@ -93,7 +95,7 @@ test('HR foundation against PostgreSQL', async (suite) => {
       assert.equal(new Set(results.map((r) => r.employeeId)).size, 3);
       assert.match(newcomer.employeeId, new RegExp(`^${year}-T${suffix}-\\d{6}$`));
       await assert.rejects(db.employee.update({ where: { id: newcomer.id }, data: { employeeId: 'changed' } }));
-      await org.transfer(hr, newcomer.id, member.employee.departmentId, 'Integration transfer');
+      await org.transfer(hr, newcomer.id, member.employee.departmentId!, 'Integration transfer');
       assert.equal(
         (await db.employee.findUniqueOrThrow({ where: { id: newcomer.id } })).employeeId,
         newcomer.employeeId,
@@ -168,7 +170,7 @@ test('HR foundation against PostgreSQL', async (suite) => {
     });
     await suite.test('reservation, ordered approval, duplicate rejection and cancellation reversal', async () => {
       const e = await create('LeaveOwner');
-      await org.transfer(hr, e.id, member.employee.departmentId, 'Test manager assignment');
+      await org.transfer(hr, e.id, member.employee.departmentId!, 'Test manager assignment');
       const login = await auth.login(e.employeeId, e.temporaryPassword);
       const p = await auth.principal(login.access);
       // Service tests use a fully authenticated employee after changing the temporary password.
@@ -196,7 +198,7 @@ test('HR foundation against PostgreSQL', async (suite) => {
     });
     await suite.test('concurrent overlapping submissions cannot both reserve', async () => {
       const e = await create('RaceOwner');
-      await org.transfer(hr, e.id, member.employee.departmentId, 'Test assignment');
+      await org.transfer(hr, e.id, member.employee.departmentId!, 'Test assignment');
       const login = await auth.login(e.employeeId, e.temporaryPassword);
       const changed = await auth.changePassword(
         await auth.principal(login.access),
@@ -254,6 +256,18 @@ test('HR foundation against PostgreSQL', async (suite) => {
       senior,
       tasks,
       year,
+    });
+    await suite.test('Senior Director succession moves leadership above departments', async () => {
+      const successorDepartmentId = (await db.employee.findUniqueOrThrow({ where: { id: newcomer.id } })).departmentId!;
+      await org.director(senior, null, newcomer.id, 'Integration succession');
+      const [successor, outgoing] = await Promise.all([
+        db.employee.findUniqueOrThrow({ where: { id: newcomer.id } }),
+        db.employee.findUniqueOrThrow({ where: { id: senior.employee.id } }),
+      ]);
+      assert.equal(successor.position, 'SENIOR_DIRECTOR');
+      assert.equal(successor.departmentId, null);
+      assert.equal(outgoing.position, 'MEMBER');
+      assert.equal(outgoing.departmentId, successorDepartmentId);
     });
   } finally {
     await app.close();

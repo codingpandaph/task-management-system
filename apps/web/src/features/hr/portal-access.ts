@@ -17,6 +17,10 @@ export const subtitles: Record<string, string> = {
   Notifications: 'Updates requiring attention',
 };
 
+export function subtitle(title: string, user: CurrentEmployee) {
+  return subtitles[title] ?? user.department?.name ?? 'Organization-wide';
+}
+
 export function canOpen(path: string, user: CurrentEmployee) {
   return (
     ((!path.startsWith('/task-reports') && !path.startsWith('/task-archive')) || user.position !== 'MEMBER') &&

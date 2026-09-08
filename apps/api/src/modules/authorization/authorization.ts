@@ -5,7 +5,7 @@ import type { Request } from 'express';
 import type { Department, Employee } from '../../generated/prisma/client';
 
 export interface Principal {
-  employee: Employee & { department: Department };
+  employee: Employee & { department: Department | null };
   permissions: PermissionCode[];
   sessionId: string;
 }
@@ -19,7 +19,7 @@ export function requirePermission(actor: Principal, permission: PermissionCode) 
 }
 export function requireHr(actor: Principal, permission: PermissionCode) {
   requirePermission(actor, permission);
-  if (actor.employee.department.kind !== 'HR' && actor.employee.position !== 'SENIOR_DIRECTOR') {
+  if (actor.employee.position !== 'SENIOR_DIRECTOR' && actor.employee.department?.kind !== 'HR') {
     throw new ForbiddenException('HR scope required');
   }
 }

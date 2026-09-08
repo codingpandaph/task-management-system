@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 const password = 'Demo only password 2026!';
 const users = {
-  senior: '2026-HR-000001',
+  senior: '2026-ORG-000001',
   director: '2026-ACC-000002',
   member: '2026-ACC-000007',
 };
@@ -64,6 +64,7 @@ test('Account Director assigns work and the employee completes the full personal
     await detail.getByLabel('Write a comment').fill('I have started the briefing.');
     await detail.getByLabel('Write a comment').press('Enter');
     await expect(detail.getByText('I have started the briefing.')).toBeVisible();
+    await expect(detail.getByText('Activity', { exact: true })).toBeVisible();
     await detail.getByLabel('Move to').click();
     await employee.getByRole('option', { name: 'In progress' }).click();
     await expect(detail.getByText('Progress', { exact: true }).first()).toBeVisible();
@@ -184,6 +185,9 @@ test('individual, team, and Senior Director reporting surfaces are scoped and re
   await page.getByRole('link', { name: 'Delivery reports', exact: true }).click();
   await expect(page.getByText('Client Services workspace')).toBeVisible();
   await expect(page.getByText('Marketing workspace')).toBeVisible();
+  await expect(page.getByText('Completion', { exact: true })).toBeVisible();
+  await expect(page.getByText('Delivery risks', { exact: true })).toBeVisible();
+  await expect(page.getByText('Highest active workloads', { exact: true }).first()).toBeVisible();
   for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.locator('body')).not.toHaveCSS('overflow-x', 'scroll');
@@ -266,7 +270,7 @@ test('director delegates creation; member assigns department work and edits the 
     await member.getByRole('tab', { name: 'Client delivery' }).click();
     await member.getByRole('button', { name: /Open ACC-#\d+ Department-owned follow-up/ }).click();
     const detail = member.getByRole('dialog');
-    await expect(detail.getByText(/Alex Finch/)).toBeVisible();
+    await expect(detail.locator('p').filter({ hasText: /Reporter\s*Alex Finch/ })).toBeVisible();
     await detail.getByRole('button', { name: 'Edit task', exact: true }).click();
     const edit = member.getByRole('dialog', { name: 'Edit task details' });
     await edit.getByLabel('Reporter').click();

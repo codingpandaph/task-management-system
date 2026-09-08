@@ -20,7 +20,7 @@ export abstract class TaskReportingService extends TaskWorkflowService {
         isDeleted: true,
         ...(actor.employee.position === 'SENIOR_DIRECTOR'
           ? {}
-          : { workspace: { departmentId: actor.employee.departmentId } }),
+          : { workspace: { departmentId: actor.employee.departmentId! } }),
       },
       include: taskInclude,
       orderBy: { deletedAt: 'desc' },
@@ -32,12 +32,19 @@ export abstract class TaskReportingService extends TaskWorkflowService {
       actor.employee.position === 'SENIOR_DIRECTOR'
         ? {}
         : actor.employee.position === 'ACCOUNT_DIRECTOR'
-          ? { departmentId: actor.employee.departmentId }
+          ? { departmentId: actor.employee.departmentId! }
           : { memberships: { some: { employeeId: actor.employee.id } } };
     const workspaces = await this.db.workspace.findMany({
       where: workspaceWhere,
       include: {
-        tasks: { where: { isDeleted: false }, include: { column: true } },
+        tasks: {
+          where: { isDeleted: false },
+          include: {
+            column: true,
+            assignee: { select: { id: true, firstName: true, lastName: true } },
+            outgoingLinks: { include: { targetTask: { include: { column: true } } } },
+          },
+        },
         milestones: { where: { status: 'OPEN' } },
       },
     });
@@ -49,10 +56,28 @@ export abstract class TaskReportingService extends TaskWorkflowService {
       completed: workspace.tasks.filter((task) => task.column.isDone).length,
       unassigned: workspace.tasks.filter((task) => !task.assigneeId && !task.column.isDone).length,
       escalated: workspace.tasks.filter((task) => task.isEscalated).length,
+      blocked: workspace.tasks.filter((task) =>
+        task.outgoingLinks.some((link) => link.type === 'BLOCKED_BY' && !link.targetTask.column.isDone),
+      ).length,
+      inProgress: workspace.tasks.filter((task) => task.column.name === 'In progress').length,
+      inReview: workspace.tasks.filter((task) => task.column.name === 'Review').length,
       estimatedHours: workspace.tasks
         .filter((task) => !task.column.isDone)
         .reduce((sum, task) => sum + task.estimatedHours, 0),
       openMilestones: workspace.milestones.length,
+      capacityRisks: workspace.milestones.filter((milestone) => milestone.isOvercapacity).length,
+      memberLoad: Object.values(
+        workspace.tasks
+          .filter((task) => !task.column.isDone && task.assignee)
+          .reduce<Record<string, { id: string; name: string; tasks: number; hours: number }>>((members, task) => {
+            const assignee = task.assignee!;
+            const current = members[assignee.id] ?? { id: assignee.id, name: display(assignee), tasks: 0, hours: 0 };
+            current.tasks += 1;
+            current.hours += task.estimatedHours;
+            members[assignee.id] = current;
+            return members;
+          }, {}),
+      ).sort((a, b) => b.hours - a.hours),
     }));
   }
 

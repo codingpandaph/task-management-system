@@ -100,7 +100,7 @@ export class AuthService {
       sessionId: session.id,
       permissions: effectivePermissions(
         employee.position,
-        employee.department.kind === 'HR',
+        employee.department?.kind === 'HR',
         grants.map((g) => g.permission.code as PermissionCode),
       ),
     };
@@ -190,9 +190,11 @@ export class AuthService {
       id: e.id,
       employeeId: e.employeeId,
       displayName: [e.firstName, e.middleName, e.lastName].filter(Boolean).join(' '),
-      department: { id: e.departmentId, code: e.department.code, name: e.department.name, kind: e.department.kind },
+      department: e.department
+        ? { id: e.department.id, code: e.department.code, name: e.department.name, kind: e.department.kind }
+        : null,
       position: e.position,
-      role: resolveAccessRole(e.position, e.department.kind === 'HR'),
+      role: resolveAccessRole(e.position, e.department?.kind === 'HR'),
       mustChangePassword: e.mustChangePassword,
       permissions: e.mustChangePassword ? [] : actor.permissions,
     };

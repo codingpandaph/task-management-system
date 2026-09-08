@@ -170,7 +170,7 @@ export function OrganizationDirectoryView({
                     </Stack>
                   </TableCell>
                   <TableCell>{e.employeeId}</TableCell>
-                  <TableCell>{e.department.name}</TableCell>
+                  <TableCell>{e.department?.name ?? 'Organization-wide'}</TableCell>
                   <TableCell>
                     <Tag value={e.position} />
                   </TableCell>

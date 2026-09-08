@@ -155,8 +155,8 @@ model Employee {
   position                                   Position                            @default(MEMBER)
   status                                     AccountStatus                       @default(ACTIVE)
   version                                    Int                                 @default(1)
-  departmentId                               String                              @db.Uuid
-  department                                 Department                          @relation("Employee_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  departmentId                               String?                             @db.Uuid
+  department                                 Department?                         @relation("Employee_department", fields: [departmentId], references: [id], onDelete: Restrict)
   employeeOrganizationHistory_employee       EmployeeOrganizationHistory[]       @relation("EmployeeOrganizationHistory_employee")
   employmentRecord_employee                  EmploymentRecord[]                  @relation("EmploymentRecord_employee")
   employeeStatusChange_employee              EmployeeStatusChange[]              @relation("EmployeeStatusChange_employee")
@@ -195,19 +195,19 @@ model Employee {
 }
 
 model EmployeeOrganizationHistory {
-  id            String     @id @default(uuid()) @db.Uuid
-  createdAt     DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime   @updatedAt @db.Timestamptz(3)
+  id            String      @id @default(uuid()) @db.Uuid
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @db.Timestamptz(3)
   position      Position
-  effectiveFrom DateTime   @default(now()) @db.Timestamptz(3)
-  effectiveTo   DateTime?  @db.Timestamptz(3)
+  effectiveFrom DateTime    @default(now()) @db.Timestamptz(3)
+  effectiveTo   DateTime?   @db.Timestamptz(3)
   reason        String
-  employeeId    String     @db.Uuid
-  employee      Employee   @relation("EmployeeOrganizationHistory_employee", fields: [employeeId], references: [id], onDelete: Restrict)
-  actorId       String?    @db.Uuid
-  actor         Employee?  @relation("EmployeeOrganizationHistory_actor", fields: [actorId], references: [id], onDelete: Restrict)
-  departmentId  String     @db.Uuid
-  department    Department @relation("EmployeeOrganizationHistory_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  employeeId    String      @db.Uuid
+  employee      Employee    @relation("EmployeeOrganizationHistory_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  actorId       String?     @db.Uuid
+  actor         Employee?   @relation("EmployeeOrganizationHistory_actor", fields: [actorId], references: [id], onDelete: Restrict)
+  departmentId  String?     @db.Uuid
+  department    Department? @relation("EmployeeOrganizationHistory_department", fields: [departmentId], references: [id], onDelete: Restrict)
 }
 
 model EmploymentRecord {

@@ -95,7 +95,8 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       if (
         !(await this.accounts.eligible(tx, e.id)) ||
         (departmentId && e.departmentId !== departmentId) ||
-        e.position === 'SENIOR_DIRECTOR'
+        e.position === 'SENIOR_DIRECTOR' ||
+        (!departmentId && (e.position !== 'MEMBER' || !e.departmentId))
       )
         throw new ConflictException('Eligible employee in target department required');
       const position = departmentId ? 'ACCOUNT_DIRECTOR' : 'SENIOR_DIRECTOR';
@@ -105,13 +106,17 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       for (const old of previous) {
         const demoted = await tx.employee.update({
           where: { id: old.id },
-          data: { position: 'MEMBER', version: { increment: 1 } },
+          data: {
+            position: 'MEMBER',
+            departmentId: departmentId ? old.departmentId : e.departmentId,
+            version: { increment: 1 },
+          },
         });
         await this.history(tx, demoted, actor, reason);
       }
       const updated = await tx.employee.update({
         where: { id: employeeId },
-        data: { position, version: { increment: 1 } },
+        data: { position, departmentId: departmentId ?? null, version: { increment: 1 } },
       });
       await this.history(tx, updated, actor, reason);
       await audit(tx, actor.employee.id, 'LEADERSHIP_ASSIGNED', 'Employee', employeeId, { position });
@@ -125,7 +130,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       const grant = await tx.employeePermission.findFirst({
         where: { employeeId, revokedAt: null, permission: { code: 'LEAVE_HR_APPROVE' } },
       });
-      if (e.department.kind !== 'HR' || !grant || !(await this.accounts.eligible(tx, employeeId)))
+      if (e.department?.kind !== 'HR' || !grant || !(await this.accounts.eligible(tx, employeeId)))
         throw new ConflictException('Eligible HR approver required');
       const settings = await tx.organizationSettings.findFirstOrThrow();
       await tx.organizationSettings.update({ where: { id: settings.id }, data: { hrApproverId: employeeId } });
@@ -150,9 +155,9 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     return this.db.transaction(async (tx) => {
       await lockEmployee(tx, id);
       const target = await tx.employee.findUniqueOrThrow({ where: { id }, include: { department: true } });
-      if (target.department.kind !== 'HR' && target.position !== 'SENIOR_DIRECTOR')
+      if (target.position !== 'SENIOR_DIRECTOR' && target.department?.kind !== 'HR')
         throw new ForbiddenException('Administrative grants require HR scope');
-      if (!revoke && !canRoleHoldPermission(target.position, target.department.kind === 'HR', dto.code))
+      if (!revoke && !canRoleHoldPermission(target.position, target.department?.kind === 'HR', dto.code))
         throw new ForbiddenException('Permission exceeds the target role');
       const permission = await tx.permission.findUniqueOrThrow({ where: { code: dto.code } });
       if (revoke)

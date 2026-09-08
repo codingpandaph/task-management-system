@@ -21,8 +21,13 @@ export type TaskReport = {
   completed: number;
   unassigned: number;
   escalated: number;
+  blocked: number;
+  inProgress: number;
+  inReview: number;
   estimatedHours: number;
   openMilestones: number;
+  capacityRisks: number;
+  memberLoad: { id: string; name: string; tasks: number; hours: number }[];
 };
 export type DepartmentOption = { id: string; name: string; code: string; status: string };
 export const priorityTone = { LOW: 'grey', MEDIUM: 'blue', HIGH: 'red' } as const;
