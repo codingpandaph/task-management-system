@@ -1,85 +1,21 @@
 'use client';
 import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import EditCalendarOutlined from '@mui/icons-material/EditCalendarOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
-import SearchOutlined from '@mui/icons-material/SearchOutlined';
-import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
 import MenuItem from '@mui/material/MenuItem';
 import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, LoadingState, message, ModalForm, StatusTag, Tag, type Field } from './ui';
-interface RequestRow {
-  id: string;
-  type: string;
-  startDate: string;
-  endDate: string;
-  status: string;
-  workingDays: number;
-  employee?: { id: string; firstName: string; lastName: string };
-}
-interface Step {
-  id: string;
-  sequence: number;
-  type: string;
-  approverId: string;
-  status: string;
-  eligible?: boolean;
-  reason?: string;
-}
-interface Detail extends RequestRow {
-  employeeId: string;
-  reason?: string;
-  steps: Step[];
-  cancellations: { id: string; status: string; steps: Step[] }[];
-}
-interface Inbox {
-  steps: (Step & {
-    request: {
-      id: string;
-      status: string;
-      startDate: string;
-      endDate: string;
-      employee: { firstName: string; lastName: string };
-    };
-  })[];
-  cancellations: (Step & {
-    cancellation: {
-      id: string;
-      requestId: string;
-      status: string;
-      reason: string;
-      request: {
-        startDate: string;
-        endDate: string;
-        employee: { firstName: string; lastName: string };
-      };
-    };
-  })[];
-}
-const leaveFields: Field[] = [
-  {
-    name: 'type',
-    label: 'Leave type',
-    options: [
-      { value: 'VACATION', label: 'Vacation' },
-      { value: 'SICK', label: 'Sick leave' },
-      { value: 'CHRISTMAS_VACATION', label: 'Christmas Vacation' },
-    ],
-  },
-  { name: 'startDate', label: 'Start date', type: 'date' },
-  { name: 'endDate', label: 'End date', type: 'date' },
-  { name: 'reason', label: 'Reason (optional; no medical diagnosis)', optional: true },
-];
+import { Card, EmptyState, LoadingState, message, ModalForm, StatusTag, Tag } from './ui';
+import { LeaveApprovalsView } from './leave-approvals-view';
+import { LeaveDetailView } from './leave-detail-view';
+import { leaveFields, type LeaveDetail as Detail, type LeaveInbox as Inbox, type RequestRow } from './leave-types';
 export function LeaveScreens({ path, user }: { path: string; user: CurrentEmployee }) {
   const [balances, setBalances] = useState<LeaveBalance[]>([]),
     [rows, setRows] = useState<RequestRow[]>([]),
@@ -133,271 +69,18 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
   const reload = () => setRevision((r) => r + 1);
   if (loading) return <LoadingState label="Loading leave workspace" />;
   if (id)
-    return (
-      <Stack spacing={3}>
-        {error && <Alert severity="error">{error}</Alert>}
-        {detail && (
-          <>
-            <Card title="Leave request">
-              <Stack direction="row" spacing={1}>
-                <Tag value={detail.type} />
-                <StatusTag value={detail.status} />
-              </Stack>
-              <Typography sx={{ mt: 2 }}>
-                {detail.startDate} → {detail.endDate} · {detail.workingDays} working days
-              </Typography>
-              <Typography sx={{ mt: 2 }}>{detail.reason}</Typography>
-            </Card>
-            <Card title="Approval timeline">
-              {detail.steps.length ? (
-                <Stack component="ol" sx={{ listStyle: 'none', p: 0, m: 0 }}>
-                  {detail.steps.map((s) => (
-                    <Stack
-                      key={s.id}
-                      component="li"
-                      direction="row"
-                      spacing={2}
-                      sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
-                    >
-                      <Tag value={`Step:${s.sequence}`} tone="blue" />
-                      <div>
-                        <Tag value={s.type} tone="purple" />
-                        <Typography variant="body2" color="text.secondary">
-                          {s.status}
-                          {s.status === 'PENDING' && s.eligible === false ? ' · Approver unavailable — contact HR' : ''}
-                        </Typography>
-                        {s.reason && <Typography>{s.reason}</Typography>}
-                      </div>
-                    </Stack>
-                  ))}
-                </Stack>
-              ) : (
-                <Typography>No approver required.</Typography>
-              )}
-            </Card>
-            {detail.status === 'DRAFT' && detail.employeeId === user.id && (
-              <Card title="Draft actions" className="action-bar">
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                  <ModalForm
-                    buttonLabel="Edit draft"
-                    title="Edit leave draft"
-                    fields={leaveFields.map((field) => ({
-                      ...field,
-                      value:
-                        field.name === 'type'
-                          ? detail.type
-                          : field.name === 'startDate'
-                            ? detail.startDate.slice(0, 10)
-                            : field.name === 'endDate'
-                              ? detail.endDate.slice(0, 10)
-                              : detail.reason,
-                    }))}
-                    onSubmit={async (v) => {
-                      await api(`leave/requests/${id}`, v, 'PATCH');
-                      reload();
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={async () => {
-                      try {
-                        await api(`leave/requests/${id}/submit`, { operationId: crypto.randomUUID() });
-                        reload();
-                      } catch (e) {
-                        setError(message(e));
-                      }
-                    }}
-                  >
-                    Submit draft
-                  </Button>
-                </Stack>
-              </Card>
-            )}
-            {detail.status === 'PENDING' &&
-              detail.steps.find((s) => s.status === 'PENDING')?.approverId === user.id && (
-                <Card title="Your decision">
-                  <ModalForm
-                    buttonLabel="Review request"
-                    title="Record your decision"
-                    variant="contained"
-                    fields={[{ name: 'reason', label: 'Reason (required for rejection)', optional: true }]}
-                    actions={[
-                      { label: 'Reject', value: 'REJECTED', variant: 'outlined', color: 'error' },
-                      { label: 'Approve', value: 'APPROVED', variant: 'contained' },
-                    ]}
-                    onSubmit={async ({ action, ...v }) => {
-                      await api(`leave/requests/${id}/decision`, { ...v, decision: action });
-                      reload();
-                    }}
-                  />
-                </Card>
-              )}
-            {detail.employeeId === user.id && ['PENDING', 'APPROVED'].includes(detail.status) && (
-              <Card title="Cancel leave">
-                <ModalForm
-                  buttonLabel="Request cancellation"
-                  title="Request leave cancellation"
-                  submitLabel="Request cancellation"
-                  fields={[{ name: 'reason', label: 'Cancellation reason' }]}
-                  onSubmit={async (v) => {
-                    await api(`leave/requests/${id}/cancel`, { ...v, operationId: crypto.randomUUID() });
-                    reload();
-                  }}
-                />
-              </Card>
-            )}
-            {detail.cancellations.map((c) => (
-              <Card key={c.id} title={`Cancellation · ${c.status}`}>
-                {c.status === 'PENDING' && c.steps.find((s) => s.status === 'PENDING')?.approverId === user.id ? (
-                  <ModalForm
-                    buttonLabel="Review cancellation"
-                    title="Review cancellation request"
-                    fields={[{ name: 'reason', label: 'Reason (required for rejection)', optional: true }]}
-                    actions={[
-                      { label: 'Reject cancellation', value: 'REJECTED', variant: 'outlined', color: 'error' },
-                      { label: 'Approve cancellation', value: 'APPROVED', variant: 'contained' },
-                    ]}
-                    onSubmit={async ({ action, ...v }) => {
-                      await api(`leave/cancellations/${c.id}/decision`, { ...v, decision: action });
-                      reload();
-                    }}
-                  />
-                ) : (
-                  <Typography>Cancellation follows the original approval chain.</Typography>
-                )}
-              </Card>
-            ))}
-          </>
-        )}
-      </Stack>
-    );
+    return <LeaveDetailView detail={detail} error={error} id={id} reload={reload} setError={setError} user={user} />;
   if (path === '/approvals')
-    return (() => {
-      const approvalSteps = inbox.steps.filter((step) =>
-        `${step.request.employee.firstName} ${step.request.employee.lastName} ${step.request.startDate} ${step.status}`
-          .toLowerCase()
-          .includes(approvalSearch.toLowerCase()),
-      );
-      const cancellationSteps = inbox.cancellations.filter((step) =>
-        `${step.cancellation.request.employee.firstName} ${step.cancellation.request.employee.lastName} ${step.cancellation.status} ${step.cancellation.reason}`
-          .toLowerCase()
-          .includes(approvalSearch.toLowerCase()),
-      );
-      return (
-        <Stack spacing={3}>
-          {error && <Alert severity="error">{error}</Alert>}
-          <Card title="Approval inbox">
-            <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 2 }}>
-              <Tabs
-                value={approvalTab}
-                onChange={(_, value: number) => setApprovalTab(value)}
-                aria-label="Approval queues"
-              >
-                <Tab label={`Leave requests (${inbox.steps.length})`} />
-                <Tab label={`Cancellations (${inbox.cancellations.length})`} />
-              </Tabs>
-              <TextField
-                label={approvalTab === 0 ? 'Search leave approvals' : 'Search cancellations'}
-                size="small"
-                value={approvalSearch}
-                onChange={(event) => setApprovalSearch(event.target.value)}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchOutlined />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-            </Stack>
-            {approvalTab === 0 &&
-              (approvalSteps.length ? (
-                <Stack component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
-                  {approvalSteps.map((s) => (
-                    <Stack
-                      direction="row"
-                      key={s.id}
-                      component="li"
-                      sx={{
-                        justifyContent: 'space-between',
-                        gap: 2,
-                        py: 2,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <div>
-                        <Link href={`/leave/${s.request.id}`}>
-                          <Typography sx={{ fontWeight: 600 }}>
-                            {s.request.employee.firstName} {s.request.employee.lastName}
-                          </Typography>
-                        </Link>
-                        <Typography variant="body2">
-                          {s.request.startDate.slice(0, 10)} → {s.request.endDate.slice(0, 10)} · Step {s.sequence}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Open request to review dates and approval history
-                        </Typography>
-                      </div>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                        <Tag value={`Step:${s.sequence}`} tone="blue" />
-                        <StatusTag value={s.status} />
-                      </Stack>
-                    </Stack>
-                  ))}
-                </Stack>
-              ) : (
-                <EmptyState title="You’re all caught up" detail="New approval requests will appear here." />
-              ))}
-            {approvalTab === 1 &&
-              (cancellationSteps.length ? (
-                <Stack component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
-                  {cancellationSteps.map((c) => (
-                    <Stack
-                      component="li"
-                      key={c.id}
-                      direction={{ xs: 'column', sm: 'row' }}
-                      sx={{
-                        justifyContent: 'space-between',
-                        gap: 1,
-                        py: 2,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <div>
-                        <Link href={`/leave/${c.cancellation.requestId}`}>
-                          <Typography sx={{ fontWeight: 600 }}>
-                            {c.cancellation.request.employee.firstName} {c.cancellation.request.employee.lastName}
-                          </Typography>
-                        </Link>
-                        <Typography variant="body2">
-                          {c.cancellation.request.startDate.slice(0, 10)} →{' '}
-                          {c.cancellation.request.endDate.slice(0, 10)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {c.cancellation.reason}
-                        </Typography>
-                      </div>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                        <Tag value={`Step:${c.sequence}`} tone="blue" />
-                        <StatusTag value={c.status} />
-                      </Stack>
-                    </Stack>
-                  ))}
-                </Stack>
-              ) : (
-                <EmptyState
-                  title="No cancellation reviews"
-                  detail="Cancellation requests assigned to you will appear here."
-                />
-              ))}
-          </Card>
-        </Stack>
-      );
-    })();
+    return (
+      <LeaveApprovalsView
+        inbox={inbox}
+        error={error}
+        search={approvalSearch}
+        setSearch={setApprovalSearch}
+        tab={approvalTab}
+        setTab={setApprovalTab}
+      />
+    );
   const employeeOptions = people.filter((p) => p.id !== user.id).map((p) => ({ value: p.id, label: p.displayName }));
   const filteredRows = rows.filter(
     (row) =>
