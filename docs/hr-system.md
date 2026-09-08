@@ -380,6 +380,8 @@ lifecycle fixture set needed for contractual and probationary assertions.
 
 Repository linting limits every source and test file to 300 lines. HR browser journeys share typed helpers across
 focused scenario files; leave request, workflow, and administrative behavior live in separate composed services.
+The shared ESLint configuration runs common correctness rules, TypeScript recommendations, and the complete Next.js
+React, Hooks, and accessibility rules. Each layer has a dedicated root command for focused manual verification.
 
 Run `yarn demo:e2e:leave` to watch all five requester perspectives file leave and complete their exact approval chains
 in a slow headed browser. `yarn demo:e2e` includes that matrix between the broader HRIS and task-management tours.

@@ -74,24 +74,28 @@ yarn test
 
 ## Commands
 
-| Command                        | Purpose                                                |
-| ------------------------------ | ------------------------------------------------------ |
-| `yarn dev` / `yarn dev:retain` | Start development while preserving database data       |
-| `yarn dev:fresh`               | Reset, seed, and start the local development database  |
-| `yarn build`                   | Build contracts, API, and web application              |
-| `yarn lint` / `yarn typecheck` | Static validation                                      |
-| `yarn format:check`            | Verify repository formatting                           |
-| `yarn test:unit`               | API unit tests                                         |
-| `yarn test:integration`        | Real-PostgreSQL domain, privacy, and concurrency tests |
-| `yarn test:e2e`                | Playwright browser and API journeys                    |
-| `yarn demo:e2e`                | Slow headed HRIS, five-role leave, and task tour       |
-| `yarn demo:e2e:leave`          | Slow headed five-role filing and approval matrix       |
-| `yarn demo:e2e:tasks`          | Slow headed task perspectives and delegated creation   |
-| `yarn test`                    | Unit, integration, and E2E acceptance suite            |
-| `yarn db:seed`                 | Explicit guarded fictional demo seed                   |
+| Command                         | Purpose                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| `yarn dev` / `yarn dev:retain`  | Start development while preserving database data       |
+| `yarn dev:fresh`                | Reset, seed, and start the local development database  |
+| `yarn build`                    | Build contracts, API, and web application              |
+| `yarn lint` / `yarn typecheck`  | Static validation                                      |
+| `yarn lint:common`              | Shared correctness and maintainability rules           |
+| `yarn lint:js` / `yarn lint:ts` | JavaScript and TypeScript recommended rule sets        |
+| `yarn lint:react`               | React, Hooks, accessibility, and Next.js rules         |
+| `yarn format:check`             | Verify repository formatting                           |
+| `yarn test:unit`                | API unit tests                                         |
+| `yarn test:integration`         | Real-PostgreSQL domain, privacy, and concurrency tests |
+| `yarn test:e2e`                 | Playwright browser and API journeys                    |
+| `yarn demo:e2e`                 | Slow headed HRIS, five-role leave, and task tour       |
+| `yarn demo:e2e:leave`           | Slow headed five-role filing and approval matrix       |
+| `yarn demo:e2e:tasks`           | Slow headed task perspectives and delegated creation   |
+| `yarn test`                     | Unit, integration, and E2E acceptance suite            |
+| `yarn db:seed`                  | Explicit guarded fictional demo seed                   |
 
-ESLint enforces a 300-line maximum for every linted source and test file. Large domains are split by responsibility:
-entry points compose focused services and screens, while shared test helpers keep browser scenarios readable.
+ESLint applies explicit shared, JavaScript, TypeScript, React, React Hooks, accessibility, and Next.js checks. It also
+enforces a 300-line maximum for every linted source and test file. Large domains are split by responsibility: entry
+points compose focused services and screens, while shared test helpers keep browser scenarios readable.
 
 Playwright owns ports 3100 and 3101. Stop local dev servers before E2E. Browser artifacts may contain private test
 state and remain ignored in `test-results/` and `playwright-report/`.

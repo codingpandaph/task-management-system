@@ -5,8 +5,7 @@ import Typography from '@mui/material/Typography';
 import type { CurrentEmployee } from '@tms/contracts';
 import { api } from '@/lib/api';
 import { Card, message, ModalForm, StatusTag, Tag } from './ui';
-import type { LeaveDetail } from './leave-types';
-import { leaveFields } from './leave-types';
+import { leaveFields, type LeaveDetail } from './leave-types';
 
 export function LeaveDetailView({
   detail,

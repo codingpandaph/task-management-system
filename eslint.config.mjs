@@ -18,11 +18,29 @@ export default defineConfig([
     'playwright-report/**',
     'test-results/**',
   ]),
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
   {
+    files: ['**/*.{js,mjs,cjs,ts,tsx}'],
     languageOptions: { globals: globals.node },
-    rules: { 'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }] },
+    rules: {
+      eqeqeq: ['error', 'always'],
+      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      'no-duplicate-imports': 'error',
+      'no-template-curly-in-string': 'error',
+      'prefer-const': 'error',
+    },
+  },
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    extends: [js.configs.recommended],
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [...tseslint.configs.recommended],
+  },
+  {
+    files: ['scripts/**/*.{js,mjs,cjs}', 'apps/api/src/seed-cli.ts'],
+    rules: { 'no-console': 'off' },
   },
   {
     files: ['apps/web/**/*.{ts,tsx,js,mjs}'],

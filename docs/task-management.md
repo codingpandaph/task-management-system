@@ -194,6 +194,10 @@ responsibility-based split as HRIS services and browser scenario files.
 | Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain           | PostgreSQL integration                       |
 | Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable       | Playwright breakpoint loop                   |
 
+Task modules and browser scenarios follow the repository-wide 300-line limit. `yarn lint:common`, `yarn lint:js`,
+`yarn lint:ts`, and `yarn lint:react` expose the shared correctness, language-specific, and React/Next.js checks used
+by the strict `yarn lint` gate.
+
 ## Future improvements / production hardening
 
 The concise cross-system launch checklist is maintained in the README under **Remaining work**. The items below retain
