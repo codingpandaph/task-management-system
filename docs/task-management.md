@@ -135,6 +135,25 @@ deletes to this log. Comments and Definition of Done changes also emit activity 
 All routes use the existing cookie session, CSRF protection, origin checking, DTO validation, and safe error envelope.
 Inaccessible cross-department resources return Not Found where appropriate to avoid revealing their existence.
 
+## Director-to-employee journey
+
+1. Sign in as the Client Services Account Director and open **Team boards**.
+2. Create a High-priority task with a description, estimate, and two Definition of Done items.
+3. Assign it to Alex Finch. The creator remains the default reporter, Jordan Ellis.
+4. In a separate employee session, sign in as Alex and open **My tasks**.
+5. Search for the assigned task, open it, confirm the assignee, reporter, priority, estimate, and description, then add a
+   progress comment.
+6. Move the task to **In progress**. The Account Director can reload the team board and see the same state and comment.
+7. As Alex, complete both Definition of Done items and move the task to **Review**.
+8. As the Account Director, attempt **Done** and observe the management-sign-off requirement. Sign off, then complete
+   the move.
+9. Return to Alex’s **My tasks** and confirm the completed task remains visible with **Done** status for personal history.
+10. Open **Delivery reports** as the Account Director and confirm Client Services reporting reflects current ownership
+    and completion.
+
+This journey uses independent browser contexts so the manager and employee each use their own authenticated permissions
+instead of sharing state or impersonating one another.
+
 ## Complete manual acceptance checklist
 
 Start with `yarn dev:fresh`, open `http://localhost:3000`, and use the fictional credentials in README. The limited test
@@ -143,30 +162,31 @@ seed uses the same key roles and resets `tms_test` before each Playwright layer.
 For an automated visible tour, run `yarn demo:e2e:tasks`. Run `yarn demo:e2e` to include the HRIS setup and every leave
 requester/approver perspective before the task journeys.
 
-The verified baseline is 24 PostgreSQL integration scenarios, 17 full Chromium journeys shared with HRIS, and one
+The verified baseline is 24 PostgreSQL integration scenarios, 18 full Chromium journeys shared with HRIS, and one
 critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 
-| Flow                 | Role                         | Manual steps                                                                  | Expected result                                                       | Automated coverage                           |
-| -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------- |
-| Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces        | Playwright individual/team/reporting flow    |
-| Create task          | Member                       | Open **Team boards**, choose **Create task**, fill all fields and DoD         | Card receives next workspace key and starts in initial lane           | Playwright creation; concurrency integration |
-| Edit task            | Member                       | Open a card, choose **Edit task**, change core fields or active assignee      | Facts update immediately and activity records old/new values          | Playwright task journey; service integration |
-| Discuss work         | Member                       | Open task, enter comment, press Enter                                         | Comment appears with author; activity appends                         | Playwright task journey                      |
-| DoD gate             | Member                       | Leave a check open and attempt Done, then complete it                         | Completion is rejected until all checks pass                          | Playwright and integration gate tests        |
-| Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                      | Playwright two-session journey               |
-| Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                          | PostgreSQL integration                       |
-| Escalation           | Account Director             | Open task and choose **Escalate**                                             | Flag appears; Senior Director receives notification                   | Service integration                          |
-| Team view            | Account Director             | Open **Team boards**, switch boards, inspect task facts                       | Own department and explicit memberships are visible                   | Playwright and authorization logic           |
-| Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist               | Playwright director; template integration    |
-| Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities | Playwright and PostgreSQL integration        |
-| Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, then edit reporter         | Creator defaults as reporter; selected colleague and edits persist    | Playwright and PostgreSQL integration        |
-| Leadership report    | Senior Director              | Open **Delivery reports**                                                     | Both teams show completion, ownership, escalation, hours, milestones  | Playwright reporting/breakpoints             |
-| Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity       | PostgreSQL integration                       |
-| Milestone rollover   | Account Director             | Create two milestones, assign work to first, close it                         | Incomplete work moves to next or becomes unbound                      | PostgreSQL integration                       |
-| Soft delete/restore  | Reporter then manager        | Delete, verify hidden, restore                                                | Card returns to prior column; logs remain                             | PostgreSQL integration                       |
-| Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain          | PostgreSQL integration                       |
-| Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable      | Playwright breakpoint loop                   |
+| Flow                 | Role                         | Manual steps                                                                  | Expected result                                                        | Automated coverage                           |
+| -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------- |
+| Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces         | Playwright individual/team/reporting flow    |
+| Create task          | Member                       | Open **Team boards**, choose **Create task**, fill all fields and DoD         | Card receives next workspace key and starts in initial lane            | Playwright creation; concurrency integration |
+| Edit task            | Member                       | Open a card, choose **Edit task**, change core fields or active assignee      | Facts update immediately and activity records old/new values           | Playwright task journey; service integration |
+| Manager handoff      | Account Director then Member | Create and assign work; employee opens it under My tasks and advances it      | Both sessions see one authoritative task, comment, workflow, and owner | Playwright two-session assignment journey    |
+| Discuss work         | Member                       | Open task, enter comment, press Enter                                         | Comment appears with author; activity appends                          | Playwright task journey                      |
+| DoD gate             | Member                       | Leave a check open and attempt Done, then complete it                         | Completion is rejected until all checks pass                           | Playwright and integration gate tests        |
+| Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                       | Playwright two-session journey               |
+| Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                           | PostgreSQL integration                       |
+| Escalation           | Account Director             | Open task and choose **Escalate**                                             | Flag appears; Senior Director receives notification                    | Service integration                          |
+| Team view            | Account Director             | Open **Team boards**, switch boards, inspect task facts                       | Own department and explicit memberships are visible                    | Playwright and authorization logic           |
+| Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist                | Playwright director; template integration    |
+| Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities  | Playwright and PostgreSQL integration        |
+| Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, then edit reporter         | Creator defaults as reporter; selected colleague and edits persist     | Playwright and PostgreSQL integration        |
+| Leadership report    | Senior Director              | Open **Delivery reports**                                                     | Both teams show completion, ownership, escalation, hours, milestones   | Playwright reporting/breakpoints             |
+| Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity        | PostgreSQL integration                       |
+| Milestone rollover   | Account Director             | Create two milestones, assign work to first, close it                         | Incomplete work moves to next or becomes unbound                       | PostgreSQL integration                       |
+| Soft delete/restore  | Reporter then manager        | Delete, verify hidden, restore                                                | Card returns to prior column; logs remain                              | PostgreSQL integration                       |
+| Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain           | PostgreSQL integration                       |
+| Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable       | Playwright breakpoint loop                   |
 
 ## Future improvements / production hardening
 

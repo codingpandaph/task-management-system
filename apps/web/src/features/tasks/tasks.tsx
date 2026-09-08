@@ -231,7 +231,10 @@ function TaskDetail({
             </Box>
           </Stack>
           <Stack spacing={2}>
-            <StatusTag value={task.column.name} />
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+              <StatusTag value={task.column.name} />
+              <Tag value={task.priority} tone={priorityTone[task.priority]} />
+            </Stack>
             <Typography variant="body2">
               <strong>Assignee</strong>
               <br />

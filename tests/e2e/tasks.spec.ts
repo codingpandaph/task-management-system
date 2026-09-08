@@ -21,6 +21,89 @@ async function signIn(page: Page, employeeId: string) {
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
 }
 
+test('Account Director assigns work and the employee completes the full personal journey', async ({ browser }) => {
+  const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  const employeeContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  try {
+    const director = await directorContext.newPage();
+    const employee = await employeeContext.newPage();
+
+    await signIn(director, users.director);
+    await director.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await director.getByRole('button', { name: 'Create task', exact: true }).click();
+    const create = director.getByRole('dialog', { name: 'Create a task' });
+    await create.getByLabel('Task title').fill('Prepare validation briefing');
+    await create.getByLabel('Description').fill('Summarize the prototype decisions for the colleague review.');
+    await create.getByLabel('Priority').click();
+    await director.getByRole('option', { name: 'High' }).click();
+    await create.getByLabel('Estimate in hours').fill('8');
+    await create.getByLabel('Assignee').click();
+    await director.getByRole('option', { name: 'Alex Finch' }).click();
+    await expect(create.getByLabel('Reporter')).toContainText('Jordan Ellis');
+    await create.getByLabel('Definition of Done (one item per line)').fill('Brief reviewed\nQuestions prepared');
+    await create.getByRole('button', { name: 'Create task', exact: true }).click();
+    await expect(director.getByRole('button', { name: /Prepare validation briefing/ })).toBeVisible();
+
+    await signIn(employee, users.member);
+    await employee.getByRole('link', { name: 'My tasks', exact: true }).click();
+    await expect(employee.getByText('Every task assigned to you, across department workspaces.')).toBeVisible();
+    await employee.getByLabel('Search my tasks').fill('validation briefing');
+    const assignedTask = employee.getByRole('button', { name: /Prepare validation briefing/ });
+    await expect(assignedTask).toBeVisible();
+    await assignedTask.click();
+    let detail = employee.getByRole('dialog');
+    await expect(detail.locator('p').filter({ hasText: /Assignee\s*Alex Finch/ })).toBeVisible();
+    await expect(detail.locator('p').filter({ hasText: /Reporter\s*Jordan Ellis/ })).toBeVisible();
+    await expect(detail.getByText('High', { exact: true })).toBeVisible();
+    await detail.getByLabel('Write a comment').fill('I have started the briefing.');
+    await detail.getByLabel('Write a comment').press('Enter');
+    await expect(detail.getByText('I have started the briefing.')).toBeVisible();
+    await detail.getByLabel('Move to').click();
+    await employee.getByRole('option', { name: 'In progress' }).click();
+    await expect(detail.getByText('Progress', { exact: true }).first()).toBeVisible();
+    await detail.getByRole('button', { name: 'Close task' }).click();
+
+    await director.reload();
+    await director.getByRole('button', { name: /Prepare validation briefing/ }).click();
+    detail = director.getByRole('dialog');
+    await expect(detail.getByText('I have started the briefing.')).toBeVisible();
+    await detail.getByRole('button', { name: 'Close task' }).click();
+
+    await employee.reload();
+    await employee.getByLabel('Search my tasks').fill('validation briefing');
+    await employee.getByRole('button', { name: /Prepare validation briefing/ }).click();
+    detail = employee.getByRole('dialog');
+    await detail.getByLabel('Brief reviewed').click();
+    await detail.getByLabel('Questions prepared').click();
+    await detail.getByLabel('Move to').click();
+    await employee.getByRole('option', { name: 'Review' }).click();
+    await expect(detail.getByText('Review', { exact: true }).first()).toBeVisible();
+    await detail.getByRole('button', { name: 'Close task' }).click();
+
+    await director.reload();
+    await director.getByRole('button', { name: /Prepare validation briefing/ }).click();
+    detail = director.getByRole('dialog');
+    await detail.getByLabel('Move to').click();
+    await director.getByRole('option', { name: 'Done · sign-off' }).click();
+    await expect(detail.getByText('Management sign-off is required')).toBeVisible();
+    await detail.getByRole('button', { name: 'Sign off task', exact: true }).click();
+    await detail.getByLabel('Move to').click();
+    await director.getByRole('option', { name: 'Done · sign-off' }).click();
+    await expect(detail.getByText('Done', { exact: true }).first()).toBeVisible();
+    await detail.getByRole('button', { name: 'Close task' }).click();
+
+    await employee.reload();
+    await employee.getByRole('button', { name: /Prepare validation briefing/ }).click();
+    await expect(employee.getByRole('dialog').getByText('Done', { exact: true }).first()).toBeVisible();
+    await employee.getByRole('dialog').getByRole('button', { name: 'Close task' }).click();
+    await director.getByRole('link', { name: 'Delivery reports', exact: true }).click();
+    await expect(director.getByText('Client Services workspace')).toBeVisible();
+  } finally {
+    await directorContext.close();
+    await employeeContext.close();
+  }
+});
+
 test('member creates, discusses, completes DoD, and advances a signed-off task', async ({ browser }) => {
   const memberContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
   const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });

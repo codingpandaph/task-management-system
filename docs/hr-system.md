@@ -101,6 +101,9 @@ Task workspace permissions remain separate from HR capabilities. Account Directo
 members ticket creation and board creation independently. Assignment is limited to active colleagues in the department
 unless an explicit cross-team milestone allocation exists. Ticket creation defaults the reporter to the signed-in
 creator, while an authorized edit may select another active colleague from the workspace department.
+The browser acceptance suite verifies that identity handoff directly: an Account Director assigns a task to a named
+active employee, that employee finds it in My tasks under their own session, and both perspectives observe the same
+comments, workflow state, Definition of Done, sign-off, and completion history.
 
 ## Policies, calendar, and balances
 

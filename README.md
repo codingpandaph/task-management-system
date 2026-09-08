@@ -112,7 +112,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 24 real-PostgreSQL integration tests, 17 full
+The current acceptance baseline is 7 unit tests, 4 tooling tests, 24 real-PostgreSQL integration tests, 18 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
@@ -154,6 +154,8 @@ Task workspaces reuse HRIS positions and membership. Serializable workspace coun
 completion enforces Definition of Done, blockers, and management-locked columns. Capacity uses active employees,
 business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
 initial lane. Task deletion is reversible and its activity ledger is append-only.
+The multi-user task journey proves the handoff itself: an Account Director creates and assigns work, the named employee
+finds it in My tasks, comments and advances it, and the director verifies progress, signs it off, and reviews reporting.
 
 Production deployment still requires HTTPS, independently managed secrets, shared rate limiting for multiple API
 instances, distributed scheduling, approved retention rules, employer-reviewed UK GDPR lawful bases, monitoring, and
