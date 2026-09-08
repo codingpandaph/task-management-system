@@ -23,6 +23,8 @@ authorized milestone window, and management actions remain scoped to the Account
 actor is the Senior Director.
 Shared navigation and action styling guarantees white text on evergreen primary buttons, including buttons rendered as
 links. Task and HRIS surfaces use the same contrast rule and responsive action hierarchy.
+Consequential workflow dialogs use explicit, outcome-labelled actions rather than hiding decisions in generic selects;
+this shared interaction rule applies to both people operations and delivery work.
 There is no second user directory. An active employee can be a reporter, an optional single assignee, and a workspace
 member. A terminated employee cannot retain active assignments. The relational model supports Simon's fixed
 demonstration hierarchy without hard-coding a headcount ceiling.

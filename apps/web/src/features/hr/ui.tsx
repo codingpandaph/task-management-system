@@ -29,6 +29,7 @@ export interface SubmitAction {
   label: string;
   value: string;
   variant?: 'text' | 'outlined' | 'contained';
+  color?: 'primary' | 'error';
 }
 export function Form({
   fields,
@@ -106,6 +107,7 @@ export function Form({
                 name="action"
                 value={action.value}
                 variant={action.variant ?? 'outlined'}
+                color={action.color ?? 'primary'}
                 disabled={busy}
               >
                 {busy ? 'Working…' : action.label}

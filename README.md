@@ -135,6 +135,8 @@ Employee access details show the effective role, and permission forms only offer
 Restricted direct URLs render a clear access-denied recovery screen. MFA and SSO remain documented future work.
 The leave flow uses explicit Preview, Save draft, and Submit actions, preserves preview results inside the dialog, and
 keeps primary evergreen buttons readable with white text in every link, hover, and focus state.
+Approval dialogs use direct Approve and Reject actions. Cancellation queues show the employee, leave dates, request
+reason, workflow step, and status so reviewers can decide without interpreting an opaque reference.
 
 ## Architecture
 

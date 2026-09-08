@@ -250,10 +250,39 @@ export class LeaveService {
     });
     const cancellations = await this.db.leaveCancellationApprovalStep.findMany({
       where: { approverId: actor.employee.id },
-      include: { cancellation: { select: { id: true, requestId: true, status: true } } },
+      include: {
+        cancellation: {
+          select: {
+            id: true,
+            requestId: true,
+            status: true,
+            reason: true,
+            request: {
+              select: {
+                startDate: true,
+                endDate: true,
+                employee: { select: { firstName: true, lastName: true } },
+              },
+            },
+          },
+        },
+      },
       take: 100,
     });
-    return { steps, cancellations };
+    return {
+      steps,
+      cancellations: cancellations.map((step) => ({
+        ...step,
+        cancellation: {
+          ...step.cancellation,
+          request: {
+            ...step.cancellation.request,
+            startDate: isoDate(step.cancellation.request.startDate),
+            endDate: isoDate(step.cancellation.request.endDate),
+          },
+        },
+      })),
+    };
   }
   async decide(actor: Principal, id: string, dto: DecisionDto) {
     if (dto.decision === 'REJECTED' && (!dto.reason || dto.reason.trim().length < 3))

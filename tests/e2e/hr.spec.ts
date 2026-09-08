@@ -58,8 +58,23 @@ async function uiApprove(page: Page, day: string) {
   await date.locator('..').getByRole('link').click();
   await page.getByRole('button', { name: 'Review request', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Record your decision' });
-  await select(page, 'Decision', 'Approve');
-  await dialog.getByRole('button', { name: 'Record decision', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Reject', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('combobox', { name: 'Decision', exact: true })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Approve', exact: true }).click();
+}
+async function uiApproveCancellation(page: Page, day: string) {
+  await page.goto('/approvals');
+  await page.getByRole('tab', { name: /Cancellations/ }).click();
+  const row = page
+    .getByText(new RegExp(`^${day} → ${day}$`))
+    .first()
+    .locator('..');
+  await row.getByRole('link').click();
+  await page.getByRole('button', { name: 'Review cancellation', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Review cancellation request' });
+  await expect(dialog.getByLabel('Reason (required for rejection)', { exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Reject cancellation', exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Approve cancellation', exact: true }).click();
 }
 
 test('HR creates a department and employee; new employee must change password', async ({ page }) => {
@@ -159,6 +174,7 @@ test('all five roles file leave and complete their approval chains through the U
   test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 300_000 : 120_000);
   const contexts: BrowserContext[] = [];
   const pages = new Map<string, Page>();
+  const requestUrls = new Map<string, string>();
   try {
     for (const [role, employeeId] of Object.entries(usernames)) {
       const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
@@ -178,10 +194,21 @@ test('all five roles file leave and complete their approval chains through the U
       const requester = pages.get(flow.requester)!;
       await uiFileLeave(requester, flow.day);
       const requestUrl = requester.url();
+      requestUrls.set(flow.requester, requestUrl);
       for (const approver of flow.approvers) await uiApprove(pages.get(approver)!, flow.day);
       await requester.goto(requestUrl);
       await expect(requester.getByText('Approved', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
     }
+    const member = pages.get('member')!;
+    await member.goto(requestUrls.get('member')!);
+    await member.getByRole('button', { name: 'Request cancellation', exact: true }).click();
+    const cancellationDialog = member.getByRole('dialog', { name: 'Request leave cancellation' });
+    await cancellationDialog.getByLabel('Cancellation reason', { exact: true }).fill('Plans changed');
+    await cancellationDialog.getByRole('button', { name: 'Request cancellation', exact: true }).click();
+    await uiApproveCancellation(pages.get('director')!, `${year}-12-07`);
+    await uiApproveCancellation(pages.get('hrApprover')!, `${year}-12-07`);
+    await member.goto(requestUrls.get('member')!);
+    await expect(member.getByText('Cancelled', { exact: true }).first()).toBeVisible();
   } finally {
     await Promise.all(contexts.map((context) => context.close()));
   }

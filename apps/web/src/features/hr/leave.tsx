@@ -52,7 +52,19 @@ interface Inbox {
       employee: { firstName: string; lastName: string };
     };
   })[];
-  cancellations: (Step & { cancellation: { id: string; requestId: string; status: string } })[];
+  cancellations: (Step & {
+    cancellation: {
+      id: string;
+      requestId: string;
+      status: string;
+      reason: string;
+      request: {
+        startDate: string;
+        endDate: string;
+        employee: { firstName: string; lastName: string };
+      };
+    };
+  })[];
 }
 const leaveFields: Field[] = [
   {
@@ -138,24 +150,27 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             </Card>
             <Card title="Approval timeline">
               {detail.steps.length ? (
-                detail.steps.map((s) => (
-                  <Stack
-                    key={s.id}
-                    direction="row"
-                    spacing={2}
-                    sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
-                  >
-                    <Tag value={`Step ${s.sequence}`} tone="blue" />
-                    <div>
-                      <Tag value={s.type} tone="purple" />
-                      <Typography variant="body2" color="text.secondary">
-                        {s.status}
-                        {s.status === 'PENDING' && s.eligible === false ? ' · Approver unavailable — contact HR' : ''}
-                      </Typography>
-                      {s.reason && <Typography>{s.reason}</Typography>}
-                    </div>
-                  </Stack>
-                ))
+                <Stack component="ol" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+                  {detail.steps.map((s) => (
+                    <Stack
+                      key={s.id}
+                      component="li"
+                      direction="row"
+                      spacing={2}
+                      sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
+                    >
+                      <Tag value={`Step:${s.sequence}`} tone="blue" />
+                      <div>
+                        <Tag value={s.type} tone="purple" />
+                        <Typography variant="body2" color="text.secondary">
+                          {s.status}
+                          {s.status === 'PENDING' && s.eligible === false ? ' · Approver unavailable — contact HR' : ''}
+                        </Typography>
+                        {s.reason && <Typography>{s.reason}</Typography>}
+                      </div>
+                    </Stack>
+                  ))}
+                </Stack>
               ) : (
                 <Typography>No approver required.</Typography>
               )}
@@ -205,20 +220,13 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                     buttonLabel="Review request"
                     title="Record your decision"
                     variant="contained"
-                    submitLabel="Record decision"
-                    fields={[
-                      {
-                        name: 'decision',
-                        label: 'Decision',
-                        options: [
-                          { value: 'APPROVED', label: 'Approve' },
-                          { value: 'REJECTED', label: 'Reject' },
-                        ],
-                      },
-                      { name: 'reason', label: 'Reason (required for rejection)', optional: true },
+                    fields={[{ name: 'reason', label: 'Reason (required for rejection)', optional: true }]}
+                    actions={[
+                      { label: 'Reject', value: 'REJECTED', variant: 'outlined', color: 'error' },
+                      { label: 'Approve', value: 'APPROVED', variant: 'contained' },
                     ]}
-                    onSubmit={async (v) => {
-                      await api(`leave/requests/${id}/decision`, v);
+                    onSubmit={async ({ action, ...v }) => {
+                      await api(`leave/requests/${id}/decision`, { ...v, decision: action });
                       reload();
                     }}
                   />
@@ -244,19 +252,13 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
                   <ModalForm
                     buttonLabel="Review cancellation"
                     title="Review cancellation request"
-                    fields={[
-                      {
-                        name: 'decision',
-                        label: 'Decision',
-                        options: [
-                          { value: 'APPROVED', label: 'Approve cancellation' },
-                          { value: 'REJECTED', label: 'Reject cancellation' },
-                        ],
-                      },
-                      { name: 'reason', label: 'Reason', optional: true },
+                    fields={[{ name: 'reason', label: 'Reason (required for rejection)', optional: true }]}
+                    actions={[
+                      { label: 'Reject cancellation', value: 'REJECTED', variant: 'outlined', color: 'error' },
+                      { label: 'Approve cancellation', value: 'APPROVED', variant: 'contained' },
                     ]}
-                    onSubmit={async (v) => {
-                      await api(`leave/cancellations/${c.id}/decision`, v);
+                    onSubmit={async ({ action, ...v }) => {
+                      await api(`leave/cancellations/${c.id}/decision`, { ...v, decision: action });
                       reload();
                     }}
                   />
@@ -277,7 +279,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
           .includes(approvalSearch.toLowerCase()),
       );
       const cancellationSteps = inbox.cancellations.filter((step) =>
-        `${step.cancellation.status} ${step.cancellation.requestId}`
+        `${step.cancellation.request.employee.firstName} ${step.cancellation.request.employee.lastName} ${step.cancellation.status} ${step.cancellation.reason}`
           .toLowerCase()
           .includes(approvalSearch.toLowerCase()),
       );
@@ -312,47 +314,80 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
             </Stack>
             {approvalTab === 0 &&
               (approvalSteps.length ? (
-                approvalSteps.map((s) => (
-                  <Stack
-                    direction="row"
-                    key={s.id}
-                    sx={{
-                      justifyContent: 'space-between',
-                      gap: 2,
-                      py: 2,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
-                    <div>
-                      <Link href={`/leave/${s.request.id}`}>
-                        <Typography sx={{ fontWeight: 600 }}>
-                          {s.request.employee.firstName} {s.request.employee.lastName}
+                <Stack component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+                  {approvalSteps.map((s) => (
+                    <Stack
+                      direction="row"
+                      key={s.id}
+                      component="li"
+                      sx={{
+                        justifyContent: 'space-between',
+                        gap: 2,
+                        py: 2,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <div>
+                        <Link href={`/leave/${s.request.id}`}>
+                          <Typography sx={{ fontWeight: 600 }}>
+                            {s.request.employee.firstName} {s.request.employee.lastName}
+                          </Typography>
+                        </Link>
+                        <Typography variant="body2">
+                          {s.request.startDate.slice(0, 10)} → {s.request.endDate.slice(0, 10)} · Step {s.sequence}
                         </Typography>
-                      </Link>
-                      <Typography variant="body2">
-                        {s.request.startDate.slice(0, 10)} → {s.request.endDate.slice(0, 10)} · Step {s.sequence}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Open request to review dates and approval history
-                      </Typography>
-                    </div>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                      <Tag value={`Step ${s.sequence}`} tone="blue" />
-                      <StatusTag value={s.status} />
+                        <Typography variant="caption" color="text.secondary">
+                          Open request to review dates and approval history
+                        </Typography>
+                      </div>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                        <Tag value={`Step:${s.sequence}`} tone="blue" />
+                        <StatusTag value={s.status} />
+                      </Stack>
                     </Stack>
-                  </Stack>
-                ))
+                  ))}
+                </Stack>
               ) : (
                 <EmptyState title="You’re all caught up" detail="New approval requests will appear here." />
               ))}
             {approvalTab === 1 &&
               (cancellationSteps.length ? (
-                cancellationSteps.map((c) => (
-                  <Typography key={c.id} sx={{ my: 1 }}>
-                    <Link href={`/leave/${c.cancellation.requestId}`}>Cancellation · {c.status}</Link>
-                  </Typography>
-                ))
+                <Stack component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+                  {cancellationSteps.map((c) => (
+                    <Stack
+                      component="li"
+                      key={c.id}
+                      direction={{ xs: 'column', sm: 'row' }}
+                      sx={{
+                        justifyContent: 'space-between',
+                        gap: 1,
+                        py: 2,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <div>
+                        <Link href={`/leave/${c.cancellation.requestId}`}>
+                          <Typography sx={{ fontWeight: 600 }}>
+                            {c.cancellation.request.employee.firstName} {c.cancellation.request.employee.lastName}
+                          </Typography>
+                        </Link>
+                        <Typography variant="body2">
+                          {c.cancellation.request.startDate.slice(0, 10)} →{' '}
+                          {c.cancellation.request.endDate.slice(0, 10)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {c.cancellation.reason}
+                        </Typography>
+                      </div>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                        <Tag value={`Step:${c.sequence}`} tone="blue" />
+                        <StatusTag value={c.status} />
+                      </Stack>
+                    </Stack>
+                  ))}
+                </Stack>
               ) : (
                 <EmptyState
                   title="No cancellation reviews"

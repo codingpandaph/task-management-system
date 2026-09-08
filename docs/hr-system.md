@@ -58,6 +58,9 @@ continues to return `403`.
 The leave dialog presents Preview days, Save draft, and Submit for approval as distinct actions. Preview remains in the
 dialog, request status uses one labelled filter with a live result count, and the mobile action panel stops sticking so
 balances and request history remain visible. Primary green actions retain white text in every interaction state.
+Approval and cancellation dialogs expose direct Approve and Reject actions; rejection retains its mandatory reason
+rule. Cancellation inbox rows carry the same decision context as leave approvals: employee, dates, cancellation reason,
+workflow step, and current status.
 
 Positions and application permissions are independent. The API reads current grants from PostgreSQL, never from JWT
 claims. Guards enforce authentication, forced-password restrictions, positions, capabilities, department scope,
