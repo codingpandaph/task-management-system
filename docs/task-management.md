@@ -169,6 +169,9 @@ The verified baseline is 24 PostgreSQL integration scenarios, 18 full Chromium j
 critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 
+The repository-wide ESLint configuration caps source and test files at 300 lines. Task-domain modules must use the same
+responsibility-based split as HRIS services and browser scenario files.
+
 | Flow                 | Role                         | Manual steps                                                                  | Expected result                                                        | Automated coverage                           |
 | -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------- |
 | Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces         | Playwright individual/team/reporting flow    |

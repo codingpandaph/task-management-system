@@ -90,6 +90,9 @@ yarn test
 | `yarn test`                    | Unit, integration, and E2E acceptance suite            |
 | `yarn db:seed`                 | Explicit guarded fictional demo seed                   |
 
+ESLint enforces a 300-line maximum for every linted source and test file. Large domains are split by responsibility:
+entry points compose focused services and screens, while shared test helpers keep browser scenarios readable.
+
 Playwright owns ports 3100 and 3101. Stop local dev servers before E2E. Browser artifacts may contain private test
 state and remain ignored in `test-results/` and `playwright-report/`.
 

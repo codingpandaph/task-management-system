@@ -9,7 +9,7 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node --test '.test-dist/**/*.spec.js'",
-    "seed": "yarn build && node dist/seed.js",
+    "seed": "yarn build && node dist/seed-cli.js",
     "test:integration": "SEED_PROFILE=integration node ../../tests/e2e/reset-database.mjs && tsc -p tsconfig.test.json && node --env-file=.env.test --test .test-dist/hr.integration.js"
   },
   "dependencies": {

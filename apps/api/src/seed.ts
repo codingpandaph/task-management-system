@@ -1,14 +1,12 @@
 import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
 import * as bcrypt from 'bcrypt';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { HR_DELEGABLE, PERMISSIONS } from '@tms/contracts';
-import { AppModule } from './app.module';
 import { dateOnly, today } from './common/dates';
 import { DatabaseService } from './modules/database/database.module';
 import { LeaveBalanceService } from './modules/leave/balance.service';
-import type { Position } from './generated/prisma/client';
+import { seedPeople } from './seed-data';
 
 export async function seed(db: DatabaseService) {
   if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DEMO_SEED !== 'true')
@@ -66,58 +64,7 @@ export async function seed(db: DatabaseService) {
       const d = await tx.department.create({ data: { code, name, kind: code === 'HR' ? 'HR' : 'OPERATIONAL' } });
       departments.set(code, d.id);
     }
-    const people: [string, string, string, Position][] = [
-      ['Avery', 'Morgan', 'HR', 'SENIOR_DIRECTOR'],
-      ['Jordan', 'Ellis', 'ACC', 'ACCOUNT_DIRECTOR'],
-      ['Casey', 'Rowan', 'MKT', 'ACCOUNT_DIRECTOR'],
-      ['Taylor', 'Quinn', 'HR', 'ACCOUNT_DIRECTOR'],
-      ['Morgan', 'Reed', 'HR', 'MEMBER'],
-      ['Riley', 'Shaw', 'HR', 'MEMBER'],
-      ['Alex', 'Finch', 'ACC', 'MEMBER'],
-      ['Sam', 'River', 'MKT', 'MEMBER'],
-      ['Jamie', 'Brook', 'ACC', 'MEMBER'],
-      ['Robin', 'Vale', 'MKT', 'MEMBER'],
-      ['Drew', 'Lane', 'ACC', 'MEMBER'],
-    ];
-    if (limited) {
-      people.splice(7);
-    } else {
-      const clientMembers = [
-        ['Cameron', 'Blake'],
-        ['Emery', 'Stone'],
-        ['Frankie', 'Hart'],
-        ['Harper', 'Cole'],
-        ['Jules', 'Wells'],
-        ['Kai', 'Reeves'],
-        ['Logan', 'Price'],
-        ['Micah', 'Ford'],
-        ['Noel', 'Hayes'],
-        ['Parker', 'Dean'],
-        ['Quinn', 'Frost'],
-        ['Rowan', 'Bell'],
-      ] as const;
-      const marketingMembers = [
-        ['Ari', 'West'],
-        ['Billie', 'Cross'],
-        ['Charlie', 'North'],
-        ['Devon', 'Lake'],
-        ['Elliot', 'Green'],
-        ['Finley', 'Moore'],
-        ['Gray', 'Young'],
-        ['Hayden', 'Scott'],
-        ['Indigo', 'King'],
-        ['Justice', 'Wood'],
-        ['Kit', 'Ward'],
-        ['Lennon', 'Fox'],
-        ['Marley', 'Rose'],
-      ] as const;
-      people.push(
-        ...clientMembers.map(([first, last]) => [first, last, 'ACC', 'MEMBER'] as [string, string, string, Position]),
-        ...marketingMembers.map(
-          ([first, last]) => [first, last, 'MKT', 'MEMBER'] as [string, string, string, Position],
-        ),
-      );
-    }
+    const people = seedPeople(limited);
     const ids: string[] = [];
     for (const [i, [firstName, lastName, code, position]] of people.entries()) {
       const [sequence] = await tx.$queryRaw<{ value: bigint }[]>`SELECT nextval('employee_id_sequence') AS value`;
@@ -348,19 +295,5 @@ export async function seed(db: DatabaseService) {
           },
         });
     }
-  });
-}
-if (require.main === module) {
-  void (async () => {
-    const app = await NestFactory.createApplicationContext(AppModule);
-    try {
-      await seed(app.get(DatabaseService));
-      console.log('Fictional seed ready. Credentials are documented in README.');
-    } finally {
-      await app.close();
-    }
-  })().catch(() => {
-    console.error('Seed failed; verify database and development opt-in.');
-    process.exitCode = 1;
   });
 }

@@ -33,7 +33,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, clearSession } from '@/lib/api';
-import { Form, message } from './ui';
+import { message } from './ui';
+import { ChangePasswordScreen, LoginScreen } from './auth-screens';
+import { canOpen, subtitles } from './portal-access';
 import { OrganizationScreens } from './organization';
 import { LeaveScreens } from './leave';
 import { OverviewScreens } from './overview';
@@ -92,68 +94,8 @@ export default function Portal() {
         <CircularProgress aria-label="Signing out" />
       </Box>
     );
-  if (!user || path === '/login')
-    return (
-      <main className="auth-layout">
-        <section className="auth-story">
-          <div className="brand-mark">CP</div>
-          <Typography component="h1" variant="h2" sx={{ mt: 4, maxWidth: 560 }}>
-            A clearer view of your people.
-          </Typography>
-          <Typography sx={{ mt: 3, maxWidth: 400, opacity: 0.8 }}>
-            One place for your organization, time away, and the work of looking after your team.
-          </Typography>
-          <div className="auth-footer">PEOPLE · ORGANIZATION · TIME AWAY</div>
-        </section>
-        <section className="auth-form">
-          <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, width: '100%', maxWidth: 430 }}>
-            <Chip label="Portal" size="small" sx={{ mb: 3 }} />
-            <Typography variant="h4" component="h2">
-              Welcome back
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>
-              Sign in with your Employee ID.
-            </Typography>
-            <Form
-              fields={[
-                { name: 'employeeId', label: 'Employee ID' },
-                { name: 'password', label: 'Password', type: 'password' },
-              ]}
-              label="Sign in"
-              onSubmit={async (values) => {
-                await api('auth/login', values);
-                await loggedIn();
-              }}
-            />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-              Need access or a password reset? Contact your HR administrator.
-            </Typography>
-          </Paper>
-        </section>
-      </main>
-    );
-  if (user.mustChangePassword)
-    return (
-      <Box component="main" sx={{ maxWidth: 480, mx: 'auto', p: 3, pt: 8 }}>
-        <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Choose your password
-        </Typography>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Change your temporary password before accessing the portal. Use at least 15 characters.
-        </Alert>
-        <Form
-          fields={[
-            { name: 'currentPassword', label: 'Temporary password', type: 'password' },
-            { name: 'password', label: 'New password', type: 'password' },
-          ]}
-          label="Change password"
-          onSubmit={async (values) => {
-            await api('auth/change-password', values);
-            await loggedIn();
-          }}
-        />
-      </Box>
-    );
+  if (!user || path === '/login') return <LoginScreen loggedIn={loggedIn} />;
+  if (user.mustChangePassword) return <ChangePasswordScreen loggedIn={loggedIn} />;
   const nav = [
     { href: '/', label: 'Overview', icon: <DashboardOutlined /> },
     { href: '/organization', label: 'Organization', icon: <AccountTreeOutlined /> },
@@ -183,31 +125,7 @@ export default function Portal() {
     { href: '/notifications', label: 'Notifications', icon: <NotificationsNoneOutlined /> },
   ];
   const title = nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People';
-  const subtitle: Record<string, string> = {
-    Overview: 'Your work and organization',
-    Organization: 'Departments and reporting lines',
-    People: 'Employee directory',
-    'My tasks': 'Assigned work',
-    'Team boards': 'Department delivery',
-    'Delivery reports': 'Portfolio overview',
-    'Task archive': 'Deleted work',
-    'My leave': 'Balances and requests',
-    Approvals: 'Decisions awaiting review',
-    'Who’s out': 'Team availability',
-    Policies: 'Leave entitlements',
-    'Leave administration': 'Corrections and adjustments',
-    'Audit log': 'Recorded business changes',
-    Notifications: 'Updates requiring attention',
-  };
-  const routeAllowed =
-    ((!path.startsWith('/task-reports') && !path.startsWith('/task-archive')) || user.position !== 'MEMBER') &&
-    (!path.startsWith('/approvals') || user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')) &&
-    (!path.startsWith('/policies') ||
-      user.permissions.includes('LEAVE_POLICY_MANAGE') ||
-      user.permissions.includes('CHRISTMAS_POLICY_MANAGE')) &&
-    (!path.startsWith('/hr') || user.permissions.includes('LEAVE_ADMIN')) &&
-    (!path.startsWith('/audit') || user.permissions.includes('AUDIT_READ')) &&
-    (!/^\/employees\/.+/.test(path) || user.permissions.includes('EMPLOYEE_READ'));
+  const routeAllowed = canOpen(path, user);
   return (
     <div className="portal">
       <Snackbar
@@ -338,7 +256,7 @@ export default function Portal() {
                 {routeAllowed ? title : 'Access denied'}
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                {routeAllowed ? (subtitle[title] ?? user.department.name) : 'Your role cannot open this workspace'}
+                {routeAllowed ? (subtitles[title] ?? user.department.name) : 'Your role cannot open this workspace'}
               </Typography>
             </div>
             <Chip label="London" title="Europe / London" variant="outlined" size="small" />

@@ -20,7 +20,10 @@ export default defineConfig([
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  { languageOptions: { globals: globals.node } },
+  {
+    languageOptions: { globals: globals.node },
+    rules: { 'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
   {
     files: ['apps/web/**/*.{ts,tsx,js,mjs}'],
     extends: [...nextVitals, ...nextTypescript],

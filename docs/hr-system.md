@@ -378,6 +378,9 @@ ledger/audit, date-boundary, replay, and privacy assertions that are impractical
 reset only the guarded `tms_test` database: Playwright uses seven limited users, while integration tests request the full
 lifecycle fixture set needed for contractual and probationary assertions.
 
+Repository linting limits every source and test file to 300 lines. HR browser journeys share typed helpers across
+focused scenario files; leave request, workflow, and administrative behavior live in separate composed services.
+
 Run `yarn demo:e2e:leave` to watch all five requester perspectives file leave and complete their exact approval chains
 in a slow headed browser. `yarn demo:e2e` includes that matrix between the broader HRIS and task-management tours.
 

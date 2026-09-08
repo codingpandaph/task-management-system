@@ -13,39 +13,17 @@ import BeachAccessOutlined from '@mui/icons-material/BeachAccessOutlined';
 import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
-import SearchOutlined from '@mui/icons-material/SearchOutlined';
-import InputAdornment from '@mui/material/InputAdornment';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import type { CurrentEmployee, PageResult } from '@tms/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, EmptyState, LoadingState, message, StatusTag, Tag } from './ui';
+import { Card, EmptyState, LoadingState, message, Tag } from './ui';
+import { AuditScreen, NotificationsScreen, type Audit, type Notice } from './activity-screens';
 interface Absence {
   id: string;
   startDate: string;
   endDate: string;
   employee: { id: string; firstName: string; lastName: string; department: { id: string; name: string } };
-}
-interface Notice {
-  id: string;
-  title: string;
-  resourceType: string;
-  resourceId: string;
-  readAt: string | null;
-}
-function notificationHref(notice: Notice) {
-  if (notice.resourceType === 'LeaveRequest') return `/leave/${notice.resourceId}`;
-  if (notice.resourceType === 'Task') return '/workspaces';
-  return `/employees/${notice.resourceId}`;
-}
-interface Audit {
-  id: string;
-  action: string;
-  targetType: string;
-  targetId: string;
-  createdAt: string;
 }
 interface Dashboard {
   active: number;
@@ -69,8 +47,6 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     [audit, setAudit] = useState<Audit[]>([]),
     [dashboard, setDashboard] = useState<Dashboard | null>(null),
     [loading, setLoading] = useState(true),
-    [auditSearch, setAuditSearch] = useState(''),
-    [noticeTab, setNoticeTab] = useState(0),
     [error, setError] = useState('');
   const start = `${month}-01`,
     last = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate(),
@@ -117,113 +93,9 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     visibleEvents = events.filter(
       (event) => calendarDepartment === 'ALL' || event.employee.department.id === calendarDepartment,
     );
-  if (path === '/audit')
-    return (
-      <Card title="Audit history">
-        {error && <Alert severity="error">{error}</Alert>}
-        <TextField
-          label="Search audit history"
-          value={auditSearch}
-          onChange={(event) => setAuditSearch(event.target.value)}
-          size="small"
-          sx={{ mb: 2, minWidth: { sm: 320 } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchOutlined />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        {audit
-          .filter((a) => `${a.action} ${a.targetType} ${a.targetId}`.toLowerCase().includes(auditSearch.toLowerCase()))
-          .map((a) => (
-            <Box key={a.id} sx={{ py: 2, borderBottom: '1px solid', borderColor: 'divider', overflowWrap: 'anywhere' }}>
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <StatusTag value={a.action} />
-                <Typography variant="body2" color="text.secondary">
-                  {a.targetType}
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="text.secondary">
-                {new Date(a.createdAt).toLocaleString()} · {a.targetId}
-              </Typography>
-            </Box>
-          ))}
-        {!audit.some((a) =>
-          `${a.action} ${a.targetType} ${a.targetId}`.toLowerCase().includes(auditSearch.toLowerCase()),
-        ) && <EmptyState title="No audit events found" detail="Try a different action or target." />}
-      </Card>
-    );
-  if (path === '/notifications') {
-    const visibleNotices = notices.filter((notice) => noticeTab === 0 || !notice.readAt);
-    return (
-      <Card title="Your notifications">
-        {error && <Alert severity="error">{error}</Alert>}
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, gap: 1 }}
-        >
-          <Tabs
-            value={noticeTab}
-            onChange={(_, value: number) => setNoticeTab(value)}
-            aria-label="Notification filters"
-          >
-            <Tab label={`All (${notices.length})`} />
-            <Tab label={`Unread (${notices.filter((notice) => !notice.readAt).length})`} />
-          </Tabs>
-          {notices.some((notice) => !notice.readAt) && (
-            <Button
-              onClick={async () => {
-                try {
-                  await api('notifications/read-all', {});
-                  const readAt = new Date().toISOString();
-                  setNotices((current) => current.map((notice) => ({ ...notice, readAt: notice.readAt ?? readAt })));
-                } catch (e) {
-                  setError(message(e));
-                }
-              }}
-            >
-              Mark all read
-            </Button>
-          )}
-        </Stack>
-        {visibleNotices.map((n) => (
-          <Stack
-            key={n.id}
-            direction="row"
-            sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
-          >
-            <Typography>
-              <Link href={notificationHref(n)}>{n.title}</Link>
-            </Typography>
-            {!n.readAt && (
-              <Button
-                onClick={async () => {
-                  try {
-                    await api(`notifications/${n.id}/read`, {});
-                    setNotices((ns) => ns.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)));
-                  } catch (e) {
-                    setError(message(e));
-                  }
-                }}
-              >
-                Mark read
-              </Button>
-            )}
-          </Stack>
-        ))}
-        {!visibleNotices.length && (
-          <EmptyState
-            title={noticeTab === 1 ? 'No unread notifications' : 'You’re up to date'}
-            detail="New approvals and HR events will appear here."
-          />
-        )}
-      </Card>
-    );
-  }
+  if (path === '/audit') return <AuditScreen audit={audit} error={error} />;
+  if (path === '/notifications')
+    return <NotificationsScreen notices={notices} setNotices={setNotices} error={error} setError={setError} />;
   const calendar = (
     <Card title="Who’s out">
       <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 3 }}>

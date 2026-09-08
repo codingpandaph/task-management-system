@@ -30,7 +30,7 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
   run('yarn', ['workspace', '@tms/api', 'build'], {}, repositoryRoot);
   run(
     'node',
-    ['dist/seed.js'],
+    ['dist/seed-cli.js'],
     { NODE_ENV: 'test', ALLOW_DEMO_SEED: 'true', E2E_SEED: String(profile === 'limited') },
     new URL('../../apps/api/', import.meta.url),
   );
