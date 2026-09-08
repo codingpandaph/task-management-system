@@ -138,6 +138,26 @@ keeps primary evergreen buttons readable with white text in every link, hover, a
 Approval dialogs use direct Approve and Reject actions. Cancellation queues show the employee, leave dates, request
 reason, workflow step, and status so reviewers can decide without interpreting an opaque reference.
 
+## Remaining work
+
+The prototype scope and Simon's required individual, team, and leadership journeys are implemented and covered by the
+acceptance suite. The following work remains before a production launch:
+
+- Deploy behind HTTPS with independently managed and rotated secrets.
+- Add shared rate limiting and distributed scheduling for a multi-instance API deployment.
+- Add structured production telemetry, alerting, request tracing, and tested incident runbooks.
+- Rehearse PostgreSQL backup restoration and document recovery-time and recovery-point targets.
+- Agree and implement retention, anonymisation, data-subject, and worker-health procedures with the organization.
+- Complete an independent security review, dependency scanning, penetration testing, and deployment rollback rehearsal.
+- Add email or SMS delivery only after notification content, consent, retry, and failure-handling rules are approved.
+- Expand Task Management with configurable boards, keyboard-accessible drag and drop, saved views, bulk triage,
+  attachments, mentions, repository automation, trend reporting, and exports.
+- Expand HRIS where required with partial-day leave, proration, carry-over, regional calendars, rehire, and delegated
+  approval reassignment.
+
+MFA and SSO remain explicitly deferred. Their absence is documented and does not weaken the prototype's current
+password, session rotation, revocation, CSRF, RBAC, or resource-scope controls.
+
 ## Architecture
 
 Nest controllers validate transport DTOs and delegate to domain services. PostgreSQL transactions and row locks guard

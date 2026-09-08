@@ -383,6 +383,9 @@ in a slow headed browser. `yarn demo:e2e` includes that matrix between the broad
 
 ## Future improvements / production hardening
 
+The concise cross-system launch checklist is maintained in the README under **Remaining work**. This section preserves
+the HRIS-specific detail used for architecture and manual review.
+
 Future work includes MFA/SSO and recovery links, user-facing session management, rehire, multiple directors or
 memberships, delegation/reassignment, partial-day leave, proration/carry-over, more leave types and calendars, medical
 documents, retention/anonymisation and data-subject workflows, exports, email/SMS, distributed jobs and throttling,

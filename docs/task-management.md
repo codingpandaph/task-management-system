@@ -193,6 +193,9 @@ focused checks. Every browser layer begins from a fresh, limited `tms_test` seed
 
 ## Future improvements / production hardening
 
+The concise cross-system launch checklist is maintained in the README under **Remaining work**. The items below retain
+the Task Management detail needed for product and technical review.
+
 - GitHub and GitLab integrations for Engineering/Product workspaces. Signed, idempotent webhooks would map issue,
   branch, pull-request, review, merge, and deployment events to explicit board transitions. Repository rules must never
   bypass DoD, blocker, or management gates; every automated move records the installation identity and delivery ID.
