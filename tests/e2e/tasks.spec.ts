@@ -47,9 +47,15 @@ test('Account Director assigns work and the employee completes the full personal
     await signIn(employee, users.member);
     await employee.getByRole('link', { name: 'My tasks', exact: true }).click();
     await expect(employee.getByText('Every task assigned to you, across department workspaces.')).toBeVisible();
+    await employee.getByLabel('Priority', { exact: true }).click();
+    await employee.getByRole('option', { name: 'High', exact: true }).click();
+    await employee.getByLabel('Status', { exact: true }).click();
+    await employee.getByRole('option', { name: 'To do', exact: true }).click();
     await employee.getByLabel('Search my tasks').fill('validation briefing');
     const assignedTask = employee.getByRole('button', { name: /Prepare validation briefing/ });
     await expect(assignedTask).toBeVisible();
+    await employee.getByRole('button', { name: 'Clear filters', exact: true }).click();
+    await employee.getByLabel('Search my tasks').fill('validation briefing');
     await assignedTask.click();
     let detail = employee.getByRole('dialog');
     await expect(detail.locator('p').filter({ hasText: /Assignee\s*Alex Finch/ })).toBeVisible();
@@ -97,6 +103,10 @@ test('Account Director assigns work and the employee completes the full personal
     await expect(employee.getByRole('dialog').getByText('Done', { exact: true }).first()).toBeVisible();
     await employee.getByRole('dialog').getByRole('button', { name: 'Close task' }).click();
     await director.getByRole('link', { name: 'Delivery reports', exact: true }).click();
+    await expect(director.getByText('Client Services workspace')).toBeVisible();
+    await director.getByLabel('Search departments').fill('missing department');
+    await expect(director.getByText('No matching departments')).toBeVisible();
+    await director.getByLabel('Search departments').fill('client');
     await expect(director.getByText('Client Services workspace')).toBeVisible();
   } finally {
     await directorContext.close();

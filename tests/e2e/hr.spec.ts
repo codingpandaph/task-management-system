@@ -418,10 +418,11 @@ test('draft editing, HR correction, notifications, and audit review work through
 
   await page.getByRole('link', { name: 'Notifications', exact: true }).click();
   await expect(page.getByRole('tab', { name: /Unread/ })).toBeVisible();
-  const markRead = page.getByRole('button', { name: 'Mark read', exact: true }).first();
-  if (await markRead.isVisible()) {
-    await markRead.click();
+  const markAllRead = page.getByRole('button', { name: 'Mark all read', exact: true });
+  if (await markAllRead.isVisible()) {
+    await markAllRead.click();
     await page.getByRole('tab', { name: /Unread/ }).click();
+    await expect(page.getByText('No unread notifications')).toBeVisible();
   }
 
   await page.getByRole('link', { name: 'Audit log', exact: true }).click();

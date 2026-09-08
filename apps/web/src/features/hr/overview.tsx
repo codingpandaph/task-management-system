@@ -35,6 +35,11 @@ interface Notice {
   resourceId: string;
   readAt: string | null;
 }
+function notificationHref(notice: Notice) {
+  if (notice.resourceType === 'LeaveRequest') return `/leave/${notice.resourceId}`;
+  if (notice.resourceType === 'Task') return '/workspaces';
+  return `/employees/${notice.resourceId}`;
+}
 interface Audit {
   id: string;
   action: string;
@@ -157,10 +162,34 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     return (
       <Card title="Your notifications">
         {error && <Alert severity="error">{error}</Alert>}
-        <Tabs value={noticeTab} onChange={(_, value: number) => setNoticeTab(value)} aria-label="Notification filters">
-          <Tab label={`All (${notices.length})`} />
-          <Tab label={`Unread (${notices.filter((notice) => !notice.readAt).length})`} />
-        </Tabs>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, gap: 1 }}
+        >
+          <Tabs
+            value={noticeTab}
+            onChange={(_, value: number) => setNoticeTab(value)}
+            aria-label="Notification filters"
+          >
+            <Tab label={`All (${notices.length})`} />
+            <Tab label={`Unread (${notices.filter((notice) => !notice.readAt).length})`} />
+          </Tabs>
+          {notices.some((notice) => !notice.readAt) && (
+            <Button
+              onClick={async () => {
+                try {
+                  await api('notifications/read-all', {});
+                  const readAt = new Date().toISOString();
+                  setNotices((current) => current.map((notice) => ({ ...notice, readAt: notice.readAt ?? readAt })));
+                } catch (e) {
+                  setError(message(e));
+                }
+              }}
+            >
+              Mark all read
+            </Button>
+          )}
+        </Stack>
         {visibleNotices.map((n) => (
           <Stack
             key={n.id}
@@ -168,9 +197,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             sx={{ justifyContent: 'space-between', gap: 2, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}
           >
             <Typography>
-              <Link href={n.resourceType === 'LeaveRequest' ? `/leave/${n.resourceId}` : `/employees/${n.resourceId}`}>
-                {n.title}
-              </Link>
+              <Link href={notificationHref(n)}>{n.title}</Link>
             </Typography>
             {!n.readAt && (
               <Button

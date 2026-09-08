@@ -3,9 +3,11 @@ import AddOutlined from '@mui/icons-material/AddOutlined';
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
 import FlagOutlined from '@mui/icons-material/FlagOutlined';
+import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined';
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 import LinkOutlined from '@mui/icons-material/LinkOutlined';
 import RestoreOutlined from '@mui/icons-material/RestoreOutlined';
+import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
 import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
@@ -712,6 +714,11 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
     [departments, setDepartments] = useState<DepartmentOption[]>([]),
     [selected, setSelected] = useState<string>(),
     [search, setSearch] = useState(''),
+    [statusFilter, setStatusFilter] = useState('ALL'),
+    [priorityFilter, setPriorityFilter] = useState('ALL'),
+    [assigneeFilter, setAssigneeFilter] = useState('ALL'),
+    [reportSearch, setReportSearch] = useState(''),
+    [error, setError] = useState(''),
     [loading, setLoading] = useState(true);
   const loadWorkspaces = useCallback(async () => {
     const value = await api<Workspace[]>('task-workspaces');
@@ -730,20 +737,30 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
   }, [workspaceId, boardId]);
   useEffect(() => {
     queueMicrotask(() => {
+      setLoading(true);
+      setError('');
       Promise.all([
         loadWorkspaces(),
         api<TaskContract[]>('tasks/mine').then(setMine),
         api<Report[]>('tasks/reporting').then(setReports),
         ...(path === '/task-archive' ? [api<TaskContract[]>('tasks/archived').then(setArchived)] : []),
-      ]).finally(() => setLoading(false));
+      ])
+        .catch((cause) => setError(message(cause)))
+        .finally(() => setLoading(false));
     });
   }, [loadWorkspaces, path]);
   useEffect(() => {
     queueMicrotask(() => void loadBoard());
   }, [loadBoard]);
   const filteredMine = useMemo(
-    () => mine.filter((task) => `${task.publicKey} ${task.title}`.toLowerCase().includes(search.toLowerCase())),
-    [mine, search],
+    () =>
+      mine.filter(
+        (task) =>
+          `${task.publicKey} ${task.title} ${task.workspace.name}`.toLowerCase().includes(search.toLowerCase()) &&
+          (statusFilter === 'ALL' || task.column.name === statusFilter) &&
+          (priorityFilter === 'ALL' || task.priority === priorityFilter),
+      ),
+    [mine, priorityFilter, search, statusFilter],
   );
   async function refresh() {
     await Promise.all([
@@ -755,6 +772,19 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
     ]);
   }
   if (loading) return <LoadingState label="Loading work" />;
+  if (error)
+    return (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" startIcon={<RefreshOutlined />} onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        }
+      >
+        {error}
+      </Alert>
+    );
   if (path === '/task-reports')
     return (
       <Stack spacing={3}>
@@ -768,30 +798,66 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
             </Typography>
           </Box>
         </Paper>
+        <TextField
+          value={reportSearch}
+          onChange={(event) => setReportSearch(event.target.value)}
+          label="Search departments"
+          size="small"
+          sx={{ maxWidth: 420 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlined />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
         <div className="metric-grid">
-          {reports.map((report) => (
-            <Paper variant="outlined" key={report.id} sx={{ p: 3 }}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                <Typography variant="h6">{report.name}</Typography>
-                <Tag value={report.code} tone="teal" />
-              </Stack>
-              <Typography variant="h3" sx={{ mt: 2 }}>
-                {report.completed}/{report.total}
-              </Typography>
-              <Typography color="text.secondary">tasks completed</Typography>
-              <LinearProgress
-                variant="determinate"
-                value={report.total ? (report.completed / report.total) * 100 : 0}
-                sx={{ my: 2, height: 8, borderRadius: 8 }}
-              />
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                <Tag value={`${report.unassigned} UNASSIGNED`} tone={report.unassigned ? 'amber' : 'green'} />
-                <Tag value={`${report.escalated} ESCALATED`} tone={report.escalated ? 'red' : 'green'} />
-                <Tag value={`${report.estimatedHours}H OPEN`} tone="blue" />
-              </Stack>
-            </Paper>
-          ))}
+          {reports
+            .filter((report) => `${report.name} ${report.code}`.toLowerCase().includes(reportSearch.toLowerCase()))
+            .map((report) => (
+              <Paper variant="outlined" key={report.id} sx={{ p: 3 }}>
+                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                  <Typography variant="h6">{report.name}</Typography>
+                  <Tag value={report.code} tone="teal" />
+                </Stack>
+                <Typography variant="h3" sx={{ mt: 2 }}>
+                  {report.completed}/{report.total}
+                </Typography>
+                <Typography color="text.secondary">tasks completed</Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={report.total ? (report.completed / report.total) * 100 : 0}
+                  sx={{ my: 2, height: 8, borderRadius: 8 }}
+                />
+                <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                    <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                      {report.unassigned}
+                    </Typography>
+                    <Tag value="UNASSIGNED" tone={report.unassigned ? 'amber' : 'green'} />
+                  </Stack>
+                  <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                    <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                      {report.escalated}
+                    </Typography>
+                    <Tag value="ESCALATED" tone={report.escalated ? 'red' : 'green'} />
+                  </Stack>
+                  <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                    <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                      {report.estimatedHours}h
+                    </Typography>
+                    <Tag value="OPEN" tone="blue" />
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))}
         </div>
+        {!reports.some((report) =>
+          `${report.name} ${report.code}`.toLowerCase().includes(reportSearch.toLowerCase()),
+        ) && <EmptyState title="No matching departments" detail="Try a department name or code." />}
       </Stack>
     );
   if (path === '/task-archive')
@@ -843,21 +909,64 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
           </Box>
           <Tag value={`${mine.length} TASKS`} tone="blue" />
         </Paper>
-        <TextField
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          label="Search my tasks"
-          sx={{ maxWidth: 420 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchOutlined />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { lg: 'center' } }}>
+          <TextField
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            label="Search my tasks"
+            size="small"
+            sx={{ minWidth: { md: 320 } }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlined />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            label="Status"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            sx={{ minWidth: 150 }}
+          >
+            <MenuItem value="ALL">All statuses</MenuItem>
+            {Array.from(new Set(mine.map((task) => task.column.name))).map((status) => (
+              <MenuItem key={status} value={status}>
+                {status}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            size="small"
+            label="Priority"
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
+            sx={{ minWidth: 140 }}
+          >
+            <MenuItem value="ALL">All priorities</MenuItem>
+            <MenuItem value="HIGH">High</MenuItem>
+            <MenuItem value="MEDIUM">Medium</MenuItem>
+            <MenuItem value="LOW">Low</MenuItem>
+          </TextField>
+          {(search || statusFilter !== 'ALL' || priorityFilter !== 'ALL') && (
+            <Button
+              startIcon={<FilterAltOffOutlined />}
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('ALL');
+                setPriorityFilter('ALL');
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
+        </Stack>
         {filteredMine.length ? (
           <div className="my-task-grid">
             {filteredMine.map((task) => (
@@ -971,6 +1080,69 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
       )}
       {workspace && <MilestoneStrip workspace={workspace} user={user} refresh={refresh} />}
       {board && (
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { lg: 'center' } }}>
+          <TextField
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            label="Search tasks"
+            size="small"
+            sx={{ minWidth: { md: 300 } }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlined />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            label="Priority"
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
+            sx={{ minWidth: 140 }}
+          >
+            <MenuItem value="ALL">All priorities</MenuItem>
+            <MenuItem value="HIGH">High</MenuItem>
+            <MenuItem value="MEDIUM">Medium</MenuItem>
+            <MenuItem value="LOW">Low</MenuItem>
+          </TextField>
+          <TextField
+            select
+            size="small"
+            label="Assignee"
+            value={assigneeFilter}
+            onChange={(event) => setAssigneeFilter(event.target.value)}
+            sx={{ minWidth: 190 }}
+          >
+            <MenuItem value="ALL">All assignees</MenuItem>
+            <MenuItem value="UNASSIGNED">Unassigned</MenuItem>
+            {people
+              .filter((person) => person.department.id === workspace?.departmentId)
+              .map((person) => (
+                <MenuItem key={person.id} value={person.id}>
+                  {person.displayName}
+                </MenuItem>
+              ))}
+          </TextField>
+          {(search || priorityFilter !== 'ALL' || assigneeFilter !== 'ALL') && (
+            <Button
+              startIcon={<FilterAltOffOutlined />}
+              onClick={() => {
+                setSearch('');
+                setPriorityFilter('ALL');
+                setAssigneeFilter('ALL');
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
+        </Stack>
+      )}
+      {board && (
         <div className="kanban" aria-label={`${board.board.name} board`}>
           {board.board.columns.map((column) => (
             <section className="kanban-column" key={column.id}>
@@ -978,15 +1150,39 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
                 <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 800 }}>
                   {column.name}
                 </Typography>
-                <span className="task-count">{column.tasks.length}</span>
+                <span className="task-count">
+                  {
+                    column.tasks.filter(
+                      (task) =>
+                        `${task.publicKey} ${task.title}`.toLowerCase().includes(search.toLowerCase()) &&
+                        (priorityFilter === 'ALL' || task.priority === priorityFilter) &&
+                        (assigneeFilter === 'ALL' ||
+                          (assigneeFilter === 'UNASSIGNED' ? !task.assignee : task.assignee?.id === assigneeFilter)),
+                    ).length
+                  }
+                </span>
               </Stack>
               <Stack spacing={1.5}>
-                {column.tasks.map((task) => (
-                  <TaskCard key={task.id} task={task} open={() => setSelected(task.id)} />
-                ))}
-                {!column.tasks.length && (
+                {column.tasks
+                  .filter(
+                    (task) =>
+                      `${task.publicKey} ${task.title}`.toLowerCase().includes(search.toLowerCase()) &&
+                      (priorityFilter === 'ALL' || task.priority === priorityFilter) &&
+                      (assigneeFilter === 'ALL' ||
+                        (assigneeFilter === 'UNASSIGNED' ? !task.assignee : task.assignee?.id === assigneeFilter)),
+                  )
+                  .map((task) => (
+                    <TaskCard key={task.id} task={task} open={() => setSelected(task.id)} />
+                  ))}
+                {!column.tasks.some(
+                  (task) =>
+                    `${task.publicKey} ${task.title}`.toLowerCase().includes(search.toLowerCase()) &&
+                    (priorityFilter === 'ALL' || task.priority === priorityFilter) &&
+                    (assigneeFilter === 'ALL' ||
+                      (assigneeFilter === 'UNASSIGNED' ? !task.assignee : task.assignee?.id === assigneeFilter)),
+                ) && (
                   <Typography variant="body2" color="text.secondary">
-                    No tasks here
+                    No matching tasks
                   </Typography>
                 )}
               </Stack>

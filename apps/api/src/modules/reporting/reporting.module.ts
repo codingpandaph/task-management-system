@@ -118,6 +118,13 @@ class ReportingController {
       skip: (q.page - 1) * q.pageSize,
     });
   }
+  @Post('notifications/read-all') async readAll(@Req() r: AuthRequest) {
+    const result = await this.db.notification.updateMany({
+      where: { recipientId: r.principal.employee.id, readAt: null },
+      data: { readAt: new Date() },
+    });
+    return { updated: result.count };
+  }
   @Post('notifications/:id/read') async read(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     const result = await this.db.notification.updateMany({
       where: { id, recipientId: r.principal.employee.id },

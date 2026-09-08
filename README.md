@@ -156,6 +156,9 @@ business days, and approved HRIS leave; termination transactionally unassigns in
 initial lane. Task deletion is reversible and its activity ledger is append-only.
 The multi-user task journey proves the handoff itself: an Account Director creates and assigns work, the named employee
 finds it in My tasks, comments and advances it, and the director verifies progress, signs it off, and reviews reporting.
+Personal work and team boards include searchable status, priority, and assignee filters with one-action reset. Delivery
+reports can be narrowed by department, notifications support individual or bulk read actions, and failed task loading
+shows a recoverable retry state instead of leaving the workspace indefinitely busy.
 
 Production deployment still requires HTTPS, independently managed secrets, shared rate limiting for multiple API
 instances, distributed scheduling, approved retention rules, employer-reviewed UK GDPR lawful bases, monitoring, and

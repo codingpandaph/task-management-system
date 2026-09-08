@@ -71,7 +71,10 @@ The creator is selected as reporter by default. The create and edit forms may as
 workspace department as reporter, and every reporter change is preserved in append-only task activity.
 
 Board cards and reports use short one-word pills such as **High**, **Signed**, **Escalated**, and **Progress**. Counts use
-compact forms such as **Tasks:4**. The underlying complete value remains available as the pill title.
+adjacent numerals so the tag itself remains one word. The underlying complete value remains available as the pill title.
+My tasks can be filtered by text, workflow status, and priority. Team boards add assignee filtering, including an
+explicit Unassigned view, while Delivery reports can be searched by department name or code. Every filter group has a
+single clear action and a useful no-results state. Initial load failures show the safe API message with a Retry action.
 On phones, My tasks, Team boards, Delivery reports, and Task archive remain available in the complete role-aware menu
 rather than a partially visible horizontal navigation strip.
 Task surfaces share the global design tokens and are covered by `yarn design-check`, including Kanban columns, task
@@ -142,14 +145,14 @@ Inaccessible cross-department resources return Not Found where appropriate to av
 3. Assign it to Alex Finch. The creator remains the default reporter, Jordan Ellis.
 4. In a separate employee session, sign in as Alex and open **My tasks**.
 5. Search for the assigned task, open it, confirm the assignee, reporter, priority, estimate, and description, then add a
-   progress comment.
+   progress comment. Combine the High and To do filters, confirm the task remains visible, then clear all filters.
 6. Move the task to **In progress**. The Account Director can reload the team board and see the same state and comment.
 7. As Alex, complete both Definition of Done items and move the task to **Review**.
 8. As the Account Director, attempt **Done** and observe the management-sign-off requirement. Sign off, then complete
    the move.
 9. Return to Alex’s **My tasks** and confirm the completed task remains visible with **Done** status for personal history.
 10. Open **Delivery reports** as the Account Director and confirm Client Services reporting reflects current ownership
-    and completion.
+    and completion. Search by department, verify the no-results recovery state, then return to Client Services.
 
 This journey uses independent browser contexts so the manager and employee each use their own authenticated permissions
 instead of sharing state or impersonating one another.
