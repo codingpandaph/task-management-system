@@ -376,6 +376,9 @@ and compares login, People, and desktop/mobile task-board surfaces with browser-
 Compact tags use one-word labels such as **Onboard**, **Status**, and **Approvals**. Full internal codes remain available
 as hover titles. Buttons use at least a 44-pixel target; primary green buttons explicitly retain white text in default,
 hover, and keyboard-focus states. Deactivation is presented as a clearly labelled outlined action.
+Catalogue and workflow screens place their permitted actions in the same header as the records they affect. Search
+labels follow the selected tab, including regular versus Christmas policies and leave versus cancellation approvals.
+The dashboard greeting contains no duplicate navigation actions; users act from the authoritative destination screen.
 Task boards keep the selected board's actions, contextual search, filters, milestones, and columns in one surface.
 Tickets support pointer drag-and-drop and labelled move arrows for keyboard and assistive-technology parity; the API
 still enforces every workflow rule and announces success or rejection without relying on color.

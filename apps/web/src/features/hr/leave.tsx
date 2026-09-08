@@ -3,9 +3,6 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import AddOutlined from '@mui/icons-material/AddOutlined';
-import EditCalendarOutlined from '@mui/icons-material/EditCalendarOutlined';
-import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import LinearProgress from '@mui/material/LinearProgress';
 import MenuItem from '@mui/material/MenuItem';
 import type { CurrentEmployee, LeaveBalance, PageResult, DirectoryEmployee } from '@tms/contracts';
@@ -13,6 +10,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Card, EmptyState, LoadingState, message, ModalForm, StatusTag, Tag } from './ui';
+import { LeaveActions } from './leave-actions';
 import { LeaveApprovalsView } from './leave-approvals-view';
 import { LeaveDetailView } from './leave-detail-view';
 import { leaveFields, type LeaveDetail as Detail, type LeaveInbox as Inbox, type RequestRow } from './leave-types';
@@ -112,7 +110,10 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
           </Card>
         ))}
       </div>
-      <Card title={path === '/hr' ? 'Employee leave records' : 'My requests'}>
+      <Card
+        title={path === '/hr' ? 'Employee leave records' : 'My requests'}
+        actions={<LeaveActions hrMode={path === '/hr'} employeeOptions={employeeOptions} reload={reload} />}
+      >
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
           <TextField
             label="Search requests"
@@ -191,79 +192,6 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
         ) : (
           <EmptyState title="No leave requests found" detail="Try another status or clear your search." />
         )}
-      </Card>
-      <Card className="action-bar" title={path === '/hr' ? 'HR actions' : 'Ready to plan time away?'}>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          {path === '/hr'
-            ? 'Administrative entries and balance changes open in a focused review dialog.'
-            : 'Weekends and bank holidays do not count. You can preview dates before filing.'}
-        </Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          {path !== '/hr' ? (
-            <ModalForm
-              buttonLabel="File leave"
-              icon={<EditCalendarOutlined />}
-              title="File a leave request"
-              description="Review the dates and action carefully. Pending requests reserve your allowance."
-              variant="contained"
-              fields={leaveFields}
-              actions={[
-                { label: 'Preview days', value: 'preview', variant: 'text' },
-                { label: 'Save draft', value: 'draft', variant: 'outlined' },
-                { label: 'Submit for approval', value: 'submit', variant: 'contained' },
-              ]}
-              onSubmit={async ({ action, ...v }) => {
-                if (action === 'preview') {
-                  const result = await api<{ workingDays: number }>('leave/preview', v);
-                  return {
-                    close: false,
-                    notice: `${result.workingDays} working ${result.workingDays === 1 ? 'day' : 'days'} in this request`,
-                  };
-                }
-                const draft = await api<{ id: string }>('leave/requests', v);
-                if (action === 'submit')
-                  await api(`leave/requests/${draft.id}/submit`, { operationId: crypto.randomUUID() });
-                reload();
-              }}
-            />
-          ) : (
-            <>
-              <ModalForm
-                buttonLabel="Add administrative leave"
-                icon={<AddOutlined />}
-                title="Administrative leave entry"
-                description="This creates approved leave immediately and requires an administrative reason."
-                variant="contained"
-                fields={[
-                  { name: 'employeeId', label: 'Employee', options: employeeOptions },
-                  ...leaveFields,
-                  { name: 'administrativeReason', label: 'Administrative reason' },
-                ]}
-                onSubmit={async (v) => {
-                  await api('hr/leave', { ...v, operationId: crypto.randomUUID() });
-                  reload();
-                }}
-              />
-              <ModalForm
-                buttonLabel="Adjust balance"
-                icon={<TuneOutlined />}
-                title="Adjust annual balance"
-                description="Use a positive number to add days or a negative number to subtract them."
-                fields={[
-                  { name: 'employeeId', label: 'Employee', options: employeeOptions },
-                  { name: 'year', label: 'Year', type: 'number', value: new Date().getFullYear() },
-                  leaveFields[0],
-                  { name: 'days', label: 'Days to add or subtract', type: 'number' },
-                  { name: 'reason', label: 'Adjustment reason' },
-                ]}
-                onSubmit={async (v) => {
-                  await api('hr/leave/adjustments', { ...v, operationId: crypto.randomUUID() });
-                  reload();
-                }}
-              />
-            </>
-          )}
-        </Stack>
       </Card>
     </Stack>
   );

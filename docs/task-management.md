@@ -76,7 +76,11 @@ My tasks can be filtered by text, workflow status, and priority. Team boards add
 explicit Unassigned view, while Delivery reports can be searched by department name or code. Board search is named for
 the selected board and searches only that board. Actions, board navigation, search, filters, milestones, and columns sit
 inside one active workspace surface, so users do not hunt across detached action panels. Every filter group has a
-single clear action and a useful no-results state. Initial load failures show the safe API message with a Retry action.
+single clear action and a useful no-results state. My Tasks and Delivery Reports follow the same pattern rather than
+placing search controls between unrelated panels. Changing workspace, board, or tab clears filters that no longer
+describe the visible data. Initial load failures show the safe API message with a Retry action.
+Board cards do not repeat drag instructions as visible labels. Compact directional controls appear on hover, keyboard
+focus, and touch devices to preserve accessible movement without competing with the ticket content.
 On phones, My tasks, Team boards, Delivery reports, and Task archive remain available in the complete role-aware menu
 rather than a partially visible horizontal navigation strip.
 Task surfaces share the global design tokens and are covered by `yarn design-check`, including Kanban columns, task

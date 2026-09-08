@@ -31,7 +31,60 @@ export function OrganizationOverviewView({
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Card title="Executive leadership">
+      <Card
+        title="Organization structure"
+        actions={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            {can('DEPARTMENT_CREATE') && (
+              <ModalForm
+                buttonLabel="Create department"
+                icon={<AddBusinessOutlined />}
+                title="Create a department"
+                variant="contained"
+                submitLabel="Create department"
+                fields={[
+                  { name: 'code', label: 'Department code' },
+                  { name: 'name', label: 'Department name' },
+                  { name: 'description', label: 'Description', optional: true },
+                ]}
+                onSubmit={(v) => save('departments', v)}
+              />
+            )}
+            {can('DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR') && (
+              <ModalForm
+                buttonLabel="Assign director"
+                icon={<BadgeOutlined />}
+                title="Assign Account Director"
+                fields={[
+                  { name: 'departmentId', label: 'Department', options },
+                  { name: 'employeeId', label: 'Employee', options: employeeOptions },
+                  reason,
+                ]}
+                onSubmit={async ({ departmentId, ...v }) => save(`departments/${departmentId}/director`, v)}
+              />
+            )}
+            {user.position === 'SENIOR_DIRECTOR' && (
+              <ModalForm
+                buttonLabel="Governance"
+                title="Governance assignment"
+                fields={[
+                  {
+                    name: 'action',
+                    label: 'Assignment',
+                    options: [
+                      { value: 'hr-approver', label: 'Final HR approver' },
+                      { value: 'senior-director', label: 'Senior Director successor' },
+                    ],
+                  },
+                  { name: 'employeeId', label: 'Employee', options: employeeOptions },
+                  reason,
+                ]}
+                onSubmit={async ({ action, ...v }) => save(`organization/${action}`, v)}
+              />
+            )}
+          </Stack>
+        }
+      >
         {leadership.map((employee) => (
           <Stack key={employee.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Typography sx={{ fontWeight: 700 }}>{employee.displayName}</Typography>
@@ -84,57 +137,6 @@ export function OrganizationOverviewView({
           </Card>
         ))}
       </div>
-      <Card title="Organization actions" className="action-bar">
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          {can('DEPARTMENT_CREATE') && (
-            <ModalForm
-              buttonLabel="Create department"
-              icon={<AddBusinessOutlined />}
-              title="Create a department"
-              variant="contained"
-              submitLabel="Create department"
-              fields={[
-                { name: 'code', label: 'Department code' },
-                { name: 'name', label: 'Department name' },
-                { name: 'description', label: 'Description', optional: true },
-              ]}
-              onSubmit={(v) => save('departments', v)}
-            />
-          )}
-          {can('DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR') && (
-            <ModalForm
-              buttonLabel="Assign Account Director"
-              icon={<BadgeOutlined />}
-              title="Assign Account Director"
-              fields={[
-                { name: 'departmentId', label: 'Department', options },
-                { name: 'employeeId', label: 'Employee', options: employeeOptions },
-                reason,
-              ]}
-              onSubmit={async ({ departmentId, ...v }) => save(`departments/${departmentId}/director`, v)}
-            />
-          )}
-          {user.position === 'SENIOR_DIRECTOR' && (
-            <ModalForm
-              buttonLabel="Governance assignment"
-              title="Governance assignment"
-              fields={[
-                {
-                  name: 'action',
-                  label: 'Assignment',
-                  options: [
-                    { value: 'hr-approver', label: 'Final HR approver' },
-                    { value: 'senior-director', label: 'Senior Director successor' },
-                  ],
-                },
-                { name: 'employeeId', label: 'Employee', options: employeeOptions },
-                reason,
-              ]}
-              onSubmit={async ({ action, ...v }) => save(`organization/${action}`, v)}
-            />
-          )}
-        </Stack>
-      </Card>
     </Stack>
   );
 }

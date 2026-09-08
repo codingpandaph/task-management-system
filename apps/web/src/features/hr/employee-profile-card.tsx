@@ -9,6 +9,7 @@ import TableRow from '@mui/material/TableRow';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import { resolveAccessRole } from '@tms/contracts';
+import type { ReactNode } from 'react';
 import { Card, EmptyState, StatusTag, Tag } from './ui';
 import type { EmployeeDetail, EmploymentRecord, PermissionGrant } from './organization-types';
 
@@ -18,15 +19,17 @@ export function EmployeeProfileCard({
   employment,
   permissionGrants,
   setEmployeeTab,
+  actions,
 }: {
   detail: EmployeeDetail;
   employeeTab: number;
   employment: EmploymentRecord[];
   permissionGrants: PermissionGrant[];
   setEmployeeTab: (value: number) => void;
+  actions?: ReactNode;
 }) {
   return (
-    <Card title="Employee profile" className="profile-card">
+    <Card title="Employee profile" className="profile-card" actions={actions}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} sx={{ alignItems: { sm: 'center' } }}>
         <Avatar sx={{ width: 68, height: 68, bgcolor: 'primary.dark', fontSize: 'var(--text-title)' }}>
           {detail.displayName

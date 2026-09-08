@@ -63,7 +63,52 @@ export function OrganizationDirectoryView({
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Card title="People directory">
+      <Card
+        title="People directory"
+        actions={
+          can('EMPLOYEE_CREATE') ? (
+            <ModalForm
+              buttonLabel="Add employee"
+              icon={<PersonAddAltOutlined />}
+              title="Add a new employee"
+              variant="contained"
+              submitLabel="Create employee"
+              fields={[
+                { name: 'firstName', label: 'First name' },
+                { name: 'middleName', label: 'Middle name', optional: true },
+                { name: 'lastName', label: 'Last name' },
+                { name: 'birthDate', label: 'Birth date', type: 'date' },
+                { name: 'email', label: 'Email', type: 'email', optional: true },
+                { name: 'departmentId', label: 'Department', options },
+                {
+                  name: 'employmentType',
+                  label: 'Employment type',
+                  options: ['FULL_TIME', 'CONTRACTUAL', 'PROBATIONARY'].map((value) => ({
+                    value,
+                    label: value.replaceAll('_', ' '),
+                  })),
+                },
+                { name: 'startDate', label: 'Employment start', type: 'date' },
+                {
+                  name: 'endDate',
+                  label: 'Contract end',
+                  type: 'date',
+                  showWhen: { field: 'employmentType', values: ['CONTRACTUAL'] },
+                },
+                {
+                  name: 'probationEnd',
+                  label: 'Probation review',
+                  type: 'date',
+                  showWhen: { field: 'employmentType', values: ['PROBATIONARY'] },
+                },
+                { name: 'leavePolicyVersionId', label: 'Leave policy', options: policyOptions },
+                { name: 'christmasPolicyVersionId', label: 'Christmas policy', options: christmasOptions },
+              ]}
+              onSubmit={onCreate}
+            />
+          ) : undefined
+        }
+      >
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
           <TextField
             label="Search people"
@@ -194,52 +239,6 @@ export function OrganizationDirectoryView({
           </Button>
         </Stack>
       </Card>
-      {can('EMPLOYEE_CREATE') && (
-        <Card title="People actions" className="action-bar">
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
-            Add a new employee without leaving the directory.
-          </Typography>
-          <ModalForm
-            buttonLabel="Add employee"
-            icon={<PersonAddAltOutlined />}
-            title="Add a new employee"
-            variant="contained"
-            submitLabel="Create employee"
-            fields={[
-              { name: 'firstName', label: 'First name' },
-              { name: 'middleName', label: 'Middle name', optional: true },
-              { name: 'lastName', label: 'Last name' },
-              { name: 'birthDate', label: 'Birth date', type: 'date' },
-              { name: 'email', label: 'Email', type: 'email', optional: true },
-              { name: 'departmentId', label: 'Department', options },
-              {
-                name: 'employmentType',
-                label: 'Employment type',
-                options: ['FULL_TIME', 'CONTRACTUAL', 'PROBATIONARY'].map((value) => ({
-                  value,
-                  label: value.replaceAll('_', ' '),
-                })),
-              },
-              { name: 'startDate', label: 'Employment start', type: 'date' },
-              {
-                name: 'endDate',
-                label: 'Contract end',
-                type: 'date',
-                showWhen: { field: 'employmentType', values: ['CONTRACTUAL'] },
-              },
-              {
-                name: 'probationEnd',
-                label: 'Probation review',
-                type: 'date',
-                showWhen: { field: 'employmentType', values: ['PROBATIONARY'] },
-              },
-              { name: 'leavePolicyVersionId', label: 'Leave policy', options: policyOptions },
-              { name: 'christmasPolicyVersionId', label: 'Christmas policy', options: christmasOptions },
-            ]}
-            onSubmit={onCreate}
-          />
-        </Card>
-      )}
       {credentialDialog}
     </Stack>
   );

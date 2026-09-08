@@ -106,6 +106,9 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               onChange={(event) => {
                 setWorkspaceId(event.target.value);
                 setBoardId('');
+                setSearch('');
+                setPriorityFilter('ALL');
+                setAssigneeFilter('ALL');
               }}
               sx={{ minWidth: 240 }}
             >
@@ -117,7 +120,12 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             </TextField>
             <Tabs
               value={boardId || false}
-              onChange={(_, value) => setBoardId(value)}
+              onChange={(_, value) => {
+                setBoardId(value);
+                setSearch('');
+                setPriorityFilter('ALL');
+                setAssigneeFilter('ALL');
+              }}
               variant="scrollable"
               aria-label="Workspace boards"
             >

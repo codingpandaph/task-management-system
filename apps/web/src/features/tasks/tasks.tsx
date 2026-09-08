@@ -16,7 +16,7 @@ import type { CurrentEmployee, DirectoryEmployee, TaskContract } from '@tms/cont
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { EmptyState, LoadingState, message, Tag } from '../hr/ui';
+import { Card, EmptyState, LoadingState, message, Tag } from '../hr/ui';
 import { TaskBoardView } from './task-board-view';
 import { TaskCard } from './task-card';
 import { TaskDetail } from './task-detail';
@@ -157,16 +157,10 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
     );
   if (path === '/tasks')
     return (
-      <Stack spacing={3}>
-        <Paper variant="outlined" className="task-hero">
-          <Box>
-            <Typography variant="h5" component="h2">
-              My focus
-            </Typography>
-            <Typography color="text.secondary">Every task assigned to you, across department workspaces.</Typography>
-          </Box>
-          <Tag value={`${mine.length} TASKS`} tone="blue" />
-        </Paper>
+      <Card title="My focus" actions={<Tag value={`${mine.length} TASKS`} tone="blue" />}>
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          Every task assigned to you, across department workspaces.
+        </Typography>
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { lg: 'center' } }}>
           <TextField
             value={search}
@@ -244,7 +238,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
             refresh={refresh}
           />
         )}
-      </Stack>
+      </Card>
     );
   return (
     <TaskBoardView

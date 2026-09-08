@@ -149,10 +149,10 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
 
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
-    await page.getByLabel('Search policies', { exact: true }).fill(leavePolicy);
+    await page.getByLabel('Search leave policies', { exact: true }).fill(leavePolicy);
     await expect(page.getByText(leavePolicy, { exact: false })).toBeVisible();
     await page.getByRole('tab', { name: /Christmas/ }).click();
-    await page.getByLabel('Search policies', { exact: true }).fill(christmasPolicy);
+    await page.getByLabel('Search Christmas policies', { exact: true }).fill(christmasPolicy);
     await expect(page.getByText(christmasPolicy, { exact: false })).toBeVisible();
 
     for (const destination of ['Approvals', 'Who’s out']) {

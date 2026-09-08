@@ -127,8 +127,10 @@ WebKit; task screens are also exercised below, at, and above every shared breakp
 `yarn test:integration` also resets `tms_test`, using the fuller lifecycle fixture set required for contractual,
 probationary, concurrency, ledger, and privacy assertions. Both commands refuse any database other than `tms_test`.
 
-The portal uses employee tabs with visible employment history and access grants, searchable approval queues,
-department-filtered calendars, personal task search, horizontal team Kanban boards, semantic tags, policy actions, and
+The portal keeps each screen's actions, tabs, contextual search, and filters inside the content surface they control.
+It uses employee tabs with visible employment history and access grants, searchable approval queues,
+department-filtered calendars, personal task search, horizontal team Kanban boards with uncluttered drag-and-drop and
+keyboard movement controls, semantic tags, policy actions, and
 scoped delivery summaries. Business mutations remain enforced by the API regardless of which controls are visible.
 Status and permission pills use one-word labels, while their hover titles preserve the full internal value. Primary
 green actions explicitly use white text across default, hover, and keyboard-focus states.

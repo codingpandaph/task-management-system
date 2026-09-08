@@ -14,7 +14,6 @@ import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
 import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import PendingActionsOutlined from '@mui/icons-material/PendingActionsOutlined';
 import type { CurrentEmployee, PageResult } from '@tms/contracts';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Card, EmptyState, LoadingState, message, Tag } from './ui';
@@ -209,16 +208,8 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
               Good to see you, {user.displayName.split(' ')[0]}.
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
-              Keep your people connected, and make time away easier to plan.
+              Your organization, leave calendar, and delivery signals are ready to review below.
             </Typography>
-            <Button component={Link} href="/leave" variant="contained" startIcon={<BeachAccessOutlined />}>
-              File leave
-            </Button>
-            {(user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')) && (
-              <Button component={Link} href="/approvals" sx={{ ml: { sm: 1 }, mt: { xs: 1, sm: 0 } }}>
-                View approvals
-              </Button>
-            )}
           </Box>
           {dashboard && (
             <div className="stats">

@@ -188,17 +188,11 @@ a:not(.MuiButton-root) {
   gap: 16px;
   margin-bottom: 32px;
 }
-.action-bar {
-  order: -1;
-  position: sticky;
-  top: 88px;
-  z-index: 10;
-  height: auto !important;
-  background: rgba(255, 255, 255, 0.96) !important;
-  backdrop-filter: blur(12px);
-}
-.action-bar > h2 {
-  margin-bottom: 10px;
+.surface-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .grid-two {
   display: grid;
@@ -374,14 +368,26 @@ a:not(.MuiButton-root) {
 .task-card-move-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: 4px;
   margin-top: 12px;
   padding-top: 8px;
   border-top: 1px solid var(--color-line);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.task-card:hover .task-card-move-actions,
+.task-card:focus-within .task-card-move-actions {
+  opacity: 1;
 }
 .task-card-move-actions .MuiIconButton-root {
   width: 40px;
   height: 40px;
+}
+@media (hover: none) {
+  .task-card-move-actions {
+    opacity: 1;
+  }
 }
 .kanban-empty {
   min-height: 96px;
@@ -443,9 +449,6 @@ a:not(.MuiButton-root) {
   }
 }
 @media (max-width: 599px) {
-  .action-bar {
-    position: static;
-  }
   .workspace-actions {
     width: 100%;
     display: grid;
@@ -528,9 +531,6 @@ a:not(.MuiButton-root) {
   .grid-two {
     grid-template-columns: 1fr;
   }
-  .action-bar {
-    top: 80px;
-  }
 }
 @media (max-width: 599px) {
   .auth-layout {
@@ -582,8 +582,9 @@ a:not(.MuiButton-root) {
   .auth-form {
     padding: 12px;
   }
-  .action-bar {
-    top: 116px;
+  .surface-actions,
+  .surface-actions > * {
+    width: 100%;
   }
   .profile-facts,
   .policy-grid {

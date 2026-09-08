@@ -35,12 +35,12 @@ export function registerManagementScenarios() {
     await expect(page.getByText('Permanent', { exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
     await expect(page.getByText('Onboard', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Access controls', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Manage permissions', exact: true })).toBeVisible();
 
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
     await expect(page.getByRole('tab', { name: /Regular leave/ })).toBeVisible();
     await page.getByRole('tab', { name: /Christmas/ }).click();
-    await page.getByLabel('Search policies', { exact: true }).fill('Christmas');
+    await page.getByLabel('Search Christmas policies', { exact: true }).fill('Christmas');
     await expect(page.getByText(/Christmas/).first()).toBeVisible();
     await page.getByRole('button', { name: 'New version', exact: true }).first().click();
     await expect(page.getByRole('dialog', { name: /Create a new version/ })).toBeVisible();
@@ -48,7 +48,7 @@ export function registerManagementScenarios() {
       .getByRole('dialog', { name: /Create a new version/ })
       .getByRole('button', { name: 'Cancel' })
       .click();
-    expect((await page.locator('.action-bar').boundingBox())!.y).toBeLessThan(280);
+    await expect(page.locator('.action-bar')).toHaveCount(0);
 
     await page.getByRole('link', { name: 'Approvals', exact: true }).click();
     await expect(page.getByLabel('Search leave approvals', { exact: true })).toBeVisible();

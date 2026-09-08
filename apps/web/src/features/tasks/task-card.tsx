@@ -63,9 +63,6 @@ export function TaskCard(props: TaskCardProps) {
           >
             <ArrowBackOutlined fontSize="small" />
           </IconButton>
-          <Typography variant="caption" color="text.secondary">
-            Move
-          </Typography>
           <IconButton
             disabled={!moveForward}
             onClick={moveForward}

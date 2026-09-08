@@ -22,12 +22,48 @@ export function LeaveDetailView({
   setError: (value: string) => void;
   user: CurrentEmployee;
 }) {
+  const draftActions = detail?.status === 'DRAFT' && detail.employeeId === user.id && (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      <ModalForm
+        buttonLabel="Edit draft"
+        title="Edit leave draft"
+        fields={leaveFields.map((field) => ({
+          ...field,
+          value:
+            field.name === 'type'
+              ? detail.type
+              : field.name === 'startDate'
+                ? detail.startDate.slice(0, 10)
+                : field.name === 'endDate'
+                  ? detail.endDate.slice(0, 10)
+                  : detail.reason,
+        }))}
+        onSubmit={async (values) => {
+          await api(`leave/requests/${id}`, values, 'PATCH');
+          reload();
+        }}
+      />
+      <Button
+        variant="contained"
+        onClick={async () => {
+          try {
+            await api(`leave/requests/${id}/submit`, { operationId: crypto.randomUUID() });
+            reload();
+          } catch (cause) {
+            setError(message(cause));
+          }
+        }}
+      >
+        Submit draft
+      </Button>
+    </Stack>
+  );
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
       {detail && (
         <>
-          <Card title="Leave request">
+          <Card title="Leave request" actions={draftActions}>
             <Stack direction="row" spacing={1}>
               <Tag value={detail.type} />
               <StatusTag value={detail.status} />
@@ -64,44 +100,6 @@ export function LeaveDetailView({
               <Typography>No approver required.</Typography>
             )}
           </Card>
-          {detail.status === 'DRAFT' && detail.employeeId === user.id && (
-            <Card title="Draft actions" className="action-bar">
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <ModalForm
-                  buttonLabel="Edit draft"
-                  title="Edit leave draft"
-                  fields={leaveFields.map((field) => ({
-                    ...field,
-                    value:
-                      field.name === 'type'
-                        ? detail.type
-                        : field.name === 'startDate'
-                          ? detail.startDate.slice(0, 10)
-                          : field.name === 'endDate'
-                            ? detail.endDate.slice(0, 10)
-                            : detail.reason,
-                  }))}
-                  onSubmit={async (v) => {
-                    await api(`leave/requests/${id}`, v, 'PATCH');
-                    reload();
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  onClick={async () => {
-                    try {
-                      await api(`leave/requests/${id}/submit`, { operationId: crypto.randomUUID() });
-                      reload();
-                    } catch (e) {
-                      setError(message(e));
-                    }
-                  }}
-                >
-                  Submit draft
-                </Button>
-              </Stack>
-            </Card>
-          )}
           {detail.status === 'PENDING' && detail.steps.find((s) => s.status === 'PENDING')?.approverId === user.id && (
             <Card title="Your decision">
               <ModalForm

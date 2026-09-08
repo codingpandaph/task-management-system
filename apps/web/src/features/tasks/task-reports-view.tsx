@@ -6,7 +6,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { EmptyState, Tag } from '../hr/ui';
+import { Card, EmptyState, Tag } from '../hr/ui';
 import type { TaskReport } from './task-types';
 
 export function TaskReportsView({
@@ -59,98 +59,103 @@ export function TaskReportsView({
           </Paper>
         ))}
       </div>
-      <TextField
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        label="Search departments"
-        size="small"
-        sx={{ maxWidth: 420 }}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchOutlined />
-              </InputAdornment>
-            ),
-          },
-        }}
-      />
-      <div className="metric-grid">
-        {visible.map((report) => (
-          <Paper variant="outlined" key={report.id} sx={{ p: 3 }}>
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography variant="h6">{report.name}</Typography>
-              <Tag value={report.code} tone="teal" />
-            </Stack>
-            <Typography variant="h3" sx={{ mt: 2 }}>
-              {report.completed}/{report.total}
-            </Typography>
-            <Typography color="text.secondary">tasks completed</Typography>
-            <LinearProgress
-              variant="determinate"
-              value={report.total ? (report.completed / report.total) * 100 : 0}
-              sx={{ my: 2, height: 8, borderRadius: 8 }}
-            />
-            <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
-                  {report.unassigned}
-                </Typography>
-                <Tag value="UNASSIGNED" tone={report.unassigned ? 'amber' : 'green'} />
+      <Card
+        title="Department performance"
+        actions={
+          <TextField
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            label="Search departments"
+            size="small"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlined />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+        }
+      >
+        <div className="metric-grid">
+          {visible.map((report) => (
+            <Paper variant="outlined" key={report.id} sx={{ p: 3 }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                <Typography variant="h6">{report.name}</Typography>
+                <Tag value={report.code} tone="teal" />
               </Stack>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
-                  {report.blocked}
-                </Typography>
-                <Tag value="BLOCKED" tone={report.blocked ? 'red' : 'green'} />
-              </Stack>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
-                  {report.escalated}
-                </Typography>
-                <Tag value="ESCALATED" tone={report.escalated ? 'red' : 'green'} />
-              </Stack>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
-                  {report.estimatedHours}h
-                </Typography>
-                <Tag value="OPEN" tone="blue" />
-              </Stack>
-            </Stack>
-            <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 2, flexWrap: 'wrap' }}>
-              {[
-                [report.inProgress, 'ACTIVE', 'blue'],
-                [report.inReview, 'REVIEW', 'purple'],
-                [report.capacityRisks, 'CAPACITY', report.capacityRisks ? 'red' : 'green'],
-              ].map(([count, label, tone]) => (
-                <Stack key={label} direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {count}
+              <Typography variant="h3" sx={{ mt: 2 }}>
+                {report.completed}/{report.total}
+              </Typography>
+              <Typography color="text.secondary">tasks completed</Typography>
+              <LinearProgress
+                variant="determinate"
+                value={report.total ? (report.completed / report.total) * 100 : 0}
+                sx={{ my: 2, height: 8, borderRadius: 8 }}
+              />
+              <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                    {report.unassigned}
                   </Typography>
-                  <Tag value={String(label)} tone={tone as 'blue' | 'purple' | 'red' | 'green'} />
+                  <Tag value="UNASSIGNED" tone={report.unassigned ? 'amber' : 'green'} />
+                </Stack>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                    {report.blocked}
+                  </Typography>
+                  <Tag value="BLOCKED" tone={report.blocked ? 'red' : 'green'} />
+                </Stack>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                    {report.escalated}
+                  </Typography>
+                  <Tag value="ESCALATED" tone={report.escalated ? 'red' : 'green'} />
+                </Stack>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 700 }}>
+                    {report.estimatedHours}h
+                  </Typography>
+                  <Tag value="OPEN" tone="blue" />
+                </Stack>
+              </Stack>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 2, flexWrap: 'wrap' }}>
+                {[
+                  [report.inProgress, 'ACTIVE', 'blue'],
+                  [report.inReview, 'REVIEW', 'purple'],
+                  [report.capacityRisks, 'CAPACITY', report.capacityRisks ? 'red' : 'green'],
+                ].map(([count, label, tone]) => (
+                  <Stack key={label} direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {count}
+                    </Typography>
+                    <Tag value={String(label)} tone={tone as 'blue' | 'purple' | 'red' | 'green'} />
+                  </Stack>
+                ))}
+              </Stack>
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 0.75 }}>
+                Highest active workloads
+              </Typography>
+              {report.memberLoad.slice(0, 5).map((member) => (
+                <Stack key={member.id} direction="row" sx={{ justifyContent: 'space-between', py: 0.5 }}>
+                  <Typography variant="body2">{member.name}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {member.tasks} tasks · {member.hours}h
+                  </Typography>
                 </Stack>
               ))}
-            </Stack>
-            <Typography variant="subtitle2" sx={{ mt: 2, mb: 0.75 }}>
-              Highest active workloads
-            </Typography>
-            {report.memberLoad.slice(0, 5).map((member) => (
-              <Stack key={member.id} direction="row" sx={{ justifyContent: 'space-between', py: 0.5 }}>
-                <Typography variant="body2">{member.name}</Typography>
+              {!report.memberLoad.length && (
                 <Typography variant="body2" color="text.secondary">
-                  {member.tasks} tasks · {member.hours}h
+                  No assigned open work
                 </Typography>
-              </Stack>
-            ))}
-            {!report.memberLoad.length && (
-              <Typography variant="body2" color="text.secondary">
-                No assigned open work
-              </Typography>
-            )}
-          </Paper>
-        ))}
-      </div>
-      {!visible.length && <EmptyState title="No matching departments" detail="Try a department name or code." />}
+              )}
+            </Paper>
+          ))}
+        </div>
+        {!visible.length && <EmptyState title="No matching departments" detail="Try a department name or code." />}
+      </Card>
     </Stack>
   );
 }

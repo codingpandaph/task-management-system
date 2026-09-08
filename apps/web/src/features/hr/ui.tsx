@@ -7,15 +7,15 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { useState, type ReactElement } from 'react';
 import type { Field, FormResult, SubmitAction } from './ui-types';
 
 export type { Field, FormResult, SubmitAction } from './ui-types';
+export { Card } from './ui-card';
 export function Form({
   fields,
   onSubmit,
@@ -113,16 +113,6 @@ export function Form({
         )}
       </Stack>
     </form>
-  );
-}
-export function Card({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
-  return (
-    <Paper className={className} variant="outlined" sx={{ p: { xs: 2, sm: 3 }, height: '100%', borderRadius: 3 }}>
-      <Typography component="h2" variant="h6" sx={{ mb: 2 }}>
-        {title}
-      </Typography>
-      {children}
-    </Paper>
   );
 }
 const tagLabels: Record<string, string> = {

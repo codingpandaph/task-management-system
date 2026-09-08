@@ -40,7 +40,14 @@ export function LeaveApprovalsView({
       {error && <Alert severity="error">{error}</Alert>}
       <Card title="Approval inbox">
         <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 2 }}>
-          <Tabs value={tab} onChange={(_, value: number) => setTab(value)} aria-label="Approval queues">
+          <Tabs
+            value={tab}
+            onChange={(_, value: number) => {
+              setTab(value);
+              setSearch('');
+            }}
+            aria-label="Approval queues"
+          >
             <Tab label={`Leave requests (${inbox.steps.length})`} />
             <Tab label={`Cancellations (${inbox.cancellations.length})`} />
           </Tabs>

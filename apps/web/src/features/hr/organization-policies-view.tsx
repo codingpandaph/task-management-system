@@ -32,13 +32,56 @@ export function OrganizationPoliciesView({
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Card title="Policy catalogue">
+      <Card
+        title="Policy catalogue"
+        actions={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            {can('LEAVE_POLICY_MANAGE') && (
+              <ModalForm
+                buttonLabel="Create leave policy"
+                icon={<AddOutlined />}
+                title="Create leave policy"
+                variant="contained"
+                fields={[
+                  { name: 'name', label: 'Policy name' },
+                  { name: 'vacationDays', label: 'Vacation days', type: 'number' },
+                  { name: 'sickDays', label: 'Sick days', type: 'number' },
+                ]}
+                onSubmit={(v) => save('leave-policies', v)}
+              />
+            )}
+            {can('CHRISTMAS_POLICY_MANAGE') && (
+              <ModalForm
+                buttonLabel="Create Christmas policy"
+                icon={<AddOutlined />}
+                title="Create Christmas policy"
+                fields={[
+                  { name: 'name', label: 'Policy name' },
+                  { name: 'days', label: 'Days', type: 'number' },
+                ]}
+                onSubmit={(v) => save('christmas-policies', v)}
+              />
+            )}
+          </Stack>
+        }
+      >
         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 2 }}>
-          <Tabs value={tab} onChange={(_, value: number) => setTab(value)} aria-label="Policy types">
+          <Tabs
+            value={tab}
+            onChange={(_, value: number) => {
+              setTab(value);
+              setSearch('');
+            }}
+            aria-label="Policy types"
+          >
             <Tab label={`Regular leave (${policies.leave.length})`} />
             <Tab label={`Christmas (${policies.christmas.length})`} />
           </Tabs>
-          <TextField label="Search policies" value={search} onChange={(event) => setSearch(event.target.value)} />
+          <TextField
+            label={tab === 0 ? 'Search leave policies' : 'Search Christmas policies'}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
         </Stack>
         <div className="policy-grid">
           {(tab === 0 ? policies.leave : policies.christmas)
@@ -115,36 +158,6 @@ export function OrganizationPoliciesView({
               );
             })}
         </div>
-      </Card>
-      <Card title="Policy actions" className="action-bar">
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          {can('LEAVE_POLICY_MANAGE') && (
-            <ModalForm
-              buttonLabel="Create leave policy"
-              icon={<AddOutlined />}
-              title="Create leave policy"
-              variant="contained"
-              fields={[
-                { name: 'name', label: 'Policy name' },
-                { name: 'vacationDays', label: 'Vacation days', type: 'number' },
-                { name: 'sickDays', label: 'Sick days', type: 'number' },
-              ]}
-              onSubmit={(v) => save('leave-policies', v)}
-            />
-          )}
-          {can('CHRISTMAS_POLICY_MANAGE') && (
-            <ModalForm
-              buttonLabel="Create Christmas policy"
-              icon={<AddOutlined />}
-              title="Create Christmas policy"
-              fields={[
-                { name: 'name', label: 'Policy name' },
-                { name: 'days', label: 'Days', type: 'number' },
-              ]}
-              onSubmit={(v) => save('christmas-policies', v)}
-            />
-          )}
-        </Stack>
       </Card>
     </Stack>
   );
