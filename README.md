@@ -108,7 +108,8 @@ regular and Christmas policy creation/versioning/status/assignment, balances, al
 editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
 responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the five-path
 matrix. It also covers personal tasks, team boards, task creation, comments, Definition of Done, management sign-off,
-movement, delegated board/ticket creation, self/department assignment, editable reporters, delivery reporting, and
+pointer and keyboard movement, contextual per-board search, delegated board/ticket creation, self/department
+assignment, editable reporters, delivery reporting, and
 every defined breakpoint. `yarn demo:e2e` runs the complete paced headed tour; its `:hr`, `:leave`, and `:tasks`
 subcommands run one section. Manual
 checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
@@ -161,7 +162,7 @@ acceptance suite. The following work remains before a production launch:
 - Agree and implement retention, anonymisation, data-subject, and worker-health procedures with the organization.
 - Complete an independent security review, dependency scanning, penetration testing, and deployment rollback rehearsal.
 - Add email or SMS delivery only after notification content, consent, retry, and failure-handling rules are approved.
-- Expand Task Management with configurable boards, keyboard-accessible drag and drop, saved views, bulk triage,
+- Expand Task Management with configurable boards, saved views, bulk triage,
   attachments, mentions, repository automation, trend reporting, and exports.
 - Expand HRIS where required with partial-day leave, proration, carry-over, regional calendars, rehire, and delegated
   approval reassignment.

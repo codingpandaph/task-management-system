@@ -73,7 +73,9 @@ workspace department as reporter, and every reporter change is preserved in appe
 Board cards and reports use short one-word pills such as **High**, **Signed**, **Escalated**, and **Progress**. Counts use
 adjacent numerals so the tag itself remains one word. The underlying complete value remains available as the pill title.
 My tasks can be filtered by text, workflow status, and priority. Team boards add assignee filtering, including an
-explicit Unassigned view, while Delivery reports can be searched by department name or code. Every filter group has a
+explicit Unassigned view, while Delivery reports can be searched by department name or code. Board search is named for
+the selected board and searches only that board. Actions, board navigation, search, filters, milestones, and columns sit
+inside one active workspace surface, so users do not hunt across detached action panels. Every filter group has a
 single clear action and a useful no-results state. Initial load failures show the safe API message with a Retry action.
 On phones, My tasks, Team boards, Delivery reports, and Task archive remain available in the complete role-aware menu
 rather than a partially visible horizontal navigation strip.
@@ -188,7 +190,7 @@ responsibility-based split as HRIS services and browser scenario files.
 | Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                        | Playwright two-session journey               |
 | Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                            | PostgreSQL integration                       |
 | Escalation           | Account Director             | Open task and choose **Escalate**; Senior Director opens its notification     | Flag appears; unread count updates and the notification opens that task | Playwright deep-link and service integration |
-| Team view            | Account Director             | Open **Team boards**, switch boards, inspect task facts                       | Own department and explicit memberships are visible                     | Playwright and authorization logic           |
+| Team view            | Account Director             | Open **Team boards**, switch boards, search, drag a card, or use move arrows  | Search follows the selected board; both movement methods persist        | Playwright and authorization logic           |
 | Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist                 | Playwright director; template integration    |
 | Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities   | Playwright and PostgreSQL integration        |
 | Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, then edit reporter         | Creator defaults as reporter; selected colleague and edits persist      | Playwright and PostgreSQL integration        |
@@ -218,7 +220,7 @@ the Task Management detail needed for product and technical review.
   de-escalation rules.
 - Add partial cross-team allocation percentages and a conflict visualization; the prototype shifts one employee's full
   daily capacity for overlapping milestone windows.
-- Add board/column editing UI, drag-and-drop with keyboard parity, saved filters, bulk triage, swimlanes, timeline and
+- Add board/column editing UI, saved filters, bulk triage, swimlanes, timeline and
   calendar rendering, recurring work, attachments, mentions, and full Markdown preview/sanitization.
 - Add task activity and deleted-item browser screens, portfolio trends, throughput/cycle-time charts, forecast accuracy,
   exports, and configurable reporting periods.

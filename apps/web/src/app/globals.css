@@ -286,6 +286,27 @@ a:not(.MuiButton-root) {
   min-width: 0;
   max-width: 100%;
 }
+.task-page-heading {
+  padding-block: 20px;
+}
+.task-board-surface {
+  padding: 24px;
+  overflow: hidden;
+  background: var(--color-paper);
+}
+.task-board-toolbar {
+  align-items: center;
+  justify-content: space-between;
+}
+.task-board-navigation,
+.task-board-filters {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+}
+.task-board-filters {
+  margin-bottom: 20px;
+}
 .workspace-actions {
   display: flex;
   flex-wrap: wrap;
@@ -307,6 +328,14 @@ a:not(.MuiButton-root) {
   border-radius: var(--radius-panel);
   background: var(--color-canvas);
   scroll-snap-align: start;
+  border: 1px solid transparent;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+.kanban-column.is-drop-target {
+  border-color: var(--color-evergreen);
+  background: var(--color-success-soft);
 }
 .task-card {
   width: 100%;
@@ -316,16 +345,56 @@ a:not(.MuiButton-root) {
   background: var(--color-paper);
   color: inherit;
   font: inherit;
-  cursor: pointer;
   transition:
     border-color 160ms ease,
     transform 160ms ease;
+}
+.task-card[draggable='true'] {
+  cursor: grab;
+}
+.task-card[draggable='true']:active {
+  cursor: grabbing;
+}
+.task-card-open {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.task-card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.task-card-move-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-line);
+}
+.task-card-move-actions .MuiIconButton-root {
+  width: 40px;
+  height: 40px;
+}
+.kanban-empty {
+  min-height: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-surface);
 }
 .task-card:hover {
   border-color: var(--color-evergreen);
   transform: translateY(-1px);
 }
-.task-card:focus-visible {
+.task-card-open:focus-visible {
   outline: 3px solid var(--color-evergreen);
   outline-offset: 2px;
 }
@@ -369,6 +438,9 @@ a:not(.MuiButton-root) {
   .kanban {
     grid-auto-columns: minmax(260px, 84vw);
   }
+  .task-board-toolbar {
+    align-items: stretch;
+  }
 }
 @media (max-width: 599px) {
   .action-bar {
@@ -382,6 +454,9 @@ a:not(.MuiButton-root) {
   .workspace-actions .MuiButton-root {
     min-width: 0;
     width: 100%;
+  }
+  .task-board-surface {
+    padding: 16px;
   }
 }
 .profile-card {

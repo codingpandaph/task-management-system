@@ -376,6 +376,10 @@ and compares login, People, and desktop/mobile task-board surfaces with browser-
 Compact tags use one-word labels such as **Onboard**, **Status**, and **Approvals**. Full internal codes remain available
 as hover titles. Buttons use at least a 44-pixel target; primary green buttons explicitly retain white text in default,
 hover, and keyboard-focus states. Deactivation is presented as a clearly labelled outlined action.
+Task boards keep the selected board's actions, contextual search, filters, milestones, and columns in one surface.
+Tickets support pointer drag-and-drop and labelled move arrows for keyboard and assistive-technology parity; the API
+still enforces every workflow rule and announces success or rejection without relying on color.
+
 At phone widths, the complete role-aware navigation is available from a labelled menu and keyboard-dismissible drawer;
 employees do not need to horizontally hunt for leave, approvals, calendar, notifications, or authorized HR tools.
 The shared CSS token layer is checked with `yarn design-check`; HR screens use its documented colors, type sizes,
