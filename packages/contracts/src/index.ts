@@ -121,6 +121,7 @@ export type WorkspaceFunction =
   'ENGINEERING_PRODUCT' | 'MARKETING_CREATIVE' | 'SALES_ACCOUNT_MANAGEMENT' | 'HR_OPERATIONS' | 'FINANCE_LEGAL';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 export type TaskManagementType = 'KANBAN' | 'SCRUM' | 'LIST';
+export type TaskColumnSemantic = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'OPEN';
 export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 export interface TaskPerson {
   id: string;
@@ -132,6 +133,7 @@ export interface TaskPerson {
 export interface TaskColumnContract {
   id: string;
   name: string;
+  semantic: TaskColumnSemantic;
   position: number;
   isInitial: boolean;
   isDone: boolean;

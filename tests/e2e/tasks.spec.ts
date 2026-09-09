@@ -18,8 +18,7 @@ async function signIn(page: Page, employeeId: string) {
 }
 
 async function setMemberAccess(page: Page, label: 'Create boards' | 'Create tasks', checked: boolean) {
-  const row = page.getByText('Alex Finch', { exact: true }).locator('..').locator('..');
-  const control = row.getByRole('checkbox', { name: label });
+  const control = page.getByRole('switch', { name: `${label} for Alex Finch`, exact: true });
   if ((await control.isChecked()) !== checked) await control.click();
   await expect(control).toBeChecked({ checked });
 }
@@ -29,6 +28,8 @@ async function createTask(page: Page, title: string, assignee = 'Alex Finch') {
   const dialog = page.getByRole('dialog', { name: 'Create a task' });
   await dialog.getByLabel('Task title').fill(title);
   await dialog.getByLabel('Description').fill('**Demo:** clear ownership and traceable delivery.');
+  await expect(dialog.getByText('Preview', { exact: true })).toBeVisible();
+  await expect(dialog.locator('strong').filter({ hasText: 'Demo:' })).toBeVisible();
   if (assignee) {
     await dialog.getByLabel('Assignee').click();
     await page.getByRole('option', { name: assignee, exact: true }).click();
@@ -50,6 +51,9 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
     await signIn(member, users.member);
     await expect(member.getByRole('link', { name: 'Department', exact: true })).toBeVisible();
     await expect(member.getByRole('link', { name: 'Organization', exact: true })).toHaveCount(0);
+    const protectedResponse = await member.request.get('/organization', { maxRedirects: 0 });
+    expect([307, 308]).toContain(protectedResponse.status());
+    expect(new URL(protectedResponse.headers().location!, member.url()).pathname).toBe('/');
     await member.goto('/organization');
     await expect(member).toHaveURL(/\/$/);
     await expect(member.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
@@ -60,7 +64,8 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
     await expect(senior.getByText('Employees', { exact: true })).toBeVisible();
     await expect(senior.getByText('Boards', { exact: true })).toBeVisible();
     await senior.getByRole('link', { name: 'View department' }).first().click();
-    await expect(senior.getByRole('heading', { name: /Client Services|Human Resources|Marketing/ })).toBeVisible();
+    await expect(senior).toHaveURL(/\/departments\//);
+    await expect(senior.getByRole('heading', { name: 'Department', exact: true })).toBeVisible();
   } finally {
     await memberContext.close();
     await seniorContext.close();
@@ -116,6 +121,16 @@ test('Scrum validates and runs a sprint while HR renders a plain List board', as
     const director = await directorContext.newPage();
     await signIn(director, users.director);
     await director.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await expect(director.getByRole('tab', { name: 'Client delivery', exact: true })).toBeVisible();
+    if (!(await director.getByRole('tab', { name: 'Client sprint', exact: true }).count())) {
+      await director.getByRole('button', { name: 'New board', exact: true }).click();
+      const board = director.getByRole('dialog', { name: 'Create board' });
+      await board.getByLabel('Board name').fill('Client sprint');
+      await board.getByLabel('Board type').click();
+      await director.getByRole('option', { name: 'Scrum', exact: true }).click();
+      await board.getByRole('button', { name: 'Save changes' }).click();
+      await expect(director.getByRole('tab', { name: 'Client sprint', exact: true })).toBeVisible();
+    }
     await director.getByRole('tab', { name: 'Client sprint' }).click();
     await director.getByRole('button', { name: 'New sprint' }).click();
     const sprint = director.getByRole('dialog', { name: 'Create sprint' });
@@ -127,6 +142,21 @@ test('Scrum validates and runs a sprint while HR renders a plain List board', as
     await expect(director.getByText('Validation sprint')).toBeVisible();
     await director.getByRole('button', { name: 'Activate' }).click();
     await expect(director.getByText('ACTIVE')).toBeVisible();
+    await director.getByRole('button', { name: 'Create task', exact: true }).click();
+    const task = director.getByRole('dialog', { name: 'Create a task' });
+    await task.getByLabel('Task title').fill('Sprint delivery proof');
+    await task.getByLabel('Description').fill('## Acceptance\n- Safe preview\n- Sprint ownership');
+    await task.getByLabel('Board').click();
+    await director.getByRole('option', { name: 'Client sprint', exact: true }).click();
+    await task.getByLabel('Sprint').click();
+    await director.getByRole('option', { name: 'Validation sprint', exact: true }).click();
+    await task.getByLabel('Due date').fill('2026-09-24');
+    await task.getByRole('button', { name: 'Create task', exact: true }).click();
+    await director.getByRole('button', { name: /Sprint delivery proof/ }).click();
+    const detail = director.getByRole('dialog');
+    await expect(detail.getByText(/Validation sprint/)).toBeVisible();
+    await expect(detail.getByRole('heading', { name: 'Acceptance' })).toBeVisible();
+    await detail.getByRole('button', { name: 'Close task' }).click();
 
     const hr = await hrContext.newPage();
     await signIn(hr, users.hrDirector);

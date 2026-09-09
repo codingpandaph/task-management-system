@@ -8,6 +8,7 @@ import { TaskWorkspaceService } from './task-workspace.service';
 export abstract class TaskRecordService extends TaskWorkspaceService {
   async createTask(actor: Principal, dto: TaskDto) {
     const workspace = await this.canCreate(actor, dto.workspaceId, 'tasks');
+    await this.boardAccess(actor, dto.boardId);
     const [board, assignee, milestone, sprint] = await Promise.all([
       this.db.taskBoard.findFirst({
         where: { id: dto.boardId, workspaceId: dto.workspaceId },
@@ -49,6 +50,18 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
         },
         include: taskInclude,
       });
+      await tx.boardCollaborator.upsert({
+        where: { boardId_employeeId: { boardId: board.id, employeeId: actor.employee.id } },
+        create: { boardId: board.id, employeeId: actor.employee.id },
+        update: {},
+      });
+      if (dto.assigneeId) {
+        await tx.boardCollaborator.upsert({
+          where: { boardId_employeeId: { boardId: board.id, employeeId: dto.assigneeId } },
+          create: { boardId: board.id, employeeId: dto.assigneeId },
+          update: {},
+        });
+      }
       await tx.workspace.update({ where: { id: workspace.id }, data: { nextTaskNumber: { increment: 1 } } });
       await this.activity(tx, task.id, actor.employee.id, 'CREATE', undefined, undefined, {
         publicKey: task.publicKey,
@@ -63,7 +76,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       include: taskInclude,
     });
     if (!task) throw new NotFoundException('Task not found');
-    await this.workspaceAccess(actor, task.workspaceId);
+    await this.boardAccess(actor, task.boardId);
     return task;
   }
 
@@ -101,9 +114,16 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       ...(dto.clearDueDate ? { dueDate: null } : dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
     };
     return this.db.transaction(async (tx) => {
-      if (employee && task.board.kind === 'KANBAN' && task.column.name.toLowerCase() === 'in progress')
+      if (employee && task.board.kind === 'KANBAN' && task.column.semantic === 'IN_PROGRESS')
         await this.enforceWip(tx, task.workspace.departmentId, employee.id, task.id);
       const updated = await tx.task.update({ where: { id }, data, include: taskInclude });
+      if (employee) {
+        await tx.boardCollaborator.upsert({
+          where: { boardId_employeeId: { boardId: task.boardId, employeeId: employee.id } },
+          create: { boardId: task.boardId, employeeId: employee.id },
+          update: {},
+        });
+      }
       await this.activity(
         tx,
         id,

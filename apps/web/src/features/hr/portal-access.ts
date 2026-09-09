@@ -23,12 +23,14 @@ export function subtitle(title: string, user: CurrentEmployee) {
 }
 
 export function canOpen(path: string, user: CurrentEmployee) {
+  const departmentRouteId = path.match(/^\/departments\/([^/]+)/)?.[1];
   return (
     (!path.startsWith('/organization') ||
       user.position === 'SENIOR_DIRECTOR' ||
       user.permissions.includes('EMPLOYEE_READ')) &&
     (!path.startsWith('/departments/') ||
       user.position === 'SENIOR_DIRECTOR' ||
+      (user.position === 'ACCOUNT_DIRECTOR' && departmentRouteId === user.department?.id) ||
       user.permissions.includes('EMPLOYEE_READ')) &&
     ((!path.startsWith('/task-reports') && !path.startsWith('/task-archive')) || user.position !== 'MEMBER') &&
     (!path.startsWith('/approvals') || user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')) &&

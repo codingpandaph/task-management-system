@@ -152,6 +152,7 @@ export function DepartmentView({ user, departmentId }: { user: CurrentEmployee; 
                         control={
                           <Switch
                             checked={!!access?.canCreateBoards}
+                            slotProps={{ input: { 'aria-label': `Create boards for ${person.displayName}` } }}
                             onChange={(event) => void permission(person.id, 'canCreateBoards', event.target.checked)}
                           />
                         }
@@ -161,6 +162,7 @@ export function DepartmentView({ user, departmentId }: { user: CurrentEmployee; 
                         control={
                           <Switch
                             checked={!!access?.canCreateTasks}
+                            slotProps={{ input: { 'aria-label': `Create tasks for ${person.displayName}` } }}
                             onChange={(event) => void permission(person.id, 'canCreateTasks', event.target.checked)}
                           />
                         }

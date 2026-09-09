@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import type { TaskManagementType, WorkspaceFunction } from '../../generated/prisma/client';
+import type { TaskColumnSemantic, TaskManagementType, WorkspaceFunction } from '../../generated/prisma/client';
 import { dateOnly } from '../../common/dates';
 import { audit } from '../audit/audit';
 import type { Principal } from '../authorization/authorization';
@@ -8,7 +8,9 @@ import type { BoardDto, CollaboratorDto, MembershipDto, MilestoneDto, SprintDto 
 import { TaskBaseService, person, taskInclude } from './task-base.service';
 import { workspaceTemplates } from './task-templates';
 
-const boardColumns: Record<TaskManagementType, [string, boolean, boolean][]> = {
+type ColumnDefinition = [string, boolean, boolean, TaskColumnSemantic?];
+
+const boardColumns: Record<TaskManagementType, ColumnDefinition[]> = {
   KANBAN: [
     ['To do', false, false],
     ['In progress', false, false],
@@ -28,9 +30,20 @@ const boardColumns: Record<TaskManagementType, [string, boolean, boolean][]> = {
   ],
 };
 
+function semantic(kind: TaskManagementType, name: string, isDone: boolean, position: number): TaskColumnSemantic {
+  if (isDone) return 'DONE';
+  const normalized = name.trim().toLowerCase();
+  if (normalized === 'in progress') return 'IN_PROGRESS';
+  if (normalized === 'review') return 'REVIEW';
+  if (normalized === 'backlog') return 'BACKLOG';
+  if (kind === 'LIST' && position === 0) return 'OPEN';
+  return 'TODO';
+}
+
 export abstract class TaskWorkspaceService extends TaskBaseService {
   async workspaces(actor: Principal) {
     const elevated = actor.employee.position === 'SENIOR_DIRECTOR';
+    const managerDepartmentId = actor.employee.position === 'ACCOUNT_DIRECTOR' ? actor.employee.departmentId : null;
     return this.db.workspace.findMany({
       where: elevated
         ? {}
@@ -44,7 +57,17 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
         department: true,
         memberships: { where: { milestoneId: null }, include: { employee: { select: person } } },
         boards: {
-          where: { status: 'ACTIVE' },
+          where: {
+            status: 'ACTIVE',
+            ...(elevated || managerDepartmentId
+              ? {}
+              : {
+                  OR: [
+                    { creatorId: actor.employee.id },
+                    { collaborators: { some: { employeeId: actor.employee.id } } },
+                  ],
+                }),
+          },
           include: {
             columns: { orderBy: { position: 'asc' } },
             creator: { select: person },
@@ -87,7 +110,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
     creatorId: string,
     name: string,
     kind: TaskManagementType,
-    columns: [string, boolean, boolean][],
+    columns: ColumnDefinition[],
   ) {
     return tx.taskBoard.create({
       data: {
@@ -96,8 +119,9 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
         name,
         kind,
         columns: {
-          create: columns.map(([columnName, isDone, managementLocked], position) => ({
+          create: columns.map(([columnName, isDone, managementLocked, columnSemantic], position) => ({
             name: columnName,
+            semantic: columnSemantic ?? semantic(kind, columnName, isDone, position),
             position,
             isInitial: position === 0,
             isDone,
@@ -118,7 +142,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
     }
     const columns = dto.columns?.length
       ? dto.columns.map(
-          (column) => [column.name, !!column.isDone, !!column.managementLocked] as [string, boolean, boolean],
+          (column) => [column.name, !!column.isDone, !!column.managementLocked, column.semantic] as ColumnDefinition,
         )
       : boardColumns[kind];
     if (columns.length < 2 || columns.some(([name]) => !name.trim()))
@@ -223,6 +247,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
       },
     });
     if (!board) throw new NotFoundException('Board not found');
+    await this.boardAccess(actor, board.id);
     const department = await this.db.department.findUniqueOrThrow({ where: { id: workspace.departmentId } });
     const people = await this.db.employee.findMany({
       where: { departmentId: workspace.departmentId, status: 'ACTIVE' },
@@ -234,7 +259,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
               where: {
                 isDeleted: false,
                 board: { kind: 'KANBAN' },
-                column: { name: { equals: 'In progress', mode: 'insensitive' } },
+                column: { semantic: 'IN_PROGRESS' },
               },
             },
           },

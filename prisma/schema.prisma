@@ -109,6 +109,15 @@ enum SprintStatus {
   COMPLETED
 }
 
+enum TaskColumnSemantic {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  OPEN
+}
+
 enum TaskLinkType {
   BLOCKS
   BLOCKED_BY
@@ -698,16 +707,17 @@ model Sprint {
 }
 
 model TaskColumn {
-  id               String    @id @default(uuid()) @db.Uuid
-  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+  id               String             @id @default(uuid()) @db.Uuid
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
   name             String
+  semantic         TaskColumnSemantic
   position         Int
-  isInitial        Boolean   @default(false)
-  isDone           Boolean   @default(false)
-  managementLocked Boolean   @default(false)
-  boardId          String    @db.Uuid
-  board            TaskBoard @relation(fields: [boardId], references: [id], onDelete: Restrict)
+  isInitial        Boolean            @default(false)
+  isDone           Boolean            @default(false)
+  managementLocked Boolean            @default(false)
+  boardId          String             @db.Uuid
+  board            TaskBoard          @relation(fields: [boardId], references: [id], onDelete: Restrict)
   tasks            Task[]
 
   @@unique([boardId, position])

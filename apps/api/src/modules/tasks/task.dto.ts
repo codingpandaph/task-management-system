@@ -38,6 +38,14 @@ export enum SprintStatusDto {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
 }
+export enum TaskColumnSemanticDto {
+  BACKLOG = 'BACKLOG',
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  REVIEW = 'REVIEW',
+  DONE = 'DONE',
+  OPEN = 'OPEN',
+}
 export enum TaskLinkTypeDto {
   BLOCKS = 'BLOCKS',
   BLOCKED_BY = 'BLOCKED_BY',
@@ -49,6 +57,7 @@ export class WorkspaceDto {
 }
 export class ColumnDto {
   @IsString() @IsNotEmpty() @MaxLength(80) name!: string;
+  @IsOptional() @IsEnum(TaskColumnSemanticDto) semantic?: keyof typeof TaskColumnSemanticDto;
   @IsOptional() @IsBoolean() isDone?: boolean;
   @IsOptional() @IsBoolean() managementLocked?: boolean;
 }

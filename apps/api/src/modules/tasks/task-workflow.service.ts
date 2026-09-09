@@ -24,7 +24,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
     if (task.column.isInitial && !column.isInitial && blockers.length && actor.employee.position !== 'SENIOR_DIRECTOR')
       throw new BadRequestException('Resolve blocking tasks before advancing this task');
     return this.db.transaction(async (tx) => {
-      if (task.board.kind === 'KANBAN' && column.name.toLowerCase() === 'in progress') {
+      if (task.board.kind === 'KANBAN' && column.semantic === 'IN_PROGRESS') {
         await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
       }
       const updated = await tx.task.update({ where: { id }, data: { columnId }, include: taskInclude });
@@ -39,7 +39,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
       throw new ForbiddenException('Account Director or Senior Director required');
     return this.db.transaction(async (tx) => {
       const destination = await tx.taskColumn.findUniqueOrThrow({ where: { id: task.lastColumnId ?? task.columnId } });
-      if (task.board.kind === 'KANBAN' && destination.name.toLowerCase() === 'in progress') {
+      if (task.board.kind === 'KANBAN' && destination.semantic === 'IN_PROGRESS') {
         await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
       }
       const updated = await tx.task.update({

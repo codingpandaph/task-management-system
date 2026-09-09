@@ -14,21 +14,23 @@ export function registerPolishScenarios() {
     });
 
     await page.goto('/organization');
-    const leadership = page.getByRole('heading', { name: 'Executive leadership', exact: true }).locator('..');
+    const surface = (name: string) =>
+      page
+        .getByRole('heading', { name, exact: true })
+        .locator('xpath=ancestor::*[contains(@class,"MuiPaper-root")][1]');
+    const leadership = surface('Organization structure');
     await expect(leadership.getByText('Avery Morgan', { exact: true })).toBeVisible();
     await expect(leadership.locator('[title="Organization-wide"]')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Human Resources', exact: true }).locator('..')).not.toContainText(
-      'Avery Morgan',
-    );
+    await expect(surface('Human Resources')).not.toContainText('Avery Morgan');
     const departmentNames = hierarchy.employees.flatMap((employee) =>
       employee.department ? [employee.department.name] : [],
     );
     for (const departmentName of new Set(departmentNames)) {
       const count = hierarchy.employees.filter((employee) => employee.department?.name === departmentName).length;
-      const departmentCard = page.getByRole('heading', { name: departmentName, exact: true }).locator('..');
+      const departmentCard = surface(departmentName);
       await expect(departmentCard.locator(`[title="${count} people"]`)).toBeVisible();
     }
-    const card = page.getByRole('heading', { name: `Quality ${suffix}`, exact: true }).locator('..');
+    const card = surface(`Quality ${suffix}`);
     await card.getByRole('button', { name: 'Deactivate', exact: true }).click();
     await page
       .getByRole('dialog', { name: `Deactivate Quality ${suffix}` })
@@ -48,11 +50,11 @@ export function registerPolishScenarios() {
     await expect(dialog.getByLabel('Contract end', { exact: true })).toHaveCount(0);
     await expect(dialog.getByLabel('Probation review', { exact: true })).toHaveCount(0);
     await dialog.getByRole('combobox', { name: 'Employment type', exact: true }).click();
-    await page.getByRole('option', { name: 'CONTRACTUAL', exact: true }).click();
+    await page.getByRole('option', { name: 'Contract', exact: true }).click();
     await expect(dialog.getByLabel('Contract end', { exact: true })).toBeVisible();
     await expect(dialog.getByLabel('Probation review', { exact: true })).toHaveCount(0);
     await dialog.getByRole('combobox', { name: 'Employment type', exact: true }).click();
-    await page.getByRole('option', { name: 'PROBATIONARY', exact: true }).click();
+    await page.getByRole('option', { name: 'Probation', exact: true }).click();
     await expect(dialog.getByLabel('Contract end', { exact: true })).toHaveCount(0);
     await expect(dialog.getByLabel('Probation review', { exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();

@@ -7,12 +7,14 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import type { CurrentEmployee, DirectoryEmployee } from '@tms/contracts';
 import { useState, type FormEvent } from 'react';
 import { api } from '@/lib/api';
 import { message } from '../hr/ui';
 import type { Workspace } from './task-types';
+import { TaskMarkdown } from './task-markdown';
 
 export function CreateTask({
   workspace,
@@ -29,6 +31,7 @@ export function CreateTask({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState(workspace.boards[0]?.id ?? '');
+  const [description, setDescription] = useState('');
   const selectedBoard = workspace.boards.find((board) => board.id === selectedBoardId);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,7 +70,21 @@ export function CreateTask({
           <DialogContent dividers>
             <Stack spacing={2} sx={{ pt: 1 }}>
               <TextField name="title" label="Task title" required autoFocus />
-              <TextField name="description" label="Description" multiline minRows={3} />
+              <TextField
+                name="description"
+                label="Description"
+                multiline
+                minRows={3}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                helperText="Use headings, lists, bold text, links, or code when useful."
+              />
+              {description.trim() && (
+                <Stack spacing={0.5} className="task-description-preview">
+                  <Typography variant="overline">Preview</Typography>
+                  <TaskMarkdown source={description} />
+                </Stack>
+              )}
               <TextField
                 name="boardId"
                 label="Board"

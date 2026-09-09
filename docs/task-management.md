@@ -40,8 +40,8 @@ director can grant or revoke **Create tickets** and **Create boards** independen
 Members may assign tasks to themselves or another active employee in their department; cross-team assignment is
 rejected. The Senior Director can see and manage every workspace and receives
 escalated-task notifications. Every API checks current HRIS eligibility and the current membership grant. The Next.js
-route gate omits unauthorized task destinations and redirects direct restricted URLs before their screen components
-mount; backend role, permission, and department checks remain authoritative.
+server route gate omits unauthorized task destinations and redirects direct restricted URLs before their screen
+components mount; backend role, permission, and department checks remain authoritative.
 
 ## Workspaces and adaptive templates
 
@@ -70,6 +70,8 @@ A task has a title, Markdown-compatible description, Low/Medium/High priority, n
 reporter, zero or one active assignee, board column, optional milestone/sprint/due date, links, comments, sign-off,
 escalation, and archive state. Eight stored hours equal one work day; `12` renders as `1d 4h` in capacity. The backend
 always records the authenticated creator as reporter; neither create nor edit accepts reporter selection.
+Descriptions have a live and detail-page preview for headings, lists, bold text, inline code, and secure web links. The
+renderer creates React elements, never executes embedded HTML, and accepts only `http` or `https` links.
 
 Board cards and reports use short one-word pills such as **High**, **Signed**, **Escalated**, and **Progress**. Counts use
 adjacent numerals so the tag itself remains one word. The underlying complete value remains available as the pill title.
@@ -157,7 +159,8 @@ Department settings are available through `GET /api/departments/:id` and
 - **Kanban** is continuous flow with To do, In progress, Review, and Done. Board cards move by drag and drop; the task
   detail status selector keeps movement keyboard accessible. The API validates every move.
 - **Scrum** adds Backlog and time-boxed sprints. A sprint requires a name, goal, start date, and later end date. A board
-  may have only one active sprint, and completed sprints cannot be reopened.
+  may have only one active sprint, and completed sprints cannot be reopened. Tasks can be created and edited with a
+  current sprint and due date; completed sprints reject new task assignments while retaining their history.
 - **List** renders a table with title, status, assignee, reporter, priority, and due date. It has no columns or sprint UI.
   The existing Human Resources department has List enabled and is not duplicated.
 
@@ -169,12 +172,18 @@ department and do not inherit board or task creation permissions.
 
 `kanbanWipLimit` is one department setting named **Maximum in progress tasks per member**. It is never configured per
 employee and is not a shared department pool. The API counts each assignee’s active, non-archived Kanban tasks in the
-In progress column. Unassigned work consumes no person’s capacity. Moving work out, or archiving it, immediately frees a
+column whose stable meaning is In progress. Display labels may change without disabling the rule. Unassigned work
+consumes no person’s capacity. Moving work out, or archiving it, immediately frees a
 slot. Moving into In progress, assigning an unassigned In progress task, and reassigning In progress work all check the
 new assignee.
 
 The transaction locks the assignee’s employee row before counting and writing. Concurrent requests for the same person
 therefore serialize around the same lock, while different people retain independent capacity.
+
+Board collaboration grants board discovery, reading, commenting, status movement, and assigned-work participation. It
+does not grant task or board creation. Directors can see their department’s boards; other employees see boards they
+created, were explicitly added to, or joined automatically when work was assigned to them. Every board and task detail
+request repeats this policy, so a guessed identifier does not reveal another board.
 
 ## Task identity, assignment, and archive
 
@@ -282,8 +291,8 @@ the Task Management detail needed for product and technical review.
   de-escalation rules.
 - Add partial cross-team allocation percentages and a conflict visualization; the prototype shifts one employee's full
   daily capacity for overlapping milestone windows.
-- Add board/column editing UI, saved filters, bulk triage, swimlanes, timeline and
-  calendar rendering, recurring work, attachments, mentions, and full Markdown preview/sanitization.
+- Add board/column editing UI, saved filters, bulk triage, swimlanes, timeline and calendar rendering, recurring work,
+  attachments, mentions, and richer CommonMark features when product demand justifies them.
 - Add task activity and deleted-item browser screens, portfolio trends, throughput/cycle-time charts, forecast accuracy,
   exports, and configurable reporting periods.
 - Add webhook/outbox delivery, shared rate limiting, distributed scheduling, tracing, backup/restore rehearsal, and

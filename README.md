@@ -190,7 +190,8 @@ snapshot under `prisma/fixtures`.
 Task workspaces reuse HRIS positions and membership. Serializable workspace counters produce human task keys. Task
 completion enforces blockers and management-locked columns. Departments select Kanban, Scrum, and List workflows and
 set one Kanban limit that is enforced separately for each assignee under a row lock. Board collaborators remain
-separate from member create permissions. Reporters are always derived from the authenticated creator. Capacity uses active employees,
+separate from member create permissions. Non-directors discover only boards they create, collaborate on, or receive an
+assignment in. Reporters are always derived from the authenticated creator. Capacity uses active employees,
 business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
 initial lane. Task deletion is reversible and its activity ledger is append-only.
 The Senior Director is an organization-level employee with no department assignment; a PostgreSQL constraint requires
@@ -202,6 +203,8 @@ finds it in My tasks, comments and advances it, and the director verifies progre
 Personal work and team boards include searchable status, priority, and assignee filters with one-action reset. Delivery
 reports can be narrowed by department, notifications support individual or bulk read actions, and failed task loading
 shows a recoverable retry state instead of leaving the workspace indefinitely busy.
+Next.js protects page requests in its server proxy before a restricted screen renders; NestJS repeats authorization for
+every API request. Task descriptions render a deliberately limited Markdown subset as React elements without raw HTML.
 
 Production deployment still requires HTTPS, independently managed secrets, shared rate limiting for multiple API
 instances, distributed scheduling, approved retention rules, employer-reviewed UK GDPR lawful bases, monitoring, and

@@ -20,7 +20,8 @@ cannot change an issued ID. The organization-level Senior Director uses `ORG` in
 
 HR creation returns a cryptographically random temporary password once with `Cache-Control: no-store`. Only its bcrypt
 hash is stored (12 rounds by default). First-use accounts may access session information, CSRF, refresh, password
-change, and logout only. Passwords are 15 or more characters and at most 72 UTF-8 bytes; spaces and paste are allowed.
+change, and logout only. Passwords must be at least 15 characters and fit within the supported password length; spaces
+and paste are allowed. The interface explains this limit in plain language.
 Reset revokes all sessions and restores mandatory password change.
 
 Access JWTs last 10 minutes and contain only employee ID, session ID, standard times, issuer, and audience. A session
@@ -429,9 +430,10 @@ department from **Organization**. Organization routes enforce the same responsib
 navigation is not the security boundary. Account Director candidates are filtered to eligible employees already in the
 target department, and the backend still validates the assignment.
 
-The Next.js portal checks the authenticated employee's effective role and permissions before mounting a route. It omits
-unauthorized navigation and redirects a direct restricted URL to Overview, preventing protected screens from issuing
-avoidable requests. NestJS independently returns `403` for the same unauthorized API operation.
+The Next.js server proxy loads the authenticated employee and checks the effective role and permissions before a route
+renders. It omits unauthorized navigation and redirects a direct restricted URL to Overview, preventing protected
+screens from issuing avoidable requests. The client repeats the redirect after identity changes, while NestJS
+independently authorizes every API operation.
 
 Task permissions are stored on the department workspace membership as **Create boards** and **Create tasks**. An Account
 Director may change these two operational permissions only for active members of their own department. These switches do

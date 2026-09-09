@@ -6,7 +6,15 @@ import { DatabaseService, type Transaction } from '../database/database.module';
 export const person = { id: true, employeeId: true, firstName: true, lastName: true, position: true } as const;
 export const taskInclude = {
   column: true,
-  board: { select: { id: true, name: true, kind: true, columns: { orderBy: { position: 'asc' as const } } } },
+  board: {
+    select: {
+      id: true,
+      name: true,
+      kind: true,
+      columns: { orderBy: { position: 'asc' as const } },
+      sprints: { orderBy: { startDate: 'desc' as const } },
+    },
+  },
   workspace: { select: { id: true, code: true, name: true, departmentId: true } },
   milestone: true,
   sprint: true,
@@ -59,6 +67,21 @@ export abstract class TaskBaseService {
     return workspace;
   }
 
+  protected async boardAccess(actor: Principal, boardId: string) {
+    const board = await this.db.taskBoard.findUnique({
+      where: { id: boardId },
+      include: { workspace: true },
+    });
+    if (!board) throw new NotFoundException('Board not found');
+    await this.workspaceAccess(actor, board.workspaceId);
+    if (this.manages(actor, board.workspace.departmentId) || board.creatorId === actor.employee.id) return board;
+    const collaborator = await this.db.boardCollaborator.findUnique({
+      where: { boardId_employeeId: { boardId, employeeId: actor.employee.id } },
+    });
+    if (!collaborator) throw new NotFoundException('Board not found');
+    return board;
+  }
+
   protected async enforceWip(
     tx: Transaction,
     departmentId: string,
@@ -75,7 +98,7 @@ export abstract class TaskBaseService {
         isDeleted: false,
         workspace: { departmentId },
         board: { kind: 'KANBAN' },
-        column: { name: { equals: 'In progress', mode: 'insensitive' } },
+        column: { semantic: 'IN_PROGRESS' },
       },
     });
     if (used >= department.kanbanWipLimit) {

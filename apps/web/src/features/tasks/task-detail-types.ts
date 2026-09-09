@@ -1,4 +1,10 @@
-import type { CurrentEmployee, DirectoryEmployee, TaskColumnContract, TaskContract } from '@tms/contracts';
+import type {
+  CurrentEmployee,
+  DirectoryEmployee,
+  SprintStatus,
+  TaskColumnContract,
+  TaskContract,
+} from '@tms/contracts';
 
 export interface TaskDetailProps {
   taskId: string;
@@ -10,7 +16,12 @@ export interface TaskDetailProps {
 }
 
 export type TaskDetailResponse = TaskContract & {
-  board: { id: string; name: string; columns: Omit<TaskColumnContract, 'tasks'>[] };
+  board: {
+    id: string;
+    name: string;
+    columns: Omit<TaskColumnContract, 'tasks'>[];
+    sprints: { id: string; name: string; status: SprintStatus }[];
+  };
   comments: { id: string; body: string; author: { firstName: string; lastName: string } }[];
   activity: {
     id: string;

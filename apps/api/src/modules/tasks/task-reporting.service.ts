@@ -28,12 +28,13 @@ export abstract class TaskReportingService extends TaskWorkflowService {
   }
 
   async reporting(actor: Principal) {
+    if (actor.employee.position === 'MEMBER') throw new ForbiddenException('Director access required');
     const workspaceWhere =
       actor.employee.position === 'SENIOR_DIRECTOR'
         ? {}
         : actor.employee.position === 'ACCOUNT_DIRECTOR'
           ? { departmentId: actor.employee.departmentId! }
-          : { memberships: { some: { employeeId: actor.employee.id } } };
+          : { departmentId: actor.employee.departmentId! };
     const workspaces = await this.db.workspace.findMany({
       where: workspaceWhere,
       include: {
@@ -59,8 +60,8 @@ export abstract class TaskReportingService extends TaskWorkflowService {
       blocked: workspace.tasks.filter((task) =>
         task.outgoingLinks.some((link) => link.type === 'BLOCKED_BY' && !link.targetTask.column.isDone),
       ).length,
-      inProgress: workspace.tasks.filter((task) => task.column.name === 'In progress').length,
-      inReview: workspace.tasks.filter((task) => task.column.name === 'Review').length,
+      inProgress: workspace.tasks.filter((task) => task.column.semantic === 'IN_PROGRESS').length,
+      inReview: workspace.tasks.filter((task) => task.column.semantic === 'REVIEW').length,
       estimatedHours: workspace.tasks
         .filter((task) => !task.column.isDone)
         .reduce((sum, task) => sum + task.estimatedHours, 0),

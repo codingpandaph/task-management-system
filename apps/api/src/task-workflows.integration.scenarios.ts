@@ -15,7 +15,8 @@ interface Context {
 }
 
 export async function registerTaskWorkflowScenarios(suite: TestContext, context: Context) {
-  const { actor, db, find, member, tasks, year } = context;
+  const { actor, db, find, tasks, year } = context;
+  const activeMember = await actor('Cameron');
   await suite.test('board types, collaborators, and sprint lifecycle enforce scope', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
@@ -24,9 +25,10 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
     const unrelated = await find('Riley');
     await assert.rejects(tasks.addCollaborator(director, scrum.id, { employeeId: unrelated.id }));
     assert.equal(
-      (await tasks.addCollaborator(director, scrum.id, { employeeId: member.employee.id })).employeeId,
-      member.employee.id,
+      (await tasks.addCollaborator(director, scrum.id, { employeeId: activeMember.employee.id })).employeeId,
+      activeMember.employee.id,
     );
+    assert.equal((await tasks.board(activeMember, workspace.id, scrum.id)).board.id, scrum.id);
     await assert.rejects(
       tasks.createSprint(director, scrum.id, {
         name: 'Invalid sprint',
@@ -42,6 +44,18 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
       endDate: `${year}-10-14`,
     });
     assert.equal((await tasks.changeSprintStatus(director, sprint.id, 'ACTIVE')).status, 'ACTIVE');
+    const sprintTask = await tasks.createTask(director, {
+      workspaceId: workspace.id,
+      boardId: scrum.id,
+      sprintId: sprint.id,
+      dueDate: `${year}-10-10`,
+      title: 'Sprint delivery',
+      priority: 'HIGH',
+      estimatedHours: 4,
+      assigneeId: activeMember.employee.id,
+    });
+    assert.equal(sprintTask.sprintId, sprint.id);
+    assert.equal((await tasks.detail(activeMember, sprintTask.id)).id, sprintTask.id);
     const another = await tasks.createSprint(director, scrum.id, {
       name: 'Next sprint',
       goal: 'Next workflow',
@@ -50,6 +64,16 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
     });
     await assert.rejects(tasks.changeSprintStatus(director, another.id, 'ACTIVE'));
     assert.equal((await tasks.changeSprintStatus(director, sprint.id, 'COMPLETED')).status, 'COMPLETED');
+    await assert.rejects(
+      tasks.createTask(director, {
+        workspaceId: workspace.id,
+        boardId: scrum.id,
+        sprintId: sprint.id,
+        title: 'Closed sprint task',
+        priority: 'LOW',
+        estimatedHours: 1,
+      }),
+    );
   });
   await suite.test('Kanban WIP is department-configured and independently enforced per assignee', async () => {
     const director = await actor('Jordan');
@@ -57,10 +81,10 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
       where: { code: 'ACC' },
       include: { department: true, boards: { include: { columns: true } } },
     });
-    await db.department.update({ where: { id: workspace.departmentId }, data: { kanbanWipLimit: 2 } });
+    await db.department.update({ where: { id: workspace.departmentId }, data: { kanbanWipLimit: 1 } });
     const board = workspace.boards.find((item) => item.kind === 'KANBAN')!;
-    const progress = board.columns.find((column) => column.name === 'In progress')!;
-    const review = board.columns.find((column) => column.name === 'Review')!;
+    const progress = board.columns.find((column) => column.semantic === 'IN_PROGRESS')!;
+    const review = board.columns.find((column) => column.semantic === 'REVIEW')!;
     const make = (title: string, assigneeId?: string) =>
       tasks.createTask(director, {
         workspaceId: workspace.id,
@@ -70,22 +94,23 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
         estimatedHours: 1,
         assigneeId,
       });
-    const first = await make('WIP first', member.employee.id);
-    await tasks.move(member, first.id, progress.id);
-    const blocked = await make('WIP blocked', member.employee.id);
-    await assert.rejects(tasks.move(member, blocked.id, progress.id));
+    const first = await make('WIP first', activeMember.employee.id);
+    await db.taskColumn.update({ where: { id: progress.id }, data: { name: 'Doing' } });
+    await tasks.move(activeMember, first.id, progress.id);
+    const blocked = await make('WIP blocked', activeMember.employee.id);
+    await assert.rejects(tasks.move(activeMember, blocked.id, progress.id));
     const directorTask = await make('Independent capacity', director.employee.id);
     await tasks.move(director, directorTask.id, progress.id);
     const unassigned = await make('Unassigned capacity');
     await tasks.move(director, unassigned.id, progress.id);
-    await assert.rejects(tasks.edit(director, unassigned.id, { assigneeId: member.employee.id }));
-    await tasks.move(member, first.id, review.id);
+    await assert.rejects(tasks.edit(director, unassigned.id, { assigneeId: activeMember.employee.id }));
+    await tasks.move(activeMember, first.id, review.id);
     assert.equal(
-      (await tasks.edit(director, unassigned.id, { assigneeId: member.employee.id })).assigneeId,
-      member.employee.id,
+      (await tasks.edit(director, unassigned.id, { assigneeId: activeMember.employee.id })).assigneeId,
+      activeMember.employee.id,
     );
     await tasks.remove(director, unassigned.id);
-    const freed = await make('Freed after archive', member.employee.id);
-    assert.equal((await tasks.move(member, freed.id, progress.id)).assigneeId, member.employee.id);
+    const freed = await make('Freed after archive', activeMember.employee.id);
+    assert.equal((await tasks.move(activeMember, freed.id, progress.id)).assigneeId, activeMember.employee.id);
   });
 }

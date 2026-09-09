@@ -58,6 +58,27 @@ export function seedPeople(limited: boolean): SeedPerson[] {
   ];
 }
 
+export function seedBoardColumns(code: string) {
+  const active =
+    code === 'HR'
+      ? [{ name: 'Open', semantic: 'OPEN' as const, position: 0, isInitial: true }]
+      : [
+          { name: 'To do', semantic: 'TODO' as const, position: 0, isInitial: true },
+          { name: 'In progress', semantic: 'IN_PROGRESS' as const, position: 1 },
+          { name: 'Review', semantic: 'REVIEW' as const, position: 2 },
+        ];
+  return [
+    ...active,
+    {
+      name: 'Done',
+      semantic: 'DONE' as const,
+      position: code === 'HR' ? 1 : 3,
+      isDone: true,
+      managementLocked: code !== 'HR',
+    },
+  ];
+}
+
 export async function seedHolidayEvents() {
   const data = JSON.parse(
     await readFile(resolve(process.cwd(), '../../prisma/fixtures/uk-bank-holidays.json'), 'utf8'),

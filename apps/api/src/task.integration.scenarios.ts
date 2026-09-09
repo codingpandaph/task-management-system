@@ -25,6 +25,9 @@ interface TaskIntegrationContext {
 
 export async function registerTaskIntegrationScenarios(suite: TestContext, context: TaskIntegrationContext) {
   const { actor, db, dep, find, hr, hrMember, leave, member, org, senior, tasks, year } = context;
+  await suite.test('delivery reporting is restricted to directors', async () => {
+    await assert.rejects(tasks.reporting(member));
+  });
   await suite.test('task numbers are workspace-scoped and concurrent creation is safe', async () => {
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
     const dto = (title: string) => ({
@@ -131,7 +134,7 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
       include: { boards: { include: { columns: true } } },
     });
     const board = workspace.boards[0],
-      progress = board.columns.find((column) => column.name === 'In progress')!;
+      progress = board.columns.find((column) => column.semantic === 'IN_PROGRESS')!;
     const make = (title: string) =>
       tasks.createTask(member, {
         workspaceId: workspace.id,

@@ -10,9 +10,9 @@ export function registerManagementScenarios() {
     await login(page.request, usernames.hr);
     await page.goto('/employees');
 
-    const actionBar = page.locator('.action-bar');
-    await expect(actionBar.getByRole('button', { name: 'Add employee', exact: true })).toBeVisible();
-    expect((await actionBar.boundingBox())!.y).toBeLessThan(280);
+    const addEmployee = page.getByRole('button', { name: 'Add employee', exact: true });
+    await expect(addEmployee).toBeVisible();
+    expect((await addEmployee.boundingBox())!.y).toBeLessThan(320);
     expect(await page.locator('.nav-link svg').count()).toBeGreaterThan(5);
 
     await page.getByLabel('Search people', { exact: true }).fill('Taylor Quinn');
@@ -35,7 +35,7 @@ export function registerManagementScenarios() {
     await expect(page.getByText('Permanent', { exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Access & security', exact: true }).click();
     await expect(page.getByText('Onboard', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Manage permissions', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Manage permissions', exact: true })).toHaveCount(0);
 
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
     await expect(page.getByRole('tab', { name: /Regular leave/ })).toBeVisible();

@@ -23,6 +23,7 @@ import { personName } from './task-card';
 import { canManageTask, type TaskDetailProps, type TaskDetailResponse } from './task-detail-types';
 import { priorityTone } from './task-types';
 import { TaskActivity } from './task-activity';
+import { TaskMarkdown } from './task-markdown';
 
 export function TaskDetail({ taskId, user, columns = [], onClose, refresh, people }: TaskDetailProps) {
   const [task, setTask] = useState<TaskDetailResponse>(),
@@ -74,7 +75,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
           <Stack spacing={3}>
             <Box>
               <Typography variant="overline">Description</Typography>
-              <Typography sx={{ whiteSpace: 'pre-wrap' }}>{task.description || 'No description yet.'}</Typography>
+              <TaskMarkdown source={task.description} />
             </Box>
             <Box>
               <Typography variant="overline">Discussion</Typography>
@@ -123,6 +124,16 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
               <br />
               {task.estimatedHours} hours
             </Typography>
+            <Typography variant="body2">
+              <strong>Sprint</strong>
+              <br />
+              {task.sprint?.name ?? 'No sprint'}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Due date</strong>
+              <br />
+              {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+            </Typography>
             <ModalForm
               buttonLabel="Edit task"
               title="Edit task details"
@@ -152,9 +163,24 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                       .map((employee) => ({ value: employee.id, label: employee.displayName })),
                   ],
                 },
+                {
+                  name: 'sprintId',
+                  label: 'Sprint',
+                  optional: true,
+                  value: task.sprint?.id ?? '',
+                  options: [
+                    { value: '', label: 'No sprint' },
+                    ...task.board.sprints
+                      .filter((sprint) => sprint.status !== 'COMPLETED' || sprint.id === task.sprint?.id)
+                      .map((sprint) => ({ value: sprint.id, label: sprint.name })),
+                  ],
+                },
+                { name: 'dueDate', label: 'Due date', type: 'date', optional: true, value: task.dueDate?.slice(0, 10) },
               ]}
               onSubmit={async (values) => {
                 const assigneeId = String(values.assigneeId ?? '');
+                const sprintId = String(values.sprintId ?? '');
+                const dueDate = String(values.dueDate ?? '');
                 await api(
                   `tasks/${task.id}`,
                   {
@@ -163,6 +189,8 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                     priority: values.priority,
                     estimatedHours: values.estimatedHours,
                     ...(assigneeId ? { assigneeId } : { clearAssignee: true }),
+                    ...(sprintId ? { sprintId } : { clearSprint: true }),
+                    ...(dueDate ? { dueDate } : { clearDueDate: true }),
                   },
                   'PATCH',
                 );

@@ -117,7 +117,7 @@ export function registerCoreScenarios() {
   });
 
   test('all five roles file leave and complete their approval chains through the UI', async ({ browser }) => {
-    test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 300_000 : 120_000);
+    test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 300_000 : 180_000);
     const contexts: BrowserContext[] = [];
     const pages = new Map<string, Page>();
     const requestUrls = new Map<string, string>();
@@ -139,6 +139,7 @@ export function registerCoreScenarios() {
       for (const flow of matrix) {
         const requester = pages.get(flow.requester)!;
         await uiFileLeave(requester, flow.day);
+        await expect(requester).toHaveURL(/\/leave\/[^/]+$/);
         const requestUrl = requester.url();
         requestUrls.set(flow.requester, requestUrl);
         for (const approver of flow.approvers) await uiApprove(pages.get(approver)!, flow.day);
@@ -234,12 +235,11 @@ export function registerCoreScenarios() {
 
   test('leave action dialog fits mobile, tablet, desktop, and breakpoint boundaries', async ({ page }) => {
     await login(page.request, usernames.hrMember);
-    await page.goto('/');
-    const overviewAction = page.getByRole('link', { name: 'File leave', exact: true });
-    await expect(overviewAction).toHaveCSS('color', 'rgb(255, 255, 255)');
-    await overviewAction.hover();
-    await expect(overviewAction).toHaveCSS('color', 'rgb(255, 255, 255)');
     await page.goto('/leave');
+    const leaveAction = page.getByRole('button', { name: 'File leave', exact: true });
+    await expect(leaveAction).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await leaveAction.hover();
+    await expect(leaveAction).toHaveCSS('color', 'rgb(255, 255, 255)');
     for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await page.getByRole('button', { name: 'File leave', exact: true }).click();

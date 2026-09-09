@@ -4,7 +4,7 @@ import { HR_DELEGABLE, PERMISSIONS } from '@tms/contracts';
 import { dateOnly, today } from './common/dates';
 import { DatabaseService } from './modules/database/database.module';
 import { LeaveBalanceService } from './modules/leave/balance.service';
-import { seedHolidayEvents, seedPeople } from './seed-data';
+import { seedBoardColumns, seedHolidayEvents, seedPeople } from './seed-data';
 import { seedApprovalNotification } from './seed-notification';
 export async function seed(db: DatabaseService) {
   if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DEMO_SEED !== 'true')
@@ -148,18 +148,7 @@ export async function seed(db: DatabaseService) {
           name: boardName,
           kind: code === 'HR' ? 'LIST' : 'KANBAN',
           creatorId: code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3],
-          columns: {
-            create: [
-              ...(code === 'HR'
-                ? [{ name: 'Open', position: 0, isInitial: true }]
-                : [
-                    { name: 'To do', position: 0, isInitial: true },
-                    { name: 'In progress', position: 1 },
-                    { name: 'Review', position: 2 },
-                  ]),
-              { name: 'Done', position: code === 'HR' ? 1 : 3, isDone: true, managementLocked: code !== 'HR' },
-            ],
-          },
+          columns: { create: seedBoardColumns(code) },
         },
         include: { columns: true },
       });
@@ -175,6 +164,9 @@ export async function seed(db: DatabaseService) {
           canCreateBoards: id === (code === 'ACC' ? ids[6] : code === 'MKT' ? ids[7] : ids[5]),
         })),
       });
+      await tx.boardCollaborator.createMany({
+        data: departmentPeople.map(({ id }) => ({ boardId: board.id, employeeId: id })),
+      });
       const milestone = await tx.milestone.create({
         data: {
           workspaceId: workspace.id,
@@ -185,7 +177,7 @@ export async function seed(db: DatabaseService) {
         },
       });
       const initial = board.columns.find((column) => column.isInitial)!;
-      const progress = board.columns.find((column) => column.name === 'In progress') ?? initial;
+      const progress = board.columns.find((column) => column.semantic === 'IN_PROGRESS') ?? initial;
       const reporterId = code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3];
       const assigneeId = code === 'ACC' ? ids[6] : code === 'MKT' ? (limited ? ids[2] : ids[7]) : ids[5];
       for (const [index, task] of (
