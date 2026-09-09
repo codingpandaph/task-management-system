@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:17.6-bookworm
+    environment:
+      POSTGRES_DB: cpsync
+      POSTGRES_USER: cpsync
+      POSTGRES_PASSWORD: prototype-only-change-me
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cpsync -d cpsync']
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - cpsync-postgres:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      NODE_ENV: development
+      CONTAINERIZED: 'true'
+      PORT: 3001
+      DATABASE_URL: postgresql://cpsync:prototype-only-change-me@postgres:5432/cpsync
+      JWT_ACCESS_SECRET: prototype-only-replace-with-32-random-characters
+      APP_ORIGIN: http://localhost:3000
+    command: ['sh', '-c', 'yarn db:migrate:deploy && yarn start:api']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3001/health/ready').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        API_INTERNAL_URL: http://api:3001
+    environment:
+      API_INTERNAL_URL: http://api:3001
+    ports:
+      - '3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  cpsync-postgres:

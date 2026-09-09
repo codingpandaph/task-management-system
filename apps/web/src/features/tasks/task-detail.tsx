@@ -24,6 +24,7 @@ import { canManageTask, type TaskDetailProps, type TaskDetailResponse } from './
 import { priorityTone } from './task-types';
 import { TaskActivity } from './task-activity';
 import { TaskMarkdown } from './task-markdown';
+import { TaskAttachments } from './task-attachments';
 
 export function TaskDetail({ taskId, user, columns = [], onClose, refresh, people }: TaskDetailProps) {
   const [task, setTask] = useState<TaskDetailResponse>(),
@@ -93,6 +94,9 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                   }
                 }}
               />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                Mention a colleague with their employee ID, for example @2026-ACC-000002.
+              </Typography>
               {task.comments?.map((comment) => (
                 <Box key={comment.id} sx={{ mt: 1.5 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700 }}>
@@ -102,6 +106,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                 </Box>
               ))}
             </Box>
+            <TaskAttachments taskId={task.id} attachments={task.attachments} add={mutate} />
             <TaskActivity activity={task.activity} />
           </Stack>
           <Stack spacing={2}>

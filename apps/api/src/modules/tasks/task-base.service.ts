@@ -22,6 +22,8 @@ export const taskInclude = {
   assignee: { select: person },
   outgoingLinks: { include: { targetTask: { select: { id: true, publicKey: true, title: true, column: true } } } },
   comments: { orderBy: { createdAt: 'desc' as const }, include: { author: { select: person } } },
+  attachments: { orderBy: { createdAt: 'desc' as const } },
+  mentions: { include: { employee: { select: person } }, orderBy: { createdAt: 'desc' as const } },
   activity: { orderBy: { createdAt: 'desc' as const }, include: { actor: { select: person } }, take: 30 },
 } satisfies Prisma.TaskInclude;
 

@@ -1,8 +1,4 @@
-import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined';
-import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import InputAdornment from '@mui/material/InputAdornment';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -21,6 +17,8 @@ import { MilestoneStrip } from './milestone-strip';
 import type { BoardResponse, DepartmentOption, Workspace } from './task-types';
 import { WorkspaceActions } from './workspace-actions';
 import { SprintPanel } from './sprint-panel';
+import { TaskProductActions } from './task-product-actions';
+import { TaskBoardFilters } from './task-board-filters';
 interface TaskBoardViewProps {
   assigneeFilter: string;
   board?: BoardResponse;
@@ -153,73 +151,30 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           )}
           {board && <SprintPanel board={board.board} canManage={boardManager} refresh={refresh} />}
           {board && (
-            <Stack
-              direction={{ xs: 'column', lg: 'row' }}
-              spacing={1.5}
-              useFlexGap
-              className="task-board-filters"
-              sx={{ alignItems: { lg: 'center' } }}
-            >
-              <TextField
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                label={`Search ${board.board.name}`}
-                size="small"
-                sx={{ minWidth: { md: 300 } }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchOutlined />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <TextField
-                select
-                size="small"
-                label="Priority"
-                value={priorityFilter}
-                onChange={(event) => setPriorityFilter(event.target.value)}
-                sx={{ minWidth: 140 }}
-              >
-                <MenuItem value="ALL">All priorities</MenuItem>
-                <MenuItem value="HIGH">High</MenuItem>
-                <MenuItem value="MEDIUM">Medium</MenuItem>
-                <MenuItem value="LOW">Low</MenuItem>
-              </TextField>
-              <TextField
-                select
-                size="small"
-                label="Assignee"
-                value={assigneeFilter}
-                onChange={(event) => setAssigneeFilter(event.target.value)}
-                sx={{ minWidth: 190 }}
-              >
-                <MenuItem value="ALL">All assignees</MenuItem>
-                <MenuItem value="UNASSIGNED">Unassigned</MenuItem>
-                {people
-                  .filter((person) => person.department?.id === workspace.departmentId)
-                  .map((person) => (
-                    <MenuItem key={person.id} value={person.id}>
-                      {person.displayName}
-                    </MenuItem>
-                  ))}
-              </TextField>
-              {(search || priorityFilter !== 'ALL' || assigneeFilter !== 'ALL') && (
-                <Button
-                  startIcon={<FilterAltOffOutlined />}
-                  onClick={() => {
-                    setSearch('');
-                    setPriorityFilter('ALL');
-                    setAssigneeFilter('ALL');
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
-            </Stack>
+            <TaskBoardFilters
+              boardName={board.board.name}
+              departmentId={workspace.departmentId}
+              people={people}
+              search={search}
+              priority={priorityFilter}
+              assignee={assigneeFilter}
+              setSearch={setSearch}
+              setPriority={setPriorityFilter}
+              setAssignee={setAssigneeFilter}
+            />
+          )}
+          {board && (
+            <TaskProductActions
+              board={board}
+              search={search}
+              priority={priorityFilter}
+              assignee={assigneeFilter}
+              people={people}
+              setSearch={setSearch}
+              setPriority={setPriorityFilter}
+              setAssignee={setAssigneeFilter}
+              refresh={refresh}
+            />
           )}
           {board && board.board.kind !== 'LIST' && (
             <KanbanBoard

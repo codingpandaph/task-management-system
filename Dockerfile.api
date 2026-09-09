@@ -1,0 +1,21 @@
+FROM node:24.8.0-bookworm-slim AS build
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+RUN corepack enable
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn ./.yarn
+COPY apps ./apps
+COPY packages ./packages
+COPY prisma ./prisma
+COPY prisma.config.ts tsconfig.base.json tsconfig.json ./
+RUN yarn install --immutable && yarn db:generate && yarn workspace @tms/contracts build && yarn workspace @tms/api build
+
+FROM node:24.8.0-bookworm-slim AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+RUN corepack enable
+COPY --from=build /app /app
+USER node
+EXPOSE 3001
+CMD ["yarn", "start:api"]

@@ -130,6 +130,7 @@ enum TaskActivityType {
   COLUMN_CHANGE
   DELETION
   RESTORATION
+  ATTACHMENT
 }
 
 model OrganizationSettings {
@@ -215,6 +216,8 @@ model Employee {
   taskComment_author                         TaskComment[]                       @relation("TaskComment_author")
   taskBoard_creator                          TaskBoard[]                         @relation("TaskBoard_creator")
   boardCollaborator_employee                 BoardCollaborator[]                 @relation("BoardCollaborator_employee")
+  savedTaskView_employee                     SavedTaskView[]                     @relation("SavedTaskView_employee")
+  taskMention_employee                       TaskMention[]                       @relation("TaskMention_employee")
 
   @@index([departmentId, status, position])
 }
@@ -637,6 +640,7 @@ model Workspace {
   milestones     Milestone[]
   memberships    WorkspaceMembership[]
   tasks          Task[]
+  savedViews     SavedTaskView[]
 }
 
 model WorkspaceMembership {
@@ -746,6 +750,7 @@ model Task {
   id                   String             @id @default(uuid()) @db.Uuid
   createdAt            DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+  completedAt          DateTime?          @db.Timestamptz(3)
   number               Int
   publicKey            String             @unique
   title                String
@@ -777,12 +782,57 @@ model Task {
   incomingLinks        TaskLink[]         @relation("TaskLink_target")
   activity             TaskActivityLog[]
   comments             TaskComment[]
+  attachments          TaskAttachment[]
+  mentions             TaskMention[]
 
   @@unique([workspaceId, number])
   @@index([assigneeId, isDeleted])
   @@index([workspaceId, columnId, isDeleted])
+  @@index([workspaceId, completedAt])
   @@index([milestoneId])
   @@index([sprintId])
+}
+
+model SavedTaskView {
+  id          String    @id @default(uuid()) @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  name        String
+  filters     Json
+  employeeId  String    @db.Uuid
+  employee    Employee  @relation("SavedTaskView_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  workspaceId String    @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, workspaceId, name])
+  @@index([employeeId, workspaceId])
+}
+
+model TaskAttachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  name      String
+  url       String
+  mediaType String
+  sizeBytes Int
+  taskId    String   @db.Uuid
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict)
+
+  @@index([taskId, createdAt])
+}
+
+model TaskMention {
+  id         String      @id @default(uuid()) @db.Uuid
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+  taskId     String      @db.Uuid
+  task       Task        @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  employeeId String      @db.Uuid
+  employee   Employee    @relation("TaskMention_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+  commentId  String      @db.Uuid
+  comment    TaskComment @relation(fields: [commentId], references: [id], onDelete: Restrict)
+
+  @@unique([commentId, employeeId])
+  @@index([employeeId, createdAt])
 }
 
 model DefinitionOfDone {
@@ -823,13 +873,14 @@ model TaskActivityLog {
 }
 
 model TaskComment {
-  id        String   @id @default(uuid()) @db.Uuid
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  id        String        @id @default(uuid()) @db.Uuid
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
   body      String
-  taskId    String   @db.Uuid
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Restrict)
-  authorId  String   @db.Uuid
-  author    Employee @relation("TaskComment_author", fields: [authorId], references: [id], onDelete: Restrict)
+  taskId    String        @db.Uuid
+  task      Task          @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  authorId  String        @db.Uuid
+  author    Employee      @relation("TaskComment_author", fields: [authorId], references: [id], onDelete: Restrict)
+  mentions  TaskMention[]
 
   @@index([taskId, createdAt])
 }

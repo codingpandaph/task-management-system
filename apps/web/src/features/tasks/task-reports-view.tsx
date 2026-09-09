@@ -27,8 +27,9 @@ export function TaskReportsView({
       completed: total.completed + report.completed,
       blocked: total.blocked + report.blocked,
       risks: total.risks + report.escalated + report.capacityRisks,
+      throughput: total.throughput + report.throughput30Days,
     }),
-    { tasks: 0, completed: 0, blocked: 0, risks: 0 },
+    { tasks: 0, completed: 0, blocked: 0, risks: 0, throughput: 0 },
   );
   return (
     <Stack spacing={3}>
@@ -47,7 +48,7 @@ export function TaskReportsView({
           ['Completion', portfolio.tasks ? `${Math.round((portfolio.completed / portfolio.tasks) * 100)}%` : '0%'],
           ['Open work', portfolio.tasks - portfolio.completed],
           ['Blocked', portfolio.blocked],
-          ['Delivery risks', portfolio.risks],
+          ['30-day throughput', portfolio.throughput],
         ].map(([label, value]) => (
           <Paper variant="outlined" key={label} sx={{ p: 2.5 }}>
             <Typography variant="body2" color="text.secondary">
@@ -134,6 +135,20 @@ export function TaskReportsView({
                     <Tag value={String(label)} tone={tone as 'blue' | 'purple' | 'red' | 'green'} />
                   </Stack>
                 ))}
+              </Stack>
+              <Stack direction="row" spacing={3} sx={{ mt: 2 }}>
+                <Box>
+                  <Typography variant="h6">{report.throughput30Days}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Finished in 30 days
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="h6">{report.averageCycleDays}d</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Average cycle time
+                  </Typography>
+                </Box>
               </Stack>
               <Typography variant="subtitle2" sx={{ mt: 2, mb: 0.75 }}>
                 Highest active workloads

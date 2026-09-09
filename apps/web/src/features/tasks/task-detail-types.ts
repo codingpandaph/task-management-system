@@ -23,6 +23,8 @@ export type TaskDetailResponse = TaskContract & {
     sprints: { id: string; name: string; status: SprintStatus }[];
   };
   comments: { id: string; body: string; author: { firstName: string; lastName: string } }[];
+  attachments: { id: string; name: string; url: string; mediaType: string; sizeBytes: number }[];
+  mentions: { id: string; employee: { id: string; employeeId: string; firstName: string; lastName: string } }[];
   activity: {
     id: string;
     actionType: string;

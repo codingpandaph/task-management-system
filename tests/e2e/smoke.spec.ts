@@ -14,5 +14,9 @@ test('login renders at mobile, tablet, desktop and breakpoint boundaries', async
 test('health is public and protected API rejects unauthenticated requests', async ({ request }) => {
   const health = await request.get('http://127.0.0.1:3101/health');
   expect(await health.json()).toEqual({ status: 'ok' });
+  expect(health.headers()['x-request-id']).toBeTruthy();
+  expect(health.headers()['x-trace-id']).toMatch(/^[a-f0-9]{32}$/);
+  const ready = await request.get('http://127.0.0.1:3101/health/ready');
+  expect(await ready.json()).toEqual({ status: 'ready', database: 'reachable' });
   expect((await request.get('/api/employees')).status()).toBe(401);
 });

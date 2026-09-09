@@ -6,6 +6,11 @@
   "engines": {
     "node": ">=24.0.0 <25"
   },
+  "resolutions": {
+    "deepmerge-ts": "8.0.0",
+    "multer": "2.3.0",
+    "mysql2": "3.22.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -49,7 +54,14 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:seed": "yarn workspace @tms/api seed",
-    "test:integration": "yarn workspace @tms/contracts build && yarn workspace @tms/api test:integration"
+    "test:integration": "yarn workspace @tms/contracts build && yarn workspace @tms/api test:integration",
+    "security:secrets": "node scripts/security-check.mjs",
+    "security:dependencies": "yarn npm audit --all --recursive --severity high",
+    "security:check": "yarn security:secrets && yarn security:dependencies",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:restore:verify": "node scripts/db-restore-verify.mjs",
+    "prototype:up": "docker compose -f docker-compose.prototype.yml up --build",
+    "prototype:down": "docker compose -f docker-compose.prototype.yml down"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

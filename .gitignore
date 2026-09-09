@@ -148,6 +148,7 @@ vite.config.ts.timestamp-*
 .test-dist/
 playwright-report/
 test-results/
+backups/
 blob-report/
 apps/api/src/generated/
 

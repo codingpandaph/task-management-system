@@ -8,6 +8,7 @@ import {
 import type { TaskLinkType } from '../../generated/prisma/client';
 import { audit, notify } from '../audit/audit';
 import type { Principal } from '../authorization/authorization';
+import type { AttachmentDto, BulkTaskDto, SavedViewDto } from './task.dto';
 import { person, taskInclude } from './task-base.service';
 import { TaskRecordService } from './task-record.service';
 
@@ -27,7 +28,11 @@ export abstract class TaskWorkflowService extends TaskRecordService {
       if (task.board.kind === 'KANBAN' && column.semantic === 'IN_PROGRESS') {
         await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
       }
-      const updated = await tx.task.update({ where: { id }, data: { columnId }, include: taskInclude });
+      const updated = await tx.task.update({
+        where: { id },
+        data: { columnId, completedAt: column.isDone ? (task.completedAt ?? new Date()) : null },
+        include: taskInclude,
+      });
       await this.activity(tx, id, actor.employee.id, 'COLUMN_CHANGE', 'columnId', task.columnId, columnId);
       return updated;
     });
@@ -141,7 +146,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   }
 
   async comment(actor: Principal, taskId: string, body: string) {
-    await this.detail(actor, taskId);
+    const task = await this.detail(actor, taskId);
     return this.db.transaction(async (tx) => {
       const comment = await tx.taskComment.create({
         data: { taskId, authorId: actor.employee.id, body },
@@ -150,8 +155,79 @@ export abstract class TaskWorkflowService extends TaskRecordService {
       await this.activity(tx, taskId, actor.employee.id, 'UPDATE_FIELD', 'comment', undefined, {
         commentId: comment.id,
       });
+      const employeeIds = [...new Set(body.match(/@[A-Z0-9]+-[A-Z0-9]+-\d{6}/g)?.map((value) => value.slice(1)) ?? [])];
+      const mentioned = await tx.employee.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          status: 'ACTIVE',
+          OR: [{ departmentId: task.workspace.departmentId }, { position: 'SENIOR_DIRECTOR' }],
+        },
+        select: { id: true },
+      });
+      for (const employee of mentioned) {
+        await tx.taskMention.create({ data: { taskId, commentId: comment.id, employeeId: employee.id } });
+        if (employee.id !== actor.employee.id)
+          await notify(tx, employee.id, 'TASK_MENTION', 'Task', taskId, `task-mention:${comment.id}:${employee.id}`);
+      }
       return comment;
     });
+  }
+
+  async addAttachment(actor: Principal, taskId: string, dto: AttachmentDto) {
+    await this.detail(actor, taskId);
+    return this.db.transaction(async (tx) => {
+      const attachment = await tx.taskAttachment.create({ data: { taskId, ...dto } });
+      await this.activity(tx, taskId, actor.employee.id, 'ATTACHMENT', 'attachment', undefined, {
+        attachmentId: attachment.id,
+        name: attachment.name,
+      });
+      return attachment;
+    });
+  }
+
+  async savedViews(actor: Principal, workspaceId: string) {
+    await this.workspaceAccess(actor, workspaceId);
+    return this.db.savedTaskView.findMany({
+      where: { employeeId: actor.employee.id, workspaceId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async saveView(actor: Principal, dto: SavedViewDto) {
+    await this.workspaceAccess(actor, dto.workspaceId);
+    const filters = { search: dto.search ?? '', priority: dto.priority ?? 'ALL', assigneeId: dto.assigneeId ?? 'ALL' };
+    return this.db.savedTaskView.upsert({
+      where: {
+        employeeId_workspaceId_name: { employeeId: actor.employee.id, workspaceId: dto.workspaceId, name: dto.name },
+      },
+      create: { employeeId: actor.employee.id, workspaceId: dto.workspaceId, name: dto.name, filters },
+      update: { filters },
+    });
+  }
+
+  async deleteView(actor: Principal, id: string) {
+    const view = await this.db.savedTaskView.findFirst({ where: { id, employeeId: actor.employee.id } });
+    if (!view) throw new NotFoundException('Saved view not found');
+    await this.db.savedTaskView.delete({ where: { id } });
+    return { id, deleted: true };
+  }
+
+  async bulkUpdate(actor: Principal, dto: BulkTaskDto) {
+    if (!dto.taskIds.length) throw new BadRequestException('Choose at least one task');
+    if (!dto.columnId && !dto.priority && !dto.assigneeId && !dto.clearAssignee)
+      throw new BadRequestException('Choose a change to apply');
+    const uniqueIds = [...new Set(dto.taskIds)];
+    for (const id of uniqueIds) await this.detail(actor, id);
+    for (const id of uniqueIds) {
+      if (dto.priority || dto.assigneeId || dto.clearAssignee)
+        await this.edit(actor, id, {
+          priority: dto.priority,
+          assigneeId: dto.assigneeId,
+          clearAssignee: dto.clearAssignee,
+        });
+      if (dto.columnId) await this.move(actor, id, dto.columnId);
+    }
+    return { updated: uniqueIds.length };
   }
 
   async closeMilestone(actor: Principal, id: string) {

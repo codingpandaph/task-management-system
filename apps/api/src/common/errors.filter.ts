@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import pino from 'pino';
 import { Prisma } from '../generated/prisma/client';
@@ -8,7 +8,8 @@ const logger = pino({ redact: ['password', 'passwordHash', 'token', 'cookies', '
 export class ErrorsFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
-    const requestId = randomUUID();
+    const request = host.switchToHttp().getRequest<Request>();
+    const requestId = response.getHeader('x-request-id')?.toString() ?? request.header('x-request-id') ?? randomUUID();
     let status = 500,
       message = 'An unexpected error occurred',
       code = 'INTERNAL_ERROR';

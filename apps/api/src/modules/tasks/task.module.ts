@@ -2,7 +2,9 @@ import { Body, Controller, Delete, Get, Module, Param, ParseUUIDPipe, Patch, Pos
 import type { AuthRequest } from '../authorization/authorization';
 import {
   ApprovalDto,
+  AttachmentDto,
   BoardDto,
+  BulkTaskDto,
   CollaboratorDto,
   CommentDto,
   EscalationDto,
@@ -11,6 +13,7 @@ import {
   MilestoneDto,
   MoveTaskDto,
   SprintDto,
+  SavedViewDto,
   TaskDto,
   TaskEditDto,
   WorkspaceDto,
@@ -81,6 +84,18 @@ class TaskController {
   @Get('tasks/reporting') reporting(@Req() request: AuthRequest) {
     return this.service.reporting(request.principal);
   }
+  @Get('task-views') savedViews(@Req() request: AuthRequest, @Query('workspaceId', ParseUUIDPipe) workspaceId: string) {
+    return this.service.savedViews(request.principal, workspaceId);
+  }
+  @Post('task-views') saveView(@Req() request: AuthRequest, @Body() dto: SavedViewDto) {
+    return this.service.saveView(request.principal, dto);
+  }
+  @Delete('task-views/:id') deleteView(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.deleteView(request.principal, id);
+  }
+  @Patch('tasks/bulk') bulk(@Req() request: AuthRequest, @Body() dto: BulkTaskDto) {
+    return this.service.bulkUpdate(request.principal, dto);
+  }
   @Get('tasks/archived') archived(@Req() request: AuthRequest) {
     return this.service.archived(request.principal);
   }
@@ -137,6 +152,13 @@ class TaskController {
     @Body() dto: CommentDto,
   ) {
     return this.service.comment(request.principal, id, dto.body);
+  }
+  @Post('tasks/:id/attachments') attachment(
+    @Req() request: AuthRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AttachmentDto,
+  ) {
+    return this.service.addAttachment(request.principal, id, dto);
   }
   @Post('milestones/:id/close') closeMilestone(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.closeMilestone(request.principal, id);

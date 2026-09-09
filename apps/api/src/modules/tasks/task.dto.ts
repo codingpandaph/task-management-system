@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsUrl,
   Max,
   MaxLength,
   Min,
@@ -118,6 +119,26 @@ export class LinkDto {
 }
 export class CommentDto {
   @IsString() @IsNotEmpty() @MaxLength(5000) body!: string;
+}
+export class AttachmentDto {
+  @IsString() @IsNotEmpty() @MaxLength(160) name!: string;
+  @IsUrl({ protocols: ['https'], require_protocol: true }) @MaxLength(2000) url!: string;
+  @IsString() @IsNotEmpty() @MaxLength(120) mediaType!: string;
+  @Type(() => Number) @IsNumber() @Min(1) @Max(25_000_000) sizeBytes!: number;
+}
+export class SavedViewDto {
+  @IsString() @IsNotEmpty() @MaxLength(80) name!: string;
+  @IsUUID() workspaceId!: string;
+  @IsOptional() @IsString() @MaxLength(200) search?: string;
+  @IsOptional() @IsEnum(TaskPriorityDto) priority?: keyof typeof TaskPriorityDto;
+  @IsOptional() @IsUUID() assigneeId?: string;
+}
+export class BulkTaskDto {
+  @IsArray() @ArrayMaxSize(50) @IsUUID('4', { each: true }) taskIds!: string[];
+  @IsOptional() @IsEnum(TaskPriorityDto) priority?: keyof typeof TaskPriorityDto;
+  @IsOptional() @IsUUID() assigneeId?: string;
+  @IsOptional() @IsBoolean() clearAssignee?: boolean;
+  @IsOptional() @IsUUID() columnId?: string;
 }
 export class MembershipDto {
   @IsUUID() employeeId!: string;

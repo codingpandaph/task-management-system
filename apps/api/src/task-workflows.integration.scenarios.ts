@@ -17,6 +17,51 @@ interface Context {
 export async function registerTaskWorkflowScenarios(suite: TestContext, context: Context) {
   const { actor, db, find, tasks, year } = context;
   const activeMember = await actor('Cameron');
+  await suite.test('saved views, bulk triage, mentions, attachments, and delivery measures remain scoped', async () => {
+    const director = await actor('Jordan');
+    const workspace = await db.workspace.findFirstOrThrow({
+      where: { code: 'ACC' },
+      include: { boards: { include: { columns: true } } },
+    });
+    const board = workspace.boards.find((item) => item.kind === 'KANBAN')!;
+    const initial = board.columns.find((column) => column.isInitial)!;
+    const task = await tasks.createTask(director, {
+      workspaceId: workspace.id,
+      boardId: board.id,
+      title: 'Prototype evidence task',
+      priority: 'LOW',
+      estimatedHours: 2,
+      assigneeId: activeMember.employee.id,
+    });
+    const view = await tasks.saveView(activeMember, {
+      workspaceId: workspace.id,
+      name: 'My urgent work',
+      search: 'evidence',
+      priority: 'HIGH',
+      assigneeId: activeMember.employee.id,
+    });
+    assert.equal((await tasks.savedViews(activeMember, workspace.id))[0]?.id, view.id);
+    assert.equal((await tasks.bulkUpdate(director, { taskIds: [task.id], priority: 'HIGH' })).updated, 1);
+    const comment = await tasks.comment(director, task.id, `Please review @${activeMember.employee.employeeId}`);
+    assert.equal(await db.taskMention.count({ where: { commentId: comment.id } }), 1);
+    assert.equal(
+      await db.notification.count({ where: { recipientId: activeMember.employee.id, type: 'TASK_MENTION' } }),
+      1,
+    );
+    await tasks.addAttachment(director, task.id, {
+      name: 'Technical brief.pdf',
+      url: 'https://example.com/technical-brief.pdf',
+      mediaType: 'application/pdf',
+      sizeBytes: 2048,
+    });
+    const detail = await tasks.detail(activeMember, task.id);
+    assert.equal(detail.attachments[0]?.name, 'Technical brief.pdf');
+    assert.equal(detail.columnId, initial.id);
+    const reports = await tasks.reporting(director);
+    assert.equal(typeof reports[0]?.throughput30Days, 'number');
+    assert.equal(typeof reports[0]?.averageCycleDays, 'number');
+    await tasks.deleteView(activeMember, view.id);
+  });
   await suite.test('board types, collaborators, and sprint lifecycle enforce scope', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });

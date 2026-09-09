@@ -53,6 +53,8 @@ export type TaskReport = {
   estimatedHours: number;
   openMilestones: number;
   capacityRisks: number;
+  throughput30Days: number;
+  averageCycleDays: number;
   memberLoad: { id: string; name: string; tasks: number; hours: number }[];
 };
 export type DepartmentOption = { id: string; name: string; code: string; status: string };

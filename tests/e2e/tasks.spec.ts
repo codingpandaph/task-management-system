@@ -182,3 +182,44 @@ test('authenticated password settings and responsive breakpoints remain usable',
   await page.goto('/change-password');
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test('saved views, bulk triage, mentions, attachments, and delivery measures work in the UI', async ({ page }) => {
+  await signIn(page, users.director);
+  await page.getByRole('link', { name: 'Team boards', exact: true }).click();
+  await createTask(page, 'Operational evidence');
+  await page.getByLabel(/Search Client delivery/).fill('Operational');
+  await page.getByRole('button', { name: 'Save view', exact: true }).click();
+  const saveView = page.getByRole('dialog', { name: 'Save these filters' });
+  await saveView.getByLabel('View name').fill('Evidence work');
+  await saveView.getByRole('button', { name: 'Save changes' }).click();
+  await page.getByLabel('Saved view').click();
+  await expect(page.getByRole('option', { name: 'Evidence work' })).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Bulk update', exact: true }).click();
+  const bulk = page.getByRole('dialog', { name: 'Update several tasks' });
+  await bulk.getByLabel('Tasks').click();
+  await page.getByRole('option', { name: /Operational evidence/ }).click();
+  await page.keyboard.press('Escape');
+  await bulk.getByLabel('Set priority').click();
+  await page.getByRole('option', { name: 'High', exact: true }).click();
+  await bulk.getByRole('button', { name: 'Save changes' }).click();
+
+  await page.getByRole('button', { name: /Operational evidence/ }).click();
+  const detail = page.getByRole('dialog', { name: /Operational evidence/ });
+  await detail.getByLabel('Write a comment').fill('Please review @2026-ACC-000007');
+  await detail.getByLabel('Write a comment').press('Enter');
+  await expect(detail.getByText('Please review @2026-ACC-000007')).toBeVisible();
+  await detail.getByRole('button', { name: 'Add attachment' }).click();
+  const attachment = page.getByRole('dialog', { name: 'Link an attachment' });
+  await attachment.getByLabel('File name').fill('Technical brief.pdf');
+  await attachment.getByLabel('Secure link').fill('https://example.com/technical-brief.pdf');
+  await attachment.getByLabel('File size in bytes').fill('2048');
+  await attachment.getByRole('button', { name: 'Save changes' }).click();
+  await expect(detail.getByRole('link', { name: 'Technical brief.pdf' })).toBeVisible();
+  await detail.getByRole('button', { name: 'Close task' }).click();
+
+  await page.getByRole('link', { name: 'Delivery reports', exact: true }).click();
+  await expect(page.getByText('30-day throughput', { exact: true })).toBeVisible();
+  await expect(page.getByText('Average cycle time', { exact: true }).first()).toBeVisible();
+});

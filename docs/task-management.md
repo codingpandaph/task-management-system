@@ -279,8 +279,22 @@ by the strict `yarn lint` gate.
 
 ## Future improvements / production hardening
 
+The prototype now includes employee-owned saved filters, permission-aware bulk triage for up to 50 tasks, employee-ID
+mentions with protected notifications, HTTPS attachment metadata links, and leadership throughput/cycle-time measures.
+Attachments deliberately link to externally managed files; binary storage, malware scanning, retention, and download
+authorization require a selected production storage provider. Bulk actions reuse ordinary task validation rather than
+bypassing blockers, WIP limits, sign-off, or department scope.
+
 The concise cross-system launch checklist is maintained in the README under **Remaining work**. The items below retain
 the Task Management detail needed for product and technical review.
+
+### Repository automation boundary
+
+Future GitHub/GitLab adapters terminate at an authenticated webhook controller and submit normalized delivery events
+to the existing task service. The adapter owns signature verification, repository mapping, delivery-ID deduplication,
+retry/dead-letter state, and task-key extraction. The domain service owns authorization, valid semantic transitions,
+blocker checks, WIP, Definition of Done, management sign-off, activity, and notifications. Automation cannot update
+task tables directly. Unlinking an installation stops new events without rewriting task history.
 
 - GitHub and GitLab integrations for Engineering/Product workspaces. Signed, idempotent webhooks would map issue,
   branch, pull-request, review, merge, and deployment events to explicit board transitions. Repository rules must never
@@ -291,8 +305,8 @@ the Task Management detail needed for product and technical review.
   de-escalation rules.
 - Add partial cross-team allocation percentages and a conflict visualization; the prototype shifts one employee's full
   daily capacity for overlapping milestone windows.
-- Add board/column editing UI, saved filters, bulk triage, swimlanes, timeline and calendar rendering, recurring work,
-  attachments, mentions, and richer CommonMark features when product demand justifies them.
+- Add board/column editing UI, swimlanes, timeline and calendar rendering, recurring work, managed binary attachments,
+  richer mention discovery, and richer CommonMark features when product demand justifies them.
 - Add task activity and deleted-item browser screens, portfolio trends, throughput/cycle-time charts, forecast accuracy,
   exports, and configurable reporting periods.
 - Add webhook/outbox delivery, shared rate limiting, distributed scheduling, tracing, backup/restore rehearsal, and

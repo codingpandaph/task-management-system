@@ -14,7 +14,12 @@ import { HealthController } from './health.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, cache: true, validate: validateEnvironment }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      ignoreEnvFile: process.env.CONTAINERIZED === 'true',
+      validate: validateEnvironment,
+    }),
     ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,

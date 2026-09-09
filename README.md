@@ -160,6 +160,15 @@ and authorized users can load older audit pages without losing their current rev
 The prototype scope and Simon's required individual, team, and leadership journeys are implemented and covered by the
 acceptance suite. The following work remains before a production launch:
 
+Prototype operational evidence is now included: reproducible Docker images, database-backed readiness, structured
+request IDs and redacted logs, a threat model, an incident runbook, guarded backup/restore verification, dependency and
+secret checks, and CI static verification. See [deployment](docs/deployment.md), [backup recovery](docs/backup-recovery.md),
+[security review](docs/security-threat-model.md), and [incident response](docs/incident-runbook.md).
+
+The prototype proof was exercised locally: both Docker images built, PostgreSQL and API reached healthy state, the web
+login route responded, a custom-format `tms_test` backup restored with 10 employees into an isolated verification
+database, and that disposable database was removed. The high-severity dependency audit returned no suggestions.
+
 - Deploy behind HTTPS with independently managed and rotated secrets.
 - Add shared rate limiting and distributed scheduling for a multi-instance API deployment.
 - Add structured production telemetry, alerting, request tracing, and tested incident runbooks.
@@ -167,8 +176,8 @@ acceptance suite. The following work remains before a production launch:
 - Agree and implement retention, anonymisation, data-subject, and worker-health procedures with the organization.
 - Complete an independent security review, dependency scanning, penetration testing, and deployment rollback rehearsal.
 - Add email or SMS delivery only after notification content, consent, retry, and failure-handling rules are approved.
-- Expand Task Management with saved views, bulk triage, attachments, mentions, repository automation, trend reporting,
-  and exports. Department-configured Kanban, Scrum, and List boards are implemented in the prototype.
+- Expand Task Management with file storage, richer trend history, live repository automation, and exports. Persisted
+  saved views, bulk triage, secure attachment links, mentions, 30-day throughput, and cycle-time reporting are included.
 - Expand HRIS where required with partial-day leave, proration, carry-over, regional calendars, rehire, and delegated
   approval reassignment.
 

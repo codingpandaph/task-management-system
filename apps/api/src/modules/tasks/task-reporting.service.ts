@@ -67,6 +67,19 @@ export abstract class TaskReportingService extends TaskWorkflowService {
         .reduce((sum, task) => sum + task.estimatedHours, 0),
       openMilestones: workspace.milestones.length,
       capacityRisks: workspace.milestones.filter((milestone) => milestone.isOvercapacity).length,
+      throughput30Days: workspace.tasks.filter(
+        (task) => task.completedAt && task.completedAt >= new Date(Date.now() - 30 * 86_400_000),
+      ).length,
+      averageCycleDays: (() => {
+        const completed = workspace.tasks.filter((task) => task.column.isDone);
+        if (!completed.length) return 0;
+        const total = completed.reduce(
+          (sum, task) =>
+            sum + ((task.completedAt?.getTime() ?? task.updatedAt.getTime()) - task.createdAt.getTime()) / 86_400_000,
+          0,
+        );
+        return Math.round((total / completed.length) * 10) / 10;
+      })(),
       memberLoad: Object.values(
         workspace.tasks
           .filter((task) => !task.column.isDone && task.assignee)

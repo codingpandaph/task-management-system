@@ -406,6 +406,11 @@ in a slow headed browser. `yarn demo:e2e` includes that matrix between the broad
 
 ## Future improvements / production hardening
 
+Prototype operational evidence shared by HRIS and Task Management is documented in the README: request IDs and safe
+structured logs, database readiness, threat modeling, incident response, guarded backup/restore verification,
+dependency and secret checks, reproducible containers, and CI. These demonstrate engineering decisions and do not
+claim an independent security assessment, production hosting, or legal approval.
+
 The concise cross-system launch checklist is maintained in the README under **Remaining work**. This section preserves
 the HRIS-specific detail used for architecture and manual review.
 
