@@ -400,6 +400,8 @@ Repository linting limits every source and test file to 300 lines. HR browser jo
 focused scenario files; leave request, workflow, and administrative behavior live in separate composed services.
 The shared ESLint configuration runs common correctness rules, TypeScript recommendations, and the complete Next.js
 React, Hooks, and accessibility rules. Each layer has a dedicated root command for focused manual verification.
+The clean CI runner generates the ignored Prisma client immediately after installation and before every static or build
+gate; a tooling test preserves that required ordering.
 
 Run `yarn demo:e2e` to watch all requester perspectives file leave, complete their exact approval chains, cancel an
 approved request, administer HR records, and hand work from a director to an employee. The command resets once and uses

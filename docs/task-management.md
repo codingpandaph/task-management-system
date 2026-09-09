@@ -248,8 +248,11 @@ full `yarn test:e2e` suite remains the exhaustive automated gate for valid, deni
 cross-browser paths that would make a human-paced demonstration unnecessarily long.
 
 The verified baseline is 29 PostgreSQL integration scenarios, 23 full Chromium journeys shared with HRIS, and one
-critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 14
+critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 15
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
+
+CI generates the ignored Prisma client immediately after its immutable install and before static analysis, unit tests,
+or builds. A tooling regression test enforces this clean-runner requirement.
 
 The repository-wide ESLint configuration caps source and test files at 300 lines. Task-domain modules must use the same
 responsibility-based split as HRIS services and browser scenario files.

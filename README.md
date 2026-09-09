@@ -141,7 +141,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 9 unit tests, 5 tooling tests, 29 real-PostgreSQL integration tests, 23 full
+The current acceptance baseline is 9 unit tests, 6 tooling tests, 29 real-PostgreSQL integration tests, 23 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 
