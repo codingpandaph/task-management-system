@@ -87,9 +87,7 @@ yarn test
 | `yarn test:unit`                | API unit tests                                         |
 | `yarn test:integration`         | Real-PostgreSQL domain, privacy, and concurrency tests |
 | `yarn test:e2e`                 | Playwright browser and API journeys                    |
-| `yarn demo:e2e`                 | Slow headed HRIS, five-role leave, and task tour       |
-| `yarn demo:e2e:leave`           | Slow headed five-role filing and approval matrix       |
-| `yarn demo:e2e:tasks`           | Slow headed task perspectives and delegated creation   |
+| `yarn demo:e2e`                 | One slow headed browser for the complete product tour  |
 | `yarn test`                     | Unit, integration, and E2E acceptance suite            |
 | `yarn db:seed`                  | Explicit guarded fictional demo seed                   |
 
@@ -111,8 +109,9 @@ responsive UI, direct authorization denial, and browser-driven filing plus appro
 matrix. It also covers personal tasks, team boards, task creation, comments, management sign-off,
 and drag-and-drop movement, contextual per-board search, delegated board/ticket creation, self/department
 assignment, authenticated creator reporting, delivery reporting, and
-every defined breakpoint. `yarn demo:e2e` runs the complete paced headed tour; its `:hr`, `:leave`, and `:tasks`
-subcommands run one section. Manual
+every defined breakpoint. `yarn demo:e2e` resets once, opens one Chromium browser with one page, and runs the HR setup,
+five leave perspectives, cancellation, director-to-employee task handoff, and reporting in sequence. A visible guide
+names each role and explains the expected result while the journey pauses between meaningful actions. Manual
 checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
 [docs/task-management.md](docs/task-management.md#complete-manual-acceptance-checklist).
 
@@ -121,7 +120,7 @@ responsive, and automated accessibility path in Chromium, Firefox, and WebKit. U
 `yarn test:e2e:browsers` when isolating one layer. Browser-specific login, People, desktop task-board, and mobile
 task-board baselines provide visual regression coverage for the shared shell and highest-use workspaces.
 
-The current acceptance baseline is 7 unit tests, 4 tooling tests, 25 real-PostgreSQL integration tests, 21 full
+The current acceptance baseline is 9 unit tests, 5 tooling tests, 29 real-PostgreSQL integration tests, 23 full
 Chromium journeys, and 3 critical cross-browser journeys. The cross-browser layer runs in Chromium, Firefox, and
 WebKit; task screens are also exercised below, at, and above every shared breakpoint.
 

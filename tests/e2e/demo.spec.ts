@@ -1,26 +1,16 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { announce, demoChoose as choose, demoSignIn as signIn, demoYear as year } from './demo.helpers';
+import { uiApprove, uiApproveCancellation, uiFileLeave, usernames } from './hr.helpers';
 
 const demoDelay = Number(process.env.DEMO_SLOWMO_MS ?? 900);
-test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? demoDelay : 0 } });
+test.use({
+  actionTimeout: 15_000,
+  launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? demoDelay : 0 },
+  navigationTimeout: 30_000,
+});
 
-const year = new Date().getFullYear();
-const demoPassword = 'Demo only password 2026!';
-
-async function signIn(page: Page, employeeId: string) {
-  await page.goto('/login');
-  await page.getByLabel('Employee ID', { exact: true }).fill(employeeId);
-  await page.getByLabel('Password', { exact: true }).fill(demoPassword);
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
-}
-
-async function choose(page: Page, scope: Locator, label: string, option: string | RegExp) {
-  await scope.getByRole('combobox', { name: label, exact: true }).click();
-  await page.getByRole('option', { name: option, exact: typeof option === 'string' }).click();
-}
-
-test('complete CPSync HRIS demonstration', async ({ page }) => {
-  test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 240_000 : 90_000);
+test('complete CPSync HRIS and task-management demonstration in one browser page', async ({ page }) => {
+  test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 900_000 : 300_000);
   const suffix = Date.now().toString().slice(-6);
   const leavePolicy = `Demo leave ${suffix}`;
   const christmasPolicy = `Demo Christmas ${suffix}`;
@@ -28,6 +18,11 @@ test('complete CPSync HRIS demonstration', async ({ page }) => {
 
   await test.step('run starts from the limited deterministic seed', async () => {
     await signIn(page, `${year}-HR-000004`);
+    await announce(
+      page,
+      'Fresh demonstration data',
+      'One browser and one page will carry the entire tour across roles.',
+    );
     const employees = (await (await page.request.get('/api/employees?pageSize=100')).json()) as { total: number };
     const policies = (await (await page.request.get('/api/policies')).json()) as {
       leave: unknown[];
@@ -89,10 +84,12 @@ test('complete CPSync HRIS demonstration', async ({ page }) => {
   });
 
   await test.step('Senior Director files and cancels auto-approved leave', async () => {
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-    await page.getByLabel('Employee ID', { exact: true }).fill(`${year}-ORG-000001`);
-    await page.getByLabel('Password', { exact: true }).fill(demoPassword);
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await signIn(page, `${year}-ORG-000001`);
+    await announce(
+      page,
+      'Senior Director leave',
+      'This request auto-approves, then cancels without an approval chain.',
+    );
     await page.getByRole('link', { name: 'My leave', exact: true }).click();
 
     const existing = (await (await page.request.get('/api/leave/requests?pageSize=100')).json()) as {
@@ -136,7 +133,6 @@ test('complete CPSync HRIS demonstration', async ({ page }) => {
   });
 
   await test.step('HR reviews the operational HRIS workspace', async () => {
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await signIn(page, `${year}-HR-000004`);
 
     await page.getByRole('link', { name: 'People', exact: true }).click();
@@ -186,5 +182,108 @@ test('complete CPSync HRIS demonstration', async ({ page }) => {
     await page.getByLabel('Search audit history', { exact: true }).fill('LEAVE_CORRECTED');
     await expect(page.getByText('Corrected', { exact: true })).toBeVisible();
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(3_000);
+  });
+
+  await test.step('every employee perspective completes its leave approval path', async () => {
+    const matrix = [
+      {
+        label: 'Employee',
+        requester: usernames.member,
+        day: `${year}-12-07`,
+        approvers: [usernames.director, usernames.hrApprover],
+      },
+      {
+        label: 'Account Director',
+        requester: usernames.director,
+        day: `${year}-12-08`,
+        approvers: [usernames.senior, usernames.hrApprover],
+      },
+      { label: 'HR employee', requester: usernames.hrMember, day: `${year}-12-09`, approvers: [usernames.hr] },
+      { label: 'HR Director', requester: usernames.hr, day: `${year}-12-10`, approvers: [usernames.senior] },
+    ];
+    let memberRequest = '';
+    for (const flow of matrix) {
+      await signIn(page, flow.requester);
+      await announce(
+        page,
+        `${flow.label} files leave`,
+        `The system snapshots the correct ${flow.approvers.length}-step approval path.`,
+      );
+      await uiFileLeave(page, flow.day);
+      await expect(page).toHaveURL(/\/leave\/[^/]+$/);
+      const requestUrl = page.url();
+      if (flow.requester === usernames.member) memberRequest = requestUrl;
+      for (const approver of flow.approvers) {
+        await signIn(page, approver);
+        await announce(page, 'Approver decision', 'Only the current assigned approver can take this action.');
+        await uiApprove(page, flow.day);
+      }
+      await signIn(page, flow.requester);
+      await page.goto(requestUrl);
+      await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
+    }
+    await signIn(page, usernames.member);
+    await page.goto(memberRequest);
+    await page.getByRole('button', { name: 'Request cancellation', exact: true }).click();
+    const cancellation = page.getByRole('dialog', { name: 'Request leave cancellation' });
+    await cancellation.getByLabel('Cancellation reason', { exact: true }).fill('Plans changed');
+    await cancellation.getByRole('button', { name: 'Request cancellation', exact: true }).click();
+    for (const approver of [usernames.director, usernames.hrApprover]) {
+      await signIn(page, approver);
+      await uiApproveCancellation(page, `${year}-12-07`);
+    }
+    await signIn(page, usernames.member);
+    await page.goto(memberRequest);
+    await expect(page.getByText('Cancelled', { exact: true }).first()).toBeVisible();
+  });
+
+  await test.step('director assigns work and employee advances it on the same page', async () => {
+    await signIn(page, usernames.director);
+    await announce(
+      page,
+      'Account Director workspace',
+      'The director delegates creation, assigns work, and keeps reporter ownership.',
+    );
+    await page.getByRole('link', { name: 'Department', exact: true }).click();
+    for (const label of ['Create boards', 'Create tasks'] as const) {
+      const toggle = page.getByRole('switch', { name: `${label} for Alex Finch`, exact: true });
+      if (!(await toggle.isChecked())) await toggle.click();
+    }
+    await page.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await page.getByRole('button', { name: 'Create task', exact: true }).click();
+    const create = page.getByRole('dialog', { name: 'Create a task' });
+    await create.getByLabel('Task title').fill(`Single-browser handoff ${suffix}`);
+    await create.getByLabel('Description').fill('Assigned by the director and completed through the employee view.');
+    await create.getByLabel('Assignee').click();
+    await page.getByRole('option', { name: 'Alex Finch', exact: true }).click();
+    await create.getByRole('button', { name: 'Create task', exact: true }).click();
+
+    await signIn(page, usernames.member);
+    await announce(
+      page,
+      'Employee perspective',
+      'Alex sees only assigned work and updates the shared task without impersonation.',
+    );
+    await page.getByRole('link', { name: 'My tasks', exact: true }).click();
+    await page.getByLabel('Search my tasks').fill(`Single-browser handoff ${suffix}`);
+    await page.getByRole('button', { name: new RegExp(`Single-browser handoff ${suffix}`) }).click();
+    const detail = page.getByRole('dialog');
+    await detail.getByLabel('Write a comment').fill('Work has started and is ready for review.');
+    await detail.getByLabel('Write a comment').press('Enter');
+    await detail.getByLabel('Move to').click();
+    await page.getByRole('option', { name: 'In progress', exact: true }).click();
+    await expect(detail.getByText('Work has started and is ready for review.')).toBeVisible();
+    await detail.getByRole('button', { name: 'Close task' }).click();
+
+    await signIn(page, usernames.director);
+    await page.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await expect(page.getByLabel('Drop tasks in In progress')).toContainText(`Single-browser handoff ${suffix}`);
+    await page.getByRole('link', { name: 'Delivery reports', exact: true }).click();
+    await announce(
+      page,
+      'Leadership reporting',
+      'The same work now contributes to team throughput, workload, and cycle-time reporting.',
+    );
+    await expect(page.getByText('30-day throughput', { exact: true })).toBeVisible();
   });
 });

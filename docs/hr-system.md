@@ -401,8 +401,11 @@ focused scenario files; leave request, workflow, and administrative behavior liv
 The shared ESLint configuration runs common correctness rules, TypeScript recommendations, and the complete Next.js
 React, Hooks, and accessibility rules. Each layer has a dedicated root command for focused manual verification.
 
-Run `yarn demo:e2e:leave` to watch all five requester perspectives file leave and complete their exact approval chains
-in a slow headed browser. `yarn demo:e2e` includes that matrix between the broader HRIS and task-management tours.
+Run `yarn demo:e2e` to watch all requester perspectives file leave, complete their exact approval chains, cancel an
+approved request, administer HR records, and hand work from a director to an employee. The command resets once and uses
+one headed Chromium browser, one context, and one page for the full tour. It signs out between roles so every screen is
+rendered with that employee's real backend and route permissions. On-screen narration and deliberate pauses make the
+role changes and expected outcomes reviewable.
 
 ## Future improvements / production hardening
 

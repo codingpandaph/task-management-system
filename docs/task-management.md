@@ -233,19 +233,22 @@ Inaccessible cross-department resources return Not Found where appropriate to av
 10. Open **Delivery reports** as the Account Director and confirm Client Services reporting reflects current ownership
     and completion. Search by department, verify the no-results recovery state, then return to Client Services.
 
-This journey uses independent browser contexts so the manager and employee each use their own authenticated permissions
-instead of sharing state or impersonating one another.
+The automated visible version uses one browser page and signs out between the manager and employee. Each perspective
+therefore receives a fresh authenticated session with its own permissions while the reviewer follows one continuous
+screen.
 
 ## Complete manual acceptance checklist
 
 Start with `yarn dev:fresh`, open `http://localhost:3000`, and use the fictional credentials in README. The limited test
 seed uses the same key roles and resets `tms_test` before each Playwright layer.
 
-For an automated visible tour, run `yarn demo:e2e:tasks`. Run `yarn demo:e2e` to include the HRIS setup and every leave
-requester/approver perspective before the task journeys.
+For an automated visible tour, run `yarn demo:e2e`. It resets once and uses one headed Chromium page for HRIS setup,
+every leave requester and approver, cancellation, the director-to-employee task handoff, and delivery reporting. The
+full `yarn test:e2e` suite remains the exhaustive automated gate for valid, denied, validation, responsive, and
+cross-browser paths that would make a human-paced demonstration unnecessarily long.
 
-The verified baseline is 25 PostgreSQL integration scenarios, 21 full Chromium journeys shared with HRIS, and one
-critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 11
+The verified baseline is 29 PostgreSQL integration scenarios, 23 full Chromium journeys shared with HRIS, and one
+critical responsive/accessibility journey in each of Chromium, Firefox, and WebKit. Unit and tooling gates add 14
 focused checks. Every browser layer begins from a fresh, limited `tms_test` seed.
 
 The repository-wide ESLint configuration caps source and test files at 300 lines. Task-domain modules must use the same

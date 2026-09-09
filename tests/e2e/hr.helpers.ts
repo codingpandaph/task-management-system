@@ -64,6 +64,7 @@ export async function uiApprove(page: Page, day: string) {
   await expect(dialog.getByRole('button', { name: 'Reject', exact: true })).toBeVisible();
   await expect(dialog.getByRole('combobox', { name: 'Decision', exact: true })).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Approve', exact: true }).click();
+  await expect(dialog).toBeHidden();
 }
 
 export async function uiApproveCancellation(page: Page, day: string) {
@@ -79,4 +80,5 @@ export async function uiApproveCancellation(page: Page, day: string) {
   await expect(dialog.getByLabel('Reason (required for rejection)', { exact: true })).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Reject cancellation', exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Approve cancellation', exact: true }).click();
+  await expect(dialog).toBeHidden();
 }

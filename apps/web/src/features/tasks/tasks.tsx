@@ -64,7 +64,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
       Promise.all([
         loadWorkspaces(),
         api<TaskContract[]>('tasks/mine').then(setMine),
-        api<TaskReport[]>('tasks/reporting').then(setReports),
+        ...(path === '/task-reports' ? [api<TaskReport[]>('tasks/reporting').then(setReports)] : []),
         ...(path === '/task-archive' ? [api<TaskContract[]>('tasks/archived').then(setArchived)] : []),
       ])
         .catch((cause) => setError(message(cause)))
@@ -98,7 +98,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
       loadWorkspaces(),
       loadBoard(),
       api<TaskContract[]>('tasks/mine').then(setMine),
-      api<TaskReport[]>('tasks/reporting').then(setReports),
+      ...(path === '/task-reports' ? [api<TaskReport[]>('tasks/reporting').then(setReports)] : []),
       ...(path === '/task-archive' ? [api<TaskContract[]>('tasks/archived').then(setArchived)] : []),
     ]);
   }
