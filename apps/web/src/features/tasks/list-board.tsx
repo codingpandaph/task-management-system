@@ -6,6 +6,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import type { TaskContract } from '@tms/contracts';
+import { SortHeader, useTableSort } from '../hr/sorting';
 import { StatusTag, Tag } from '../hr/ui';
 import { personName } from './task-card';
 import { priorityTone, type BoardResponse } from './task-types';
@@ -15,32 +16,56 @@ export function ListBoard({
   tasks,
   selectTask,
 }: {
-  board: BoardResponse;
+  board?: BoardResponse;
   tasks: TaskContract[];
   selectTask: (id: string) => void;
 }) {
+  const sort = useTableSort('Due date');
+  const ordered = sort.sorted(tasks, (task, key) => {
+    switch (key) {
+      case 'Task':
+        return task.title;
+      case 'Status':
+        return task.column.name;
+      case 'Assignee':
+        return task.assignee ? personName(task.assignee) : null;
+      case 'Reporter':
+        return personName(task.reporter);
+      case 'Priority':
+        return { HIGH: 0, MEDIUM: 1, LOW: 2 }[task.priority];
+      case 'Workspace':
+        return task.workspace.name;
+      default:
+        return task.dueDate;
+    }
+  });
   return (
-    <TableContainer>
-      <Table aria-label={`${board.board.name} tasks`}>
+    <TableContainer tabIndex={0} role="region" aria-label="Scrollable task list">
+      <Table aria-label={board ? `${board.board.name} tasks` : 'My tasks'}>
         <TableHead>
           <TableRow>
-            <TableCell>Task</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell>Assignee</TableCell>
-            <TableCell>Reporter</TableCell>
-            <TableCell>Priority</TableCell>
-            <TableCell>Due date</TableCell>
+            {['Task', 'Status', ...(board ? [] : ['Workspace']), 'Assignee', 'Reporter', 'Priority', 'Due date'].map(
+              (label) => (
+                <SortHeader key={label} label={label} column={label} sort={sort} />
+              ),
+            )}
           </TableRow>
         </TableHead>
         <TableBody>
-          {tasks.map((task) => (
+          {ordered.map((task) => (
             <TableRow key={task.id} hover>
               <TableCell>
-                <Button onClick={() => selectTask(task.id)}>{task.title}</Button>
+                <Button
+                  sx={{ textAlign: 'left', justifyContent: 'flex-start', minWidth: 180 }}
+                  onClick={() => selectTask(task.id)}
+                >
+                  {task.publicKey} · {task.title}
+                </Button>
               </TableCell>
               <TableCell>
                 <StatusTag value={task.column.name} />
               </TableCell>
+              {!board && <TableCell>{task.workspace.name}</TableCell>}
               <TableCell>{personName(task.assignee)}</TableCell>
               <TableCell>{personName(task.reporter)}</TableCell>
               <TableCell>

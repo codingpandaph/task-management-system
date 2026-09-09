@@ -164,8 +164,8 @@ export function registerCoreScenarios() {
   test('ordinary employee cannot enter HR screens; calendar stays responsive', async ({ page }) => {
     await login(page.request, usernames.member);
     await page.goto('/employees');
-    await expect(page.getByRole('heading', { name: 'People', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Create employee', exact: true })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('link', { name: 'People', exact: true })).toHaveCount(0);
     expect((await page.request.get('/api/employees')).status()).toBe(403);
     await page.goto('/hr');
     await expect(page).toHaveURL(/\/$/);
@@ -173,7 +173,7 @@ export function registerCoreScenarios() {
     await page.goto('/calendar');
     for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      await expect(page.getByRole('heading', { name: 'Who’s out', exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Leave calendar', exact: true }).first()).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
   });
@@ -184,13 +184,13 @@ export function registerCoreScenarios() {
         user: usernames.member,
         role: 'MEMBER',
         visible: ['My tasks'],
-        hidden: ['Approvals', 'Delivery reports', 'Leave administration'],
+        hidden: ['People', 'Approvals', 'Delivery reports', 'Leave administration'],
       },
       {
         user: usernames.director,
         role: 'ACCOUNT_DIRECTOR',
         visible: ['Approvals', 'Delivery reports'],
-        hidden: ['Leave administration', 'Audit log'],
+        hidden: ['People', 'Leave administration', 'Audit log'],
       },
       {
         user: usernames.hrMember,

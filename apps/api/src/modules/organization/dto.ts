@@ -24,6 +24,9 @@ export enum TaskManagementTypeDto {
   LIST = 'LIST',
 }
 export class PageDto {
+  @IsOptional() @IsIn(['name', 'employeeId', 'department', 'position']) sortBy?:
+    'name' | 'employeeId' | 'department' | 'position';
+  @IsOptional() @IsIn(['asc', 'desc']) sortDirection: 'asc' | 'desc' = 'asc';
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
   @IsOptional() @IsString() @MaxLength(100) search?: string;

@@ -18,8 +18,7 @@ The shared RBAC model gives Members personal and department-scoped work, Account
 department workspace, HR roles only their applicable people-operation capabilities, and the Senior Director full task
 and organization access. UI visibility mirrors the effective capability set, while API resource policies enforce the
 department and assignment boundary on every operation.
-Restricted task routes use the shared access-denied recovery screen. Cross-department assignment still requires an
-authorized milestone window, and management actions remain scoped to the Account Director’s department unless the
+Restricted task routes redirect to Overview. Cross-department assignment is rejected, and management actions remain scoped to the Account Director’s department unless the
 actor is the Senior Director.
 Shared navigation and action styling guarantees white text on evergreen primary buttons, including buttons rendered as
 links. Task and HRIS surfaces use the same contrast rule and responsive action hierarchy.
@@ -37,6 +36,9 @@ The three primary experiences are:
 
 Position-derived access gives Account Directors and the Senior Director task and board creation automatically. A
 director can grant or revoke **Create tickets** and **Create boards** independently for a base workspace member.
+All active members automatically discover and access every active board in their own department, including new boards.
+They can comment and move tickets without either creation grant, subject to blockers, WIP limits, and sign-off.
+There is no collaborator setup or board-access grant. Legacy capacity memberships do not grant cross-department access.
 Members may assign tasks to themselves or another active employee in their department; cross-team assignment is
 rejected. The Senior Director can see and manage every workspace and receives
 escalated-task notifications. Every API checks current HRIS eligibility and the current membership grant. The Next.js
@@ -75,9 +77,10 @@ renderer creates React elements, never executes embedded HTML, and accepts only 
 
 Board cards and reports use short one-word pills such as **High**, **Signed**, **Escalated**, and **Progress**. Counts use
 adjacent numerals so the tag itself remains one word. The underlying complete value remains available as the pill title.
-My tasks can be filtered by text, workflow status, and priority. Team boards add assignee filtering, including an
+My tasks is a sortable list, filtered by text, workflow status, and priority. Column headings toggle ascending and
+descending order; absent due dates remain last. Team boards add assignee filtering, including an
 explicit Unassigned view, while Delivery reports can be searched by department name or code. Board search is named for
-the selected board and searches only that board. Actions, board navigation, search, filters, milestones, and columns sit
+the selected board and searches only that board. Actions, board navigation, search, filters, Scrum-only milestones, and columns sit
 inside one active workspace surface, so users do not hunt across detached action panels. Every filter group has a
 single clear action and a useful no-results state. My Tasks and Delivery Reports follow the same pattern rather than
 placing search controls between unrelated panels. Changing workspace, board, or tab clears filters that no longer
@@ -109,18 +112,18 @@ work, escalations, and capacity risks. Each team card then shows workflow distri
 milestones, and the five highest active workloads by employee. Account Directors receive the same detail for their own
 department. Task detail renders the immutable activity ledger as a readable actor/action/change timeline.
 
-Milestones define a goal, start date, due instant, Open/Closed state, and overcapacity flag. Closing a milestone moves
-unfinished tasks to the next chronological open milestone in the same workspace, or removes the milestone when no next
-cycle exists. Completed tasks retain their historical milestone.
+Each Scrum board has exactly one milestone, created with the board. It defines a goal, date-only start and due dates,
+Open/Closed state, and overcapacity flag. Scrum tasks use their board milestone automatically. Closing it removes the
+milestone from unfinished tasks; completed tasks retain their historical milestone.
 
 ## Capacity and HRIS lifecycle integration
 
 Milestone capacity is calculated from active department employees plus explicit milestone memberships:
 
-`available hours = active collaborators × business days × 8 − approved leave days × 8`
+`available hours = active team members × business days × 8 − approved leave days × 8`
 
 Business days use the HRIS England and Wales calendar. Approved `LeaveRequestDay` records deduct eight hours. Planned
-hours are estimates of unfinished, non-deleted milestone tasks. Results include collaborators, business days, leave,
+hours are estimates of unfinished, non-deleted milestone tasks. Results include team members, business days, leave,
 An explicit milestone membership can add an employee from another department for an effective window. During an
 overlap, the employee is removed from home-team milestone capacity and added to the borrowing milestone, shifting the
 full eight-hour daily contribution without duplicating capacity.
@@ -139,20 +142,20 @@ deletes to this log. Comments and task changes also emit activity entries.
 
 ## REST API
 
-| Area          | Endpoints                                                                      |
-| ------------- | ------------------------------------------------------------------------------ |
-| Workspaces    | `GET/POST /api/task-workspaces`, board, membership, and milestone creation     |
-| Boards        | Board read/create, department collaborators, and Scrum sprint actions          |
-| Personal work | `GET /api/tasks/mine`                                                          |
-| Tasks         | `POST /api/tasks`, `GET/PATCH/DELETE /api/tasks/:id`, restore and move actions |
-| Collaboration | Comments and dependency links under `/api/tasks/:id`                           |
-| Governance    | Management approval and escalation actions under `/api/tasks/:id`              |
-| Milestones    | Close and capacity endpoints under `/api/milestones/:id`                       |
-| Reporting     | `GET /api/tasks/reporting` scoped by current HRIS position                     |
+| Area          | Endpoints                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| Workspaces    | `GET/POST /api/task-workspaces`, board creation with a Scrum milestone, and membership changes |
+| Boards        | Department board read/create and Scrum sprint actions                                          |
+| Personal work | `GET /api/tasks/mine`                                                                          |
+| Tasks         | `POST /api/tasks`, `GET/PATCH/DELETE /api/tasks/:id`, restore and move actions                 |
+| Collaboration | Comments and dependency links under `/api/tasks/:id`                                           |
+| Governance    | Management approval and escalation actions under `/api/tasks/:id`                              |
+| Milestones    | Close and capacity endpoints under `/api/milestones/:id`                                       |
+| Reporting     | `GET /api/tasks/reporting` scoped by current HRIS position                                     |
 
 Department settings are available through `GET /api/departments/:id` and
-`PATCH /api/departments/:id/task-settings`. Board collaborators use
-`POST /api/task-boards/:id/collaborators`; Scrum uses board sprint creation plus explicit activate and complete actions.
+`PATCH /api/departments/:id/task-settings`. The obsolete board collaborator endpoint has been removed.
+Scrum uses board sprint creation plus explicit activate and complete actions.
 
 ## Current department workflows
 
@@ -201,8 +204,9 @@ active views and WIP counts.
    capability-based administration, and remains blocked from Senior-Director-only governance.
 3. **Account Director (2 minutes):** Open Department, set the Kanban limit to 2, enable Create boards and Create tasks for
    one member, and show another member without those permissions.
-4. **Board controls (1 minute):** Create a board and show that Client Services offers Kanban and Scrum but not List. Add a
-   collaborator and show that only Client Services employees appear.
+4. **Board controls (1 minute):** Create a board and show that Client Services offers Kanban and Scrum but not List.
+   Sign in as a department member without creation grants: the new board is already visible and its tickets can be
+   commented on or moved; Create task and New board remain unavailable.
 5. **Task identity (1 minute):** Create an unassigned task with Markdown-style description and due date. Show the automatic
    reporter, then assign a same-department employee.
 6. **WIP (3 minutes):** Drag two tasks for Alex into In progress, show 2/2, and demonstrate the third rejection. Move one
@@ -210,7 +214,7 @@ active views and WIP counts.
 7. **Scrum and List (2 minutes):** Create and activate a valid Scrum sprint, briefly show date validation, then switch to
    HR’s plain List table.
 8. **Security and archive (1 minute):** Show an Account Director denied from another department, mention server-side
-   assignee/collaborator/type/reporter checks, archive a task, and restore it from Task archive.
+   department-access/assignee/type/reporter checks, archive a task, and restore it from Task archive.
 9. **Account and evidence (1 minute):** Open Password from the authenticated header, point out confirmation, then mention
    the PostgreSQL integration tests, Playwright role journeys, breakpoint loop, audit history, and UK GDPR projections.
 
@@ -268,13 +272,13 @@ responsibility-based split as HRIS services and browser scenario files.
 | Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                            | PostgreSQL integration                       |
 | Escalation           | Account Director             | Open task and choose **Escalate**; Senior Director opens its notification     | Flag appears; unread count updates and the notification opens that task | Playwright deep-link and service integration |
 | Team view            | Account Director             | Open **Team boards**, switch boards, search and drag a card                   | Search follows the selected board; the move persists                    | Playwright and authorization logic           |
-| Workspace management | Senior/Account Director      | Provision workspace; create board/milestone; add a collaborator               | Correct templates and scoped management changes persist                 | Playwright director; template integration    |
+| Workspace management | Senior/Account Director      | Provision workspace; create a board and its required Scrum milestone          | Correct templates and scoped management changes persist                 | Playwright director; template integration    |
 | Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities   | Playwright and PostgreSQL integration        |
 | Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, and confirm the reporter   | Creator is the immutable reporter; selected colleague persists          | Playwright and PostgreSQL integration        |
 | Leadership report    | Senior Director              | Open **Delivery reports** and compare portfolio and team workload cards       | Both teams show completion, blockers, risks, workflow, hours and load   | Playwright reporting/breakpoints             |
 | Activity timeline    | Any task participant         | Open a task after creating, editing, moving, or assigning it                  | Actor, action, changed field, prior/new value and time remain readable  | Playwright journey and immutable ledger      |
 | Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity         | PostgreSQL integration                       |
-| Milestone rollover   | Account Director             | Create two milestones, assign work to first, close it                         | Incomplete work moves to next or becomes unbound                        | PostgreSQL integration                       |
+| Milestone closure    | Account Director             | Close a Scrum board milestone with unfinished work                            | Incomplete work becomes unbound; completed work keeps its history       | PostgreSQL integration                       |
 | Soft delete/restore  | Reporter then manager        | Archive, verify hidden, restore                                               | Card returns to prior column; logs remain                               | PostgreSQL integration                       |
 | Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain            | PostgreSQL integration                       |
 | Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable        | Playwright breakpoint loop                   |
@@ -317,3 +321,37 @@ task tables directly. Unlinking an installation stops new events without rewriti
   exports, and configurable reporting periods.
 - Add webhook/outbox delivery, shared rate limiting, distributed scheduling, tracing, backup/restore rehearsal, and
   organization-approved retention policies before production deployment.
+
+## UI feedback and department access acceptance
+
+Prerequisites: active Senior Director, Account Director, a same-department member, an outside-department member, and
+at least two assigned tasks. Use `tests/e2e/ui-feedback.spec.ts` with the affected task journeys for automated coverage.
+
+- [ ] **Default board access:** As Account Director, open Department and disable Create tasks and Create boards for
+      the member. Open Team boards and create a new board and unassigned ticket. Sign in as that member: the new board
+      is visible immediately without invitations or collaborator setup. Open the ticket, post a comment, and move it to
+      In progress. Verify the comment and lane persist. Existing WIP, dependency and management-sign-off failures still
+      prevent invalid transitions. Another department’s member cannot open the board or ticket by direct URL/API.
+- [ ] **Separate creation permissions:** With both switches off, Create task and New board are absent and direct
+      create requests are denied. Enable only Create tasks: ticket creation succeeds and board creation stays denied.
+      Enable only Create boards: board creation succeeds and ticket creation stays denied. Directors retain creation
+      abilities for their scope; the Senior Director can work across departments.
+- [ ] **Board layout and context:** Open Team boards. The selected board’s toolbar appears directly below the page
+      heading, without a duplicate introduction panel or collaborator controls. Switch Kanban → Scrum → List. Only
+      Kanban shows the per-person WIP limit; only Scrum shows its milestone and sprint controls.
+      Expand Saved views and bulk actions when needed; saved filters and bulk triage remain functional.
+- [ ] **Scrum dates and task form:** Create a Scrum board with a milestone name, goal, start date, and later due date.
+      Both inputs use calendar dates with no time field. Equal or reversed dates fail validation. Create task defaults
+      to the selected board and shows its assigned milestone on Scrum. There is no milestone picker or separate create
+      action because each Scrum board owns one milestone. Switch the form to Kanban/List: the milestone notice disappears.
+- [ ] **My tasks and tables:** Open My tasks as a member. Assigned work is a table, with text/status/priority filters
+      and clear-filter behavior. Click each column twice to reverse sorting; priority follows High/Medium/Low and missing
+      due dates remain last. Open a task using its title. List boards use the same sortable table. At narrow widths,
+      scroll the table within its container without widening the page; use keyboard focus and Enter to open and sort.
+- [ ] **Responsive/browser checks:** Repeat Organization, Department, My tasks, Team boards, Policies, People, and
+      Leave calendar at 375, 599/600/601, 768, 899/900/901, 1199/1200/1201, 1440, and 1535/1536/1537 pixels. Check mobile
+      navigation and keyboard actions, contained overflow, readable states, and console errors. The HR document records
+      the matching policy, department settings, People restrictions, and personal/department/organization calendar flows.
+
+The old BoardCollaborator storage is retained only as historical data; application access no longer reads or writes it.
+Milestone capacity still accounts for its existing effective-dated planning memberships; those are not board access.

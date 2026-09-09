@@ -18,9 +18,11 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Card, EmptyState, ModalForm, Tag } from './ui';
 import type { Department } from './organization-types';
+import { SortHeader } from './sorting';
 import { plainName } from './plain-language';
 
 export function OrganizationDirectoryView({
+  sort,
   can,
   christmasOptions,
   credentialDialog,
@@ -41,6 +43,7 @@ export function OrganizationDirectoryView({
   setStatus,
   status,
 }: {
+  sort: { key: string; direction: 'asc' | 'desc'; toggle: (key: string) => void };
   can: (permission: CurrentEmployee['permissions'][number]) => boolean;
   christmasOptions: { value: string; label: string }[];
   credentialDialog: ReactNode;
@@ -110,7 +113,7 @@ export function OrganizationDirectoryView({
           ) : undefined
         }
       >
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ mb: 3, flexWrap: 'wrap' }}>
           <TextField
             label="Search people"
             placeholder="Name or Employee ID"
@@ -187,8 +190,13 @@ export function OrganizationDirectoryView({
           <Table>
             <TableHead>
               <TableRow>
-                {['Name', 'Employee ID', 'Department', 'Position'].map((h) => (
-                  <TableCell key={h}>{h}</TableCell>
+                {[
+                  ['name', 'Name'],
+                  ['employeeId', 'Employee ID'],
+                  ['department', 'Department'],
+                  ['position', 'Position'],
+                ].map(([column, label]) => (
+                  <SortHeader key={column} label={label} column={column} sort={sort} />
                 ))}
               </TableRow>
             </TableHead>

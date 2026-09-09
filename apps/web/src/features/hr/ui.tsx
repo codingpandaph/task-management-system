@@ -1,133 +1,20 @@
 'use client';
-import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useState, type ReactElement } from 'react';
 import type { Field, FormResult, SubmitAction } from './ui-types';
+import { Form } from './ui-form';
+export { Form } from './ui-form';
 
 export type { Field, FormResult, SubmitAction } from './ui-types';
 export { Card } from './ui-card';
-export function Form({
-  fields,
-  onSubmit,
-  label = 'Save',
-  actions,
-}: {
-  fields: Field[];
-  onSubmit: (values: Record<string, string | number>) => Promise<void | FormResult>;
-  label?: string;
-  actions?: SubmitAction[];
-}) {
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [success, setSuccess] = useState(''),
-    [values, setValues] = useState<Record<string, string | number>>(() =>
-      Object.fromEntries(fields.map((field) => [field.name, field.value ?? ''])),
-    );
-  const visibleFields = fields.filter(
-    (field) => !field.showWhen || field.showWhen.values.includes(String(values[field.showWhen.field] ?? '')),
-  );
-  return (
-    <form
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setBusy(true);
-        setError('');
-        setSuccess('');
-        const data = new FormData(event.currentTarget);
-        const values: Record<string, string | number> = {};
-        for (const field of visibleFields) {
-          const value = field.multiple
-            ? data.getAll(field.name).map(String).join(',')
-            : String(data.get(field.name) ?? '');
-          if (value !== '' || !field.optional) values[field.name] = field.type === 'number' ? Number(value) : value;
-        }
-        const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-        if (submitter?.name) values[submitter.name] = submitter.value;
-        try {
-          const result = await onSubmit(values);
-          const notice = result?.notice ?? 'Changes saved successfully';
-          if (result?.close === false) setSuccess(notice);
-          else window.dispatchEvent(new CustomEvent('hris:notice', { detail: notice }));
-        } catch (e) {
-          setError(e instanceof Error ? e.message : 'Unable to save');
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Stack spacing={2}>
-        {visibleFields.map((f) => (
-          <TextField
-            key={`${f.name}:${f.value ?? ''}`}
-            name={f.name}
-            label={f.label}
-            type={f.type ?? 'text'}
-            defaultValue={
-              f.multiple
-                ? String(f.value ?? '')
-                    .split(',')
-                    .filter(Boolean)
-                : (f.value ?? '')
-            }
-            onChange={(event) =>
-              setValues((current) => ({
-                ...current,
-                [f.name]: Array.isArray(event.target.value) ? event.target.value.join(',') : event.target.value,
-              }))
-            }
-            required={!f.optional}
-            select={!!f.options}
-            fullWidth
-            slotProps={{
-              inputLabel: { shrink: true },
-              htmlInput: { 'aria-label': f.label },
-              select: { multiple: f.multiple, inputProps: { 'aria-label': f.label } },
-            }}
-          >
-            {f.options?.map((o) => (
-              <MenuItem key={o.value} value={o.value}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        ))}
-        {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
-        {actions ? (
-          <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1} sx={{ justifyContent: 'flex-end' }}>
-            {actions.map((action) => (
-              <Button
-                key={action.value}
-                type="submit"
-                name="action"
-                value={action.value}
-                variant={action.variant ?? 'outlined'}
-                color={action.color ?? 'primary'}
-                disabled={busy}
-              >
-                {busy ? 'Working…' : action.label}
-              </Button>
-            ))}
-          </Stack>
-        ) : (
-          <Button type="submit" variant="contained" disabled={busy}>
-            {busy ? 'Saving…' : label}
-          </Button>
-        )}
-      </Stack>
-    </form>
-  );
-}
 const tagLabels: Record<string, string> = {
   ACCOUNT_DIRECTOR: 'Director',
   SENIOR_DIRECTOR: 'Senior',

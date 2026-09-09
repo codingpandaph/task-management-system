@@ -36,9 +36,9 @@ export function OrganizationPoliciesView({
         title="Policy catalogue"
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            {can('LEAVE_POLICY_MANAGE') && (
+            {tab === 0 && can('LEAVE_POLICY_MANAGE') && (
               <ModalForm
-                buttonLabel="Create leave policy"
+                buttonLabel="Create"
                 icon={<AddOutlined />}
                 title="Create leave policy"
                 variant="contained"
@@ -50,11 +50,12 @@ export function OrganizationPoliciesView({
                 onSubmit={(v) => save('leave-policies', v)}
               />
             )}
-            {can('CHRISTMAS_POLICY_MANAGE') && (
+            {tab === 1 && can('CHRISTMAS_POLICY_MANAGE') && (
               <ModalForm
-                buttonLabel="Create Christmas policy"
+                buttonLabel="Create"
                 icon={<AddOutlined />}
                 title="Create Christmas policy"
+                variant="contained"
                 fields={[
                   { name: 'name', label: 'Policy name' },
                   { name: 'days', label: 'Days', type: 'number' },

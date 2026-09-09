@@ -55,7 +55,7 @@ export function registerManagementScenarios() {
     await page.getByRole('tab', { name: /Cancellations/ }).click();
     await expect(page.getByLabel('Search cancellations', { exact: true })).toBeVisible();
 
-    await page.getByRole('link', { name: 'Who’s out', exact: true }).click();
+    await page.getByRole('link', { name: 'Leave calendar', exact: true }).click();
     await expect(page.getByLabel('Calendar department', { exact: true })).toBeVisible();
   });
 

@@ -591,3 +591,22 @@ a:not(.MuiButton-root) {
     grid-template-columns: 1fr;
   }
 }
+
+.board-tools > summary,
+.department-actions > summary {
+  cursor: pointer;
+  color: var(--color-evergreen);
+  font-weight: 600;
+  min-height: 44px;
+  padding-block: 12px;
+}
+.board-tools[open] > summary,
+.department-actions[open] > summary {
+  margin-bottom: 8px;
+}
+.board-tools {
+  margin-bottom: 16px;
+}
+.MuiTableSortLabel-root {
+  min-height: 44px;
+}

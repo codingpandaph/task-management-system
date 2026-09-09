@@ -61,8 +61,8 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
     const senior = await seniorContext.newPage();
     await signIn(senior, users.senior);
     await senior.getByRole('link', { name: 'Organization', exact: true }).click();
-    await expect(senior.getByText('Employees', { exact: true })).toBeVisible();
-    await expect(senior.getByText('Boards', { exact: true })).toBeVisible();
+    await expect(senior.getByRole('heading', { name: 'Departments and leadership' })).toBeVisible();
+    await senior.locator('.department-actions > summary').first().click();
     await senior.getByRole('link', { name: 'View department' }).first().click();
     await expect(senior).toHaveURL(/\/departments\//);
     await expect(senior.getByRole('heading', { name: 'Department', exact: true })).toBeVisible();
@@ -90,6 +90,10 @@ test('Account Director configures workflows, delegates access, and creates a typ
   await expect(page.getByRole('option', { name: 'Scrum' })).toBeVisible();
   await expect(page.getByRole('option', { name: 'List' })).toHaveCount(0);
   await page.getByRole('option', { name: 'Scrum' }).click();
+  await dialog.getByLabel('Milestone name').fill('Client delivery milestone');
+  await dialog.getByLabel('Milestone goal').fill('Deliver the client sprint outcomes');
+  await dialog.getByLabel('Milestone start date').fill('2026-09-01');
+  await dialog.getByLabel('Milestone due date').fill('2026-09-30');
   await dialog.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByRole('tab', { name: 'Client sprint' })).toBeVisible();
 });
@@ -128,6 +132,10 @@ test('Scrum validates and runs a sprint while HR renders a plain List board', as
       await board.getByLabel('Board name').fill('Client sprint');
       await board.getByLabel('Board type').click();
       await director.getByRole('option', { name: 'Scrum', exact: true }).click();
+      await board.getByLabel('Milestone name').fill('Client delivery milestone');
+      await board.getByLabel('Milestone goal').fill('Deliver the client sprint outcomes');
+      await board.getByLabel('Milestone start date').fill('2026-09-01');
+      await board.getByLabel('Milestone due date').fill('2026-09-30');
       await board.getByRole('button', { name: 'Save changes' }).click();
       await expect(director.getByRole('tab', { name: 'Client sprint', exact: true })).toBeVisible();
     }
@@ -188,6 +196,7 @@ test('saved views, bulk triage, mentions, attachments, and delivery measures wor
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
   await createTask(page, 'Operational evidence');
   await page.getByLabel(/Search Client delivery/).fill('Operational');
+  await page.getByText('Saved views and bulk actions', { exact: true }).click();
   await page.getByRole('button', { name: 'Save view', exact: true }).click();
   const saveView = page.getByRole('dialog', { name: 'Save these filters' });
   await saveView.getByLabel('View name').fill('Evidence work');

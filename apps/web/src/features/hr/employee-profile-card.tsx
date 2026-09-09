@@ -12,6 +12,7 @@ import { resolveAccessRole } from '@tms/contracts';
 import type { ReactNode } from 'react';
 import { Card, EmptyState, StatusTag, Tag } from './ui';
 import type { EmployeeDetail, EmploymentRecord, PermissionGrant } from './organization-types';
+import { SortHeader, useTableSort } from './sorting';
 import { plainName } from './plain-language';
 
 export function EmployeeProfileCard({
@@ -29,6 +30,16 @@ export function EmployeeProfileCard({
   setEmployeeTab: (value: number) => void;
   actions?: ReactNode;
 }) {
+  const sort = useTableSort('Effective period', 'desc');
+  const records = sort.sorted(employment, (record, key) =>
+    key === 'Type'
+      ? record.type
+      : key === 'Employment dates'
+        ? record.startDate
+        : key === 'Reason'
+          ? record.reason
+          : record.effectiveFrom,
+  );
   return (
     <Card title="Employee profile" className="profile-card" actions={actions}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} sx={{ alignItems: { sm: 'center' } }}>
@@ -92,21 +103,20 @@ export function EmployeeProfileCard({
       {employeeTab === 1 && (
         <Stack spacing={2} sx={{ mt: 3 }}>
           <Typography color="text.secondary">
-            Effective-dated employment history, with the current record first.
+            Employment history. Select a column heading to change the order.
           </Typography>
           {employment.length ? (
             <div className="table-scroll">
               <Table size="small" aria-label="Employment history">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Employment dates</TableCell>
-                    <TableCell>Effective period</TableCell>
-                    <TableCell>Reason</TableCell>
+                    {['Type', 'Employment dates', 'Effective period', 'Reason'].map((label) => (
+                      <SortHeader key={label} label={label} column={label} sort={sort} />
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {employment.map((record) => (
+                  {records.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>
                         <Tag value={record.type} tone="blue" />

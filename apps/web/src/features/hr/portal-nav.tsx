@@ -14,6 +14,7 @@ import ViewKanbanOutlined from '@mui/icons-material/ViewKanbanOutlined';
 import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
 import type { CurrentEmployee } from '@tms/contracts';
 import type { ReactNode } from 'react';
+import { canViewPeople } from './portal-access';
 import { NotificationIcon } from './notification-icon';
 
 export interface NavigationItem {
@@ -29,7 +30,7 @@ export function portalNavigation(user: CurrentEmployee, unread: number): Navigat
     { href: '/', label: 'Overview', icon: <DashboardOutlined /> },
     ...(organization ? [{ href: '/organization', label: 'Organization', icon: <AccountTreeOutlined /> }] : []),
     ...(user.department ? [{ href: '/department', label: 'Department', icon: <BusinessOutlined /> }] : []),
-    { href: '/employees', label: 'People', icon: <GroupsOutlined /> },
+    ...(canViewPeople(user) ? [{ href: '/employees', label: 'People', icon: <GroupsOutlined /> }] : []),
     { href: '/tasks', label: 'My tasks', icon: <WorkOutlineOutlined /> },
     { href: '/workspaces', label: 'Team boards', icon: <ViewKanbanOutlined /> },
     ...(manager ? [{ href: '/task-reports', label: 'Delivery reports', icon: <InsightsOutlined /> }] : []),
@@ -38,7 +39,7 @@ export function portalNavigation(user: CurrentEmployee, unread: number): Navigat
     ...(manager || user.permissions.includes('LEAVE_HR_APPROVE')
       ? [{ href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> }]
       : []),
-    { href: '/calendar', label: 'Who’s out', icon: <CalendarMonthOutlined /> },
+    { href: '/calendar', label: 'Leave calendar', icon: <CalendarMonthOutlined /> },
     ...(user.permissions.includes('LEAVE_POLICY_MANAGE') || user.permissions.includes('CHRISTMAS_POLICY_MANAGE')
       ? [{ href: '/policies', label: 'Policies', icon: <PolicyOutlined /> }]
       : []),

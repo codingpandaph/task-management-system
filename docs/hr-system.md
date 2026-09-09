@@ -46,7 +46,7 @@ Departments may be created without a manager, but dependent leave requests canno
 
 | Role             | Default scope                                                                                                                                                                            |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Member           | Own profile, leave, notifications and tasks; organization directory and department calendar                                                                                              |
+| Member           | Own profile, leave, notifications and tasks; department boards and personal leave calendar                                                                                               |
 | Account Director | Member access plus own-department boards, assignment, approvals, capacity and reporting                                                                                                  |
 | HR Member        | Basic employee records, basic updates, member assignment and reporting; no lifecycle, private-data, policy, audit or permission administration                                           |
 | HR Director      | HR employee administration, lifecycle, private employment data, policies, leave administration, HR approval, audit and reporting; leadership and permission governance remain restricted |
@@ -150,8 +150,10 @@ a mandatory reason, but cannot target the acting administrator. No leave or ledg
 
 ## Privacy, reporting, and audit
 
-Directory access is organization-wide. An ordinary calendar viewer sees only names, departments, and absence dates for
-their department. Senior Director and authorized HR reporting users can view wider scope. Manager DTOs exclude DOB,
+People pages are available only to HR and the Senior Director; employee detail retains its EMPLOYEE_READ check.
+The minimal directory API still supplies task and department pickers. Members see only their own approved leave;
+Account Directors see their department. The Senior Director and authorized HR reporting users see organization-wide
+leave and can filter departments. Manager DTOs exclude DOB,
 employment/status reasons, leave type, and leave reason. Sick reason is optional and the UI discourages diagnosis-level
 detail. Notifications carry safe summaries and protected links. Audit metadata is allowlisted and excludes credentials,
 cookies, health narratives, and restricted reasons. Business audit and notification writes share the business
@@ -296,21 +298,23 @@ audited where it changes business state.
    posts the corrected charge atomically, retaining both request and ledger history.
 5. HR cannot create administrative leave, corrections, or adjustments for themselves.
 
-### 12. Who's Out calendar
+### 12. Leave calendar
 
 1. The employee opens `/calendar`, navigates months, returns to today, and views accessible calendar and compact list
    presentations.
-2. Ordinary employees receive only Approved absences in their own department. Senior Director and authorized HR may
-   request a broader or department-filtered view.
+2. Members receive only their own Approved absences. Account Directors receive their department’s absences.
+   Senior Director and authorized HR may request an organization-wide or department-filtered view. A supplied
+   department query cannot widen a member or Account Director’s scope.
 3. Entries disclose name, department, and absence dates only. Leave type and reason never appear.
 4. The layout switches between month grid and list presentation across mobile, tablet, and desktop breakpoints without
    horizontal page overflow.
 
-### 13. HR dashboard and reminders
+### 13. Scoped Overview and HR reminders
 
-1. Authorized HR users land on dashboard aggregates for active staff, departments, employment types, Pending leave,
+1. The Senior Director and authorized HR users receive organization-wide dashboard aggregates for active staff, departments, employment types, Pending leave,
    current absences, suspensions, and used days.
-2. Contract expiry and probation review lists show upcoming operational work without exposing restricted status reasons.
+2. Account Directors receive dashboard metrics and review lists for their department only. Members see their personal
+   leave calendar without requesting the restricted dashboard API. Contract and probation lists omit status reasons.
 3. The scheduled reminder pass finds relevant employment records and creates deduplicated notifications for active HR
    users with employment-management permission.
 
@@ -382,7 +386,9 @@ labels follow the selected tab, including regular versus Christmas policies and 
 The dashboard greeting contains no duplicate navigation actions; users act from the authoritative destination screen.
 Authorization failures explain who can perform the action and how to recover. Internal phrases such as “HR scope,”
 token names, transport formats, and database identifiers are not shown in employee-facing alerts.
-Task boards keep the selected board's actions, contextual search, filters, milestones, and columns in one surface.
+Task boards keep the selected board's actions, contextual search, filters, Scrum milestones, and columns in one surface.
+Creating a Scrum board requires its single milestone in the same form. Start and due values are calendar dates without
+times, and new Scrum tasks use that board milestone automatically.
 Tickets use drag-and-drop on the board and retain the labelled status selector in task details for keyboard access; the API
 still enforces every workflow rule and announces success or rejection without relying on color.
 
@@ -453,3 +459,37 @@ HR retains its existing capability-based access and cannot perform Senior-Direct
 Prisma 7.10’s PostgreSQL adapter currently emits a `client.query()` deprecation warning from its internal query call on
 some transactional writes. The verified operations complete correctly; reassess the upstream adapter fix before moving
 to `pg` 9 rather than hiding the warning or weakening transaction coverage.
+
+## UI feedback acceptance checklist
+
+Use active fictional accounts with the stated role. Test against the same fixture baseline as
+`tests/e2e/ui-feedback.spec.ts` and the HR Playwright journeys.
+
+- [ ] **Organization and department setup — HR with DEPARTMENT_CREATE or Senior Director.** Open Organization,
+      search by department name/code, change name sorting, and follow a department link. The list shows each director,
+      headcount, board count, and enabled types without repeating the full employee roster. Expand Department actions
+      to edit, activate/deactivate, or assign a director when permitted; existing validation still applies.
+- [ ] Select Create department, enter a unique code/name, then toggle Kanban, Scrum, List, and Select all. A partial
+      selection gives Select all an indeterminate state. Removing Kanban hides its WIP field. Deselect every type and
+      submit: an inline error requires at least one. Select List and save: the new department is listed without requiring
+      a hidden WIP value. Reopen its edit action and verify the saved selection. Department workflow settings also have
+      Select all and show the WIP control only with Kanban; existing boards can prevent removing a type they use.
+- [ ] **Policies — HR with the relevant policy capability or Senior Director.** Open Policies → Regular leave.
+      One Create button opens Create leave policy. Cancel, choose Christmas, and select Create: only the Christmas form
+      opens. Users missing the selected tab’s create capability see no Create action. Complete required values and save;
+      the new policy appears in that tab. New-version and status actions remain scoped to that policy type.
+- [ ] **Overview/Leave calendar — all roles.** Prepare approved leave for a member, their director, and an employee
+      in another department. Sign in as the member: only their own dates appear; no HR authorization warning appears.
+      Sign in as Account Director: department dates and counts appear, with no other department’s data. Sign in as
+      authorized HR or Senior Director: all departments are available. Change month and return to Today; only approved
+      leave appears, with names/dates/department and no leave reason or type. Leave calendar means approved absences,
+      not attendance, working location, or whether an employee is online.
+- [ ] **People access and sorting.** Members and Account Directors have no People menu; visiting `/employees` or an
+      employee detail URL returns to Overview. HR and Senior Director see People; profile access remains capability
+      gated. Click each People column twice to reverse sort, then paginate: order applies across the filtered result,
+      not just the visible page. Open an authorized employment history and sort Type, Employment dates, Effective period,
+      and Reason. Keyboard Enter activates sort and the header exposes ascending/descending state.
+- [ ] Repeat affected screens and key controls at 375, 599/600/601, 768, 899/900/901, 1199/1200/1201, 1440, and
+      1535/1536/1537 pixels. Verify no document overflow, contained table/board scrolling, visible labels, mobile menu
+      open/Escape/close behavior, focus visibility, and no browser/runtime errors. Task creation/access flows are detailed
+      in `docs/task-management.md`; the same checks apply where department and HR behavior meet.

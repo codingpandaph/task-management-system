@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import type { CurrentEmployee, DirectoryEmployee } from '@tms/contracts';
+import type { CurrentEmployee } from '@tms/contracts';
 import { api } from '@/lib/api';
 import { ModalForm } from '../hr/ui';
 import type { Board, Workspace } from './task-types';
@@ -7,13 +7,11 @@ import type { Board, Workspace } from './task-types';
 export function WorkspaceActions({
   workspace,
   user,
-  people,
   board,
   refresh,
 }: {
   workspace: Workspace;
   user: CurrentEmployee;
-  people: DirectoryEmployee[];
   board?: Board;
   refresh: () => Promise<void>;
 }) {
@@ -24,64 +22,49 @@ export function WorkspaceActions({
   const canCreateBoards =
     manager ||
     workspace.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateBoards);
-  if (!canCreateBoards) return null;
+  if (!canCreateBoards && !boardManager) return null;
   return (
     <Box className="workspace-actions">
-      {manager && (
+      {canCreateBoards && (
         <ModalForm
-          buttonLabel="New milestone"
-          title="Create milestone"
+          buttonLabel="New board"
+          title="Create board"
+          description="Choose the workflow. A Scrum board is created with one milestone and calendar dates."
           fields={[
-            { name: 'name', label: 'Milestone name' },
-            { name: 'goal', label: 'Goal' },
-            { name: 'startDate', label: 'Start date', type: 'date' },
-            { name: 'dueDate', label: 'Due date and time', type: 'datetime-local' },
-          ]}
-          onSubmit={async (values) => {
-            await api(`task-workspaces/${workspace.id}/milestones`, values);
-            await refresh();
-          }}
-        />
-      )}
-      <ModalForm
-        buttonLabel="New board"
-        title="Create board"
-        description="The workflow is created from the board type selected for this department."
-        fields={[
-          { name: 'name', label: 'Board name' },
-          {
-            name: 'kind',
-            label: 'Board type',
-            value: workspace.department.taskManagementTypes[0],
-            options: workspace.department.taskManagementTypes.map((kind) => ({
-              value: kind,
-              label: kind[0] + kind.slice(1).toLowerCase(),
-            })),
-          },
-        ]}
-        onSubmit={async (values) => {
-          await api(`task-workspaces/${workspace.id}/boards`, {
-            name: values.name,
-            kind: values.kind,
-          });
-          await refresh();
-        }}
-      />
-      {boardManager && board && (
-        <ModalForm
-          buttonLabel="Add collaborator"
-          title={`Add a collaborator to ${board.name}`}
-          fields={[
+            { name: 'name', label: 'Board name' },
             {
-              name: 'employeeId',
-              label: 'Active employee',
-              options: people
-                .filter((employee) => employee.department?.id === workspace.departmentId)
-                .map((employee) => ({ value: employee.id, label: employee.displayName })),
+              name: 'kind',
+              label: 'Board type',
+              value: workspace.department.taskManagementTypes[0],
+              options: workspace.department.taskManagementTypes.map((kind) => ({
+                value: kind,
+                label: kind[0] + kind.slice(1).toLowerCase(),
+              })),
+            },
+            { name: 'milestoneName', label: 'Milestone name', showWhen: { field: 'kind', values: ['SCRUM'] } },
+            { name: 'milestoneGoal', label: 'Milestone goal', showWhen: { field: 'kind', values: ['SCRUM'] } },
+            {
+              name: 'milestoneStartDate',
+              label: 'Milestone start date',
+              type: 'date',
+              showWhen: { field: 'kind', values: ['SCRUM'] },
+            },
+            {
+              name: 'milestoneDueDate',
+              label: 'Milestone due date',
+              type: 'date',
+              showWhen: { field: 'kind', values: ['SCRUM'] },
             },
           ]}
           onSubmit={async (values) => {
-            await api(`task-boards/${board.id}/collaborators`, values);
+            await api(`task-workspaces/${workspace.id}/boards`, {
+              name: values.name,
+              kind: values.kind,
+              milestoneName: values.milestoneName,
+              milestoneGoal: values.milestoneGoal,
+              milestoneStartDate: values.milestoneStartDate,
+              milestoneDueDate: values.milestoneDueDate,
+            });
             await refresh();
           }}
         />

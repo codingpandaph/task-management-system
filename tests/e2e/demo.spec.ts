@@ -37,7 +37,7 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
   await test.step('HR creates regular and Christmas policies', async () => {
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
 
-    await page.getByRole('button', { name: 'Create leave policy', exact: true }).click();
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
     let dialog = page.getByRole('dialog', { name: 'Create leave policy' });
     await dialog.getByLabel('Policy name', { exact: true }).fill(leavePolicy);
     await dialog.getByLabel('Vacation days', { exact: true }).fill('28');
@@ -46,7 +46,8 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
     await expect(dialog).toBeHidden();
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
 
-    await page.getByRole('button', { name: 'Create Christmas policy', exact: true }).click();
+    await page.getByRole('tab', { name: /Christmas/ }).click();
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
     dialog = page.getByRole('dialog', { name: 'Create Christmas policy' });
     await dialog.getByLabel('Policy name', { exact: true }).fill(christmasPolicy);
     await dialog.getByLabel('Days', { exact: true }).fill('6');
@@ -151,7 +152,7 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
     await page.getByLabel('Search Christmas policies', { exact: true }).fill(christmasPolicy);
     await expect(page.getByText(christmasPolicy, { exact: false })).toBeVisible();
 
-    for (const destination of ['Approvals', 'Who’s out']) {
+    for (const destination of ['Approvals', 'Leave calendar']) {
       await page.getByRole('link', { name: destination, exact: true }).click();
       await expect(page.locator('h1')).toBeVisible();
       if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_200);

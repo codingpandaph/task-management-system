@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Module,
   NotFoundException,
@@ -12,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { dateOnly, today } from '../../common/dates';
-import { AuthRequest, requireHr, requirePermission } from '../authorization/authorization';
+import { AuthRequest, requirePermission } from '../authorization/authorization';
 import { DatabaseService } from '../database/database.module';
 import { notify } from '../audit/audit';
 import { PageDto } from '../organization/dto';
@@ -20,27 +21,33 @@ import { PageDto } from '../organization/dto';
 class ReportingController {
   constructor(private readonly db: DatabaseService) {}
   @Get('reporting/dashboard') async dashboard(@Req() r: AuthRequest) {
-    requireHr(r.principal, 'REPORTING_READ');
+    const employee = r.principal.employee;
+    const broad =
+      employee.position === 'SENIOR_DIRECTOR' ||
+      (employee.department?.kind === 'HR' && r.principal.permissions.includes('REPORTING_READ'));
+    if (!broad && employee.position !== 'ACCOUNT_DIRECTOR')
+      throw new ForbiddenException('Overview is available to directors and authorized HR employees');
+    const scope = broad ? {} : { departmentId: employee.departmentId, position: { not: 'SENIOR_DIRECTOR' as const } };
     const day = dateOnly(today());
     const deadline = new Date(day.getTime() + 90 * 86400_000);
-    const active = await this.db.employee.count({ where: { status: 'ACTIVE' } });
+    const active = await this.db.employee.count({ where: { ...scope, status: 'ACTIVE' } });
     const departments = await this.db.employee.groupBy({
       by: ['departmentId'],
-      where: { status: 'ACTIVE' },
+      where: { ...scope, status: 'ACTIVE' },
       _count: true,
     });
     const employment = await this.db.employmentRecord.groupBy({
       by: ['type'],
-      where: { effectiveTo: null, employee: { status: 'ACTIVE' } },
+      where: { effectiveTo: null, employee: { ...scope, status: 'ACTIVE' } },
       _count: true,
     });
-    const pending = await this.db.leaveRequest.count({ where: { status: 'PENDING' } });
+    const pending = await this.db.leaveRequest.count({ where: { status: 'PENDING', employee: scope } });
     const onLeave = await this.db.leaveRequest.count({
-      where: { status: 'APPROVED', startDate: { lte: day }, endDate: { gte: day } },
+      where: { employee: scope, status: 'APPROVED', startDate: { lte: day }, endDate: { gte: day } },
     });
-    const suspended = await this.db.employee.count({ where: { status: 'SUSPENDED' } });
+    const suspended = await this.db.employee.count({ where: { ...scope, status: 'SUSPENDED' } });
     const contracts = await this.db.employmentRecord.findMany({
-      where: { effectiveTo: null, type: 'CONTRACTUAL', endDate: { gte: day, lte: deadline } },
+      where: { employee: scope, effectiveTo: null, type: 'CONTRACTUAL', endDate: { gte: day, lte: deadline } },
       select: {
         employeeId: true,
         endDate: true,
@@ -52,7 +59,7 @@ class ReportingController {
         effectiveTo: null,
         type: 'PROBATIONARY',
         probationEnd: { lte: deadline },
-        employee: { status: 'ACTIVE' },
+        employee: { ...scope, status: 'ACTIVE' },
       },
       select: {
         employeeId: true,
@@ -62,7 +69,7 @@ class ReportingController {
     });
     const usage = await this.db.leaveLedgerEntry.aggregate({
       _sum: { usedDelta: true },
-      where: { account: { leaveYear: { year: Number(today().slice(0, 4)) } } },
+      where: { account: { leaveYear: { employee: scope, year: Number(today().slice(0, 4)) } } },
     });
     return {
       active,
@@ -97,7 +104,11 @@ class ReportingController {
         status: 'APPROVED',
         startDate: { lte: last },
         endDate: { gte: first },
-        employee: { departmentId: broad ? departmentId : r.principal.employee.departmentId },
+        employee: broad
+          ? { departmentId }
+          : r.principal.employee.position === 'ACCOUNT_DIRECTOR'
+            ? { departmentId: r.principal.employee.departmentId }
+            : { id: r.principal.employee.id },
       },
       select: {
         id: true,

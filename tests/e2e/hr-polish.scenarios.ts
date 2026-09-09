@@ -14,13 +14,10 @@ export function registerPolishScenarios() {
     });
 
     await page.goto('/organization');
-    const surface = (name: string) =>
-      page
-        .getByRole('heading', { name, exact: true })
-        .locator('xpath=ancestor::*[contains(@class,"MuiPaper-root")][1]');
-    const leadership = surface('Organization structure');
+    const surface = (name: string) => page.getByRole('region', { name, exact: true });
+    const leadership = page.getByRole('heading', { name: 'Departments and leadership' }).locator('..').locator('..');
     await expect(leadership.getByText('Avery Morgan', { exact: true })).toBeVisible();
-    await expect(leadership.locator('[title="Organization-wide"]')).toBeVisible();
+    await expect(leadership.getByText('Senior Director · Organization-wide', { exact: true })).toBeVisible();
     await expect(surface('Human Resources')).not.toContainText('Avery Morgan');
     const departmentNames = hierarchy.employees.flatMap((employee) =>
       employee.department ? [employee.department.name] : [],
@@ -28,9 +25,10 @@ export function registerPolishScenarios() {
     for (const departmentName of new Set(departmentNames)) {
       const count = hierarchy.employees.filter((employee) => employee.department?.name === departmentName).length;
       const departmentCard = surface(departmentName);
-      await expect(departmentCard.locator(`[title="${count} people"]`)).toBeVisible();
+      await expect(departmentCard.getByText(`${count} people`, { exact: true })).toBeVisible();
     }
     const card = surface(`Quality ${suffix}`);
+    await card.getByText('Department actions', { exact: true }).click();
     await card.getByRole('button', { name: 'Deactivate', exact: true }).click();
     await page
       .getByRole('dialog', { name: `Deactivate Quality ${suffix}` })

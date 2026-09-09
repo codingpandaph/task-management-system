@@ -30,12 +30,23 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
           }
         : {}),
     };
+    const direction = q.sortDirection;
+    const order: Prisma.EmployeeOrderByWithRelationInput[] =
+      q.sortBy === 'department'
+        ? [{ department: { name: direction } }]
+        : q.sortBy === 'position'
+          ? [{ position: direction }]
+          : q.sortBy === 'employeeId'
+            ? [{ employeeId: direction }]
+            : q.sortBy === 'name'
+              ? [{ firstName: direction }, { middleName: direction }, { lastName: direction }]
+              : [{ lastName: 'asc' }];
     const rows = await this.db.employee.findMany({
       where,
       include: { department: true },
       skip: (q.page - 1) * q.pageSize,
       take: q.pageSize,
-      orderBy: [{ lastName: 'asc' }, { id: 'asc' }],
+      orderBy: [...order, { id: 'asc' }],
     });
     const total = await this.db.employee.count({ where });
     return {

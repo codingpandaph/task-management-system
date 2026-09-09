@@ -71,16 +71,6 @@ export function TaskBoardView(props: TaskBoardViewProps) {
   const boardManager = workspaceManager || board?.board.creator.id === user.id;
   return (
     <Stack spacing={3}>
-      <Paper variant="outlined" className="task-hero task-page-heading">
-        <Box>
-          <Typography variant="h5" component="h2">
-            Team workspace
-          </Typography>
-          <Typography color="text.secondary">
-            Plan milestones, track delivery, and surface work that needs attention.
-          </Typography>
-        </Box>
-      </Paper>
       {workspaces.length && workspace ? (
         <Paper variant="outlined" className="task-board-surface">
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-toolbar">
@@ -94,14 +84,17 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               </Typography>
             </Box>
             <Box className="workspace-actions">
-              {canCreateTasks && <CreateTask workspace={workspace} people={people} user={user} refresh={refresh} />}
-              <WorkspaceActions
-                workspace={workspace}
-                board={board?.board}
-                user={user}
-                people={people}
-                refresh={refresh}
-              />
+              {canCreateTasks && (
+                <CreateTask
+                  key={`${workspace.id}:${boardId}`}
+                  initialBoardId={boardId}
+                  workspace={workspace}
+                  people={people}
+                  user={user}
+                  refresh={refresh}
+                />
+              )}
+              <WorkspaceActions workspace={workspace} board={board?.board} user={user} refresh={refresh} />
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-navigation">
@@ -140,7 +133,9 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               ))}
             </Tabs>
           </Stack>
-          <MilestoneStrip workspace={workspace} user={user} refresh={refresh} />
+          {board?.board.kind === 'SCRUM' && (
+            <MilestoneStrip workspace={workspace} milestone={board.board.milestone} user={user} refresh={refresh} />
+          )}
           {board?.board.kind === 'KANBAN' && (
             <Typography variant="body2" color="text.secondary" sx={{ px: 0.5 }}>
               In progress limit: {workspace.department.kanbanWipLimit} per person ·{' '}
@@ -164,17 +159,20 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             />
           )}
           {board && (
-            <TaskProductActions
-              board={board}
-              search={search}
-              priority={priorityFilter}
-              assignee={assigneeFilter}
-              people={people}
-              setSearch={setSearch}
-              setPriority={setPriorityFilter}
-              setAssignee={setAssigneeFilter}
-              refresh={refresh}
-            />
+            <details className="board-tools">
+              <summary>Saved views and bulk actions</summary>
+              <TaskProductActions
+                board={board}
+                search={search}
+                priority={priorityFilter}
+                assignee={assigneeFilter}
+                people={people}
+                setSearch={setSearch}
+                setPriority={setPriorityFilter}
+                setAssignee={setAssigneeFilter}
+                refresh={refresh}
+              />
+            </details>
           )}
           {board && board.board.kind !== 'LIST' && (
             <KanbanBoard

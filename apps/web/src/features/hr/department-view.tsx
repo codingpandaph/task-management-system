@@ -97,7 +97,22 @@ export function DepartmentView({ user, departmentId }: { user: CurrentEmployee; 
           <Typography color="text.secondary" sx={{ mb: 2 }}>
             Choose the board styles available to this department.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' } }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            useFlexGap
+            sx={{ alignItems: { sm: 'center' }, flexWrap: 'wrap' }}
+          >
+            <FormControlLabel
+              label="Select all"
+              control={
+                <Checkbox
+                  checked={types.length === workflowTypes.length}
+                  indeterminate={types.length > 0 && types.length < workflowTypes.length}
+                  onChange={(event) => setTypes(event.target.checked ? workflowTypes : [])}
+                />
+              }
+            />
             {workflowTypes.map((type) => (
               <FormControlLabel
                 key={type}
@@ -185,8 +200,7 @@ export function DepartmentView({ user, departmentId }: { user: CurrentEmployee; 
                 <Tag value={board.kind} tone="blue" />
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Created by {board.creator.firstName} {board.creator.lastName} · {board.collaborators.length}{' '}
-                collaborators
+                Created by {board.creator.firstName} {board.creator.lastName} · Open to all department members
               </Typography>
             </Paper>
           )) ?? <Typography color="text.secondary">No workspace has been created yet.</Typography>}

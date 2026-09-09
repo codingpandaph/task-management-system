@@ -11,7 +11,7 @@ export const subtitles: Record<string, string> = {
   'Task archive': 'Deleted work',
   'My leave': 'Balances and requests',
   Approvals: 'Decisions awaiting review',
-  'Who’s out': 'Team availability',
+  'Leave calendar': 'Approved leave and availability',
   Policies: 'Leave entitlements',
   'Leave administration': 'Corrections and adjustments',
   'Audit log': 'Recorded business changes',
@@ -22,9 +22,14 @@ export function subtitle(title: string, user: CurrentEmployee) {
   return subtitles[title] ?? user.department?.name ?? 'Organization-wide';
 }
 
+export function canViewPeople(user: CurrentEmployee) {
+  return user.position === 'SENIOR_DIRECTOR' || user.department?.kind === 'HR';
+}
+
 export function canOpen(path: string, user: CurrentEmployee) {
   const departmentRouteId = path.match(/^\/departments\/([^/]+)/)?.[1];
   return (
+    (!path.startsWith('/employees') || canViewPeople(user)) &&
     (!path.startsWith('/organization') ||
       user.position === 'SENIOR_DIRECTOR' ||
       user.permissions.includes('EMPLOYEE_READ')) &&

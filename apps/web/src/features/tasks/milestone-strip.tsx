@@ -10,14 +10,16 @@ import Typography from '@mui/material/Typography';
 import type { CurrentEmployee } from '@tms/contracts';
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import type { Workspace } from './task-types';
+import type { Milestone, Workspace } from './task-types';
 
 export function MilestoneStrip({
   workspace,
+  milestone,
   user,
   refresh,
 }: {
   workspace: Workspace;
+  milestone: Milestone | null;
   user: CurrentEmployee;
   refresh: () => Promise<void>;
 }) {
@@ -34,26 +36,24 @@ export function MilestoneStrip({
   const manager =
     user.position === 'SENIOR_DIRECTOR' ||
     (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === workspace.departmentId);
-  if (!workspace.milestones.length) return null;
+  if (!milestone) return null;
   return (
     <>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1.5}
         sx={{ overflowX: { sm: 'auto' }, pb: 0.5 }}
-        aria-label="Open milestones"
+        aria-label="Scrum milestone"
       >
-        {workspace.milestones.map((milestone) => (
-          <Button
-            key={milestone.id}
-            variant="outlined"
-            color={milestone.isOvercapacity ? 'error' : 'primary'}
-            sx={{ flexShrink: 0, justifyContent: 'space-between', width: { xs: '100%', sm: 'auto' } }}
-            onClick={() => api<typeof capacity>(`milestones/${milestone.id}/capacity`).then(setCapacity)}
-          >
-            {milestone.name} · {new Date(milestone.dueDate).toLocaleDateString('en-GB')}
-          </Button>
-        ))}
+        <Button
+          variant="outlined"
+          color={milestone.isOvercapacity ? 'error' : 'primary'}
+          sx={{ flexShrink: 0, justifyContent: 'space-between', width: { xs: '100%', sm: 'auto' } }}
+          onClick={() => api<typeof capacity>(`milestones/${milestone.id}/capacity`).then(setCapacity)}
+        >
+          {milestone.name} · {new Date(milestone.startDate).toLocaleDateString('en-GB')}–
+          {new Date(milestone.dueDate).toLocaleDateString('en-GB')}
+        </Button>
       </Stack>
       <Dialog open={!!capacity} onClose={() => setCapacity(undefined)} fullWidth maxWidth="xs">
         <DialogTitle>Milestone capacity</DialogTitle>
@@ -76,7 +76,7 @@ export function MilestoneStrip({
                 </Box>
               </div>
               <Typography variant="body2">
-                {capacity.collaborators.length} collaborators · {capacity.businessDays} business days ·{' '}
+                {capacity.collaborators.length} team members · {capacity.businessDays} business days ·{' '}
                 {capacity.approvedLeaveDays} approved leave days
               </Typography>
               <Typography variant="body2" color={capacity.remainingHours < 0 ? 'error' : 'text.secondary'}>

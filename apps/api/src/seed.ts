@@ -164,18 +164,6 @@ export async function seed(db: DatabaseService) {
           canCreateBoards: id === (code === 'ACC' ? ids[6] : code === 'MKT' ? ids[7] : ids[5]),
         })),
       });
-      await tx.boardCollaborator.createMany({
-        data: departmentPeople.map(({ id }) => ({ boardId: board.id, employeeId: id })),
-      });
-      const milestone = await tx.milestone.create({
-        data: {
-          workspaceId: workspace.id,
-          name: `${code} delivery cycle`,
-          goal: 'Deliver the current team priorities with clear ownership.',
-          startDate: dateOnly(`${year}-11-01`),
-          dueDate: new Date(`${year}-12-18T17:00:00.000Z`),
-        },
-      });
       const initial = board.columns.find((column) => column.isInitial)!;
       const progress = board.columns.find((column) => column.semantic === 'IN_PROGRESS') ?? initial;
       const reporterId = code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3];
@@ -191,7 +179,6 @@ export async function seed(db: DatabaseService) {
             workspaceId: workspace.id,
             boardId: board.id,
             columnId: task[3],
-            milestoneId: milestone.id,
             number: index + 1,
             publicKey: `${code}-#${index + 1}`,
             title: task[0],

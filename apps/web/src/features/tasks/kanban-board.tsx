@@ -18,7 +18,6 @@ interface KanbanBoardProps {
 
 export function KanbanBoard(props: KanbanBoardProps) {
   const { assigneeFilter, board, priorityFilter, refresh, search, selectTask } = props;
-  const [draggedId, setDraggedId] = useState('');
   const [targetColumn, setTargetColumn] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const columns = board.board.columns;
@@ -74,9 +73,9 @@ export function KanbanBoard(props: KanbanBoardProps) {
               }}
               onDrop={(event) => {
                 event.preventDefault();
-                const task = columns.flatMap((item) => item.tasks).find((item) => item.id === draggedId);
+                const taskId = event.dataTransfer.getData('text/plain');
+                const task = columns.flatMap((item) => item.tasks).find((item) => item.id === taskId);
                 setTargetColumn('');
-                setDraggedId('');
                 if (task) void move(task, column.id);
               }}
             >
@@ -97,10 +96,8 @@ export function KanbanBoard(props: KanbanBoardProps) {
                     onDragStart={(event) => {
                       event.dataTransfer.effectAllowed = 'move';
                       event.dataTransfer.setData('text/plain', task.id);
-                      setDraggedId(task.id);
                     }}
                     onDragEnd={() => {
-                      setDraggedId('');
                       setTargetColumn('');
                     }}
                   />

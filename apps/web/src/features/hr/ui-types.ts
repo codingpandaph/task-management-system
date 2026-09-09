@@ -8,6 +8,7 @@ export interface Field {
   value?: string | number;
   options?: { value: string; label: string }[];
   multiple?: boolean;
+  checkboxes?: boolean;
   showWhen?: { field: string; values: string[] };
 }
 

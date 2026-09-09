@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography';
 import type { CurrentEmployee, DirectoryEmployee, PageResult } from '@tms/contracts';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useTableSort } from './sorting';
 import { LoadingState, message } from './ui';
 import { OrganizationDirectoryView } from './organization-directory-view';
 import { OrganizationEmployeeView } from './organization-employee-view';
@@ -23,6 +24,7 @@ import type {
 } from './organization-types';
 
 export function OrganizationScreens({ path, user }: { path: string; user: CurrentEmployee }) {
+  const sort = useTableSort('name');
   const [departments, setDepartments] = useState<Department[]>([]),
     [people, setPeople] = useState<PageResult<DirectoryEmployee>>({ items: [], total: 0, page: 1, pageSize: 20 }),
     [policies, setPolicies] = useState<{ leave: Policy[]; christmas: Policy[] }>({ leave: [], christmas: [] }),
@@ -50,7 +52,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       api<Department[]>('departments'),
       api<{ leave: Policy[]; christmas: Policy[] }>('policies'),
       api<PageResult<DirectoryEmployee>>(
-        `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}${position ? `&position=${position}` : ''}${status ? `&status=${status}` : ''}`,
+        `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&sortBy=${sort.key}&sortDirection=${sort.direction}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}${position ? `&position=${position}` : ''}${status ? `&status=${status}` : ''}`,
       ),
       user.position === 'SENIOR_DIRECTOR' || can('EMPLOYEE_READ')
         ? api<OrganizationHierarchy>('organization')
@@ -101,7 +103,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     return () => {
       active = false;
     };
-  }, [id, page, search, department, position, status, revision, user.permissions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, page, search, department, position, status, revision, user.permissions, sort.key, sort.direction]); // eslint-disable-line react-hooks/exhaustive-deps
   const options = departments.filter((d) => d.status === 'ACTIVE').map((d) => ({ value: d.id, label: d.name }));
   const employeeOptions = people.items.map((e) => ({ value: e.id, label: e.displayName }));
   const policyOptions = policies.leave.flatMap(
@@ -182,6 +184,13 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     );
   return (
     <OrganizationDirectoryView
+      sort={{
+        ...sort,
+        toggle: (key) => {
+          sort.toggle(key);
+          setPage(1);
+        },
+      }}
       can={can}
       christmasOptions={christmasOptions}
       credentialDialog={credentialDialog}

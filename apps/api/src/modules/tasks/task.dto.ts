@@ -65,18 +65,16 @@ export class ColumnDto {
 export class BoardDto {
   @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
   @IsOptional() @IsEnum(TaskManagementTypeDto) kind?: keyof typeof TaskManagementTypeDto;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) milestoneName?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(2000) milestoneGoal?: string;
+  @IsOptional() @IsDateString({ strict: true }) milestoneStartDate?: string;
+  @IsOptional() @IsDateString({ strict: true }) milestoneDueDate?: string;
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
   @ValidateNested({ each: true })
   @Type(() => ColumnDto)
   columns?: ColumnDto[];
-}
-export class MilestoneDto {
-  @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
-  @IsString() @IsNotEmpty() @MaxLength(2000) goal!: string;
-  @IsDateString({ strict: true }) startDate!: string;
-  @IsDateString() dueDate!: string;
 }
 export class TaskDto {
   @IsUUID() workspaceId!: string;
@@ -147,9 +145,6 @@ export class MembershipDto {
   @IsOptional() @IsDateString({ strict: true }) effectiveTo?: string;
   @IsOptional() @IsBoolean() canCreateTasks?: boolean;
   @IsOptional() @IsBoolean() canCreateBoards?: boolean;
-}
-export class CollaboratorDto {
-  @IsUUID() employeeId!: string;
 }
 export class SprintDto {
   @IsString() @IsNotEmpty() @MaxLength(120) name!: string;

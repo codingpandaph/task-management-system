@@ -18,7 +18,7 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Card, EmptyState, LoadingState, message, Tag } from '../hr/ui';
 import { TaskBoardView } from './task-board-view';
-import { TaskCard } from './task-card';
+import { ListBoard } from './list-board';
 import { TaskDetail } from './task-detail';
 import { TaskReportsView } from './task-reports-view';
 import type { BoardResponse, DepartmentOption, TaskReport, Workspace } from './task-types';
@@ -157,7 +157,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
     );
   if (path === '/tasks')
     return (
-      <Card title="My focus" actions={<Tag value={`${mine.length} TASKS`} tone="blue" />}>
+      <Card title="Assigned to me" actions={<Tag value={`${mine.length} TASKS`} tone="blue" />}>
         <Typography color="text.secondary" sx={{ mb: 2 }}>
           Every task assigned to you, across department workspaces.
         </Typography>
@@ -220,11 +220,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
           )}
         </Stack>
         {filteredMine.length ? (
-          <div className="my-task-grid">
-            {filteredMine.map((task) => (
-              <TaskCard key={task.id} task={task} open={() => setSelected(task.id)} />
-            ))}
-          </div>
+          <ListBoard tasks={filteredMine} selectTask={setSelected} />
         ) : (
           <EmptyState title="No matching tasks" detail="Assigned work will appear here." />
         )}

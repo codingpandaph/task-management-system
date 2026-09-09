@@ -14,10 +14,17 @@ export type Board = {
   kind: TaskManagementType;
   columns: TaskColumnContract[];
   creator: TaskPerson;
-  collaborators: { employeeId: string; employee: TaskPerson }[];
   sprints: Sprint[];
+  milestone: Milestone | null;
 };
-export type Milestone = { id: string; name: string; goal: string; dueDate: string; isOvercapacity: boolean };
+export type Milestone = {
+  id: string;
+  name: string;
+  goal: string;
+  startDate: string;
+  dueDate: string;
+  isOvercapacity: boolean;
+};
 export type Workspace = {
   id: string;
   code: string;

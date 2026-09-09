@@ -15,7 +15,7 @@ interface Context {
 }
 
 export async function registerTaskWorkflowScenarios(suite: TestContext, context: Context) {
-  const { actor, db, find, tasks, year } = context;
+  const { actor, db, tasks, year } = context;
   const activeMember = await actor('Cameron');
   await suite.test('saved views, bulk triage, mentions, attachments, and delivery measures remain scoped', async () => {
     const director = await actor('Jordan');
@@ -62,17 +62,34 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
     assert.equal(typeof reports[0]?.averageCycleDays, 'number');
     await tasks.deleteView(activeMember, view.id);
   });
-  await suite.test('board types, collaborators, and sprint lifecycle enforce scope', async () => {
+  await suite.test('department board access and sprint lifecycle enforce scope', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
     await assert.rejects(tasks.createBoard(director, workspace.id, { name: 'Invalid list', kind: 'LIST' }));
-    const scrum = await tasks.createBoard(director, workspace.id, { name: `Scrum ${randomUUID()}`, kind: 'SCRUM' });
-    const unrelated = await find('Riley');
-    await assert.rejects(tasks.addCollaborator(director, scrum.id, { employeeId: unrelated.id }));
+    const scrum = await tasks.createBoard(director, workspace.id, {
+      name: `Scrum ${randomUUID()}`,
+      kind: 'SCRUM',
+      milestoneName: 'Account delivery',
+      milestoneGoal: 'Complete the planned account work',
+      milestoneStartDate: `${year}-10-01`,
+      milestoneDueDate: `${year}-10-31`,
+    });
+    const unrelated = await actor('Riley');
+    const staleMembership = await db.workspaceMembership.create({
+      data: {
+        workspaceId: workspace.id,
+        employeeId: unrelated.employee.id,
+        canCreateTasks: true,
+        canCreateBoards: true,
+      },
+    });
+    await assert.rejects(tasks.board(unrelated, workspace.id, scrum.id));
     assert.equal(
-      (await tasks.addCollaborator(director, scrum.id, { employeeId: activeMember.employee.id })).employeeId,
-      activeMember.employee.id,
+      (await tasks.workspaces(unrelated)).some((item) => item.id === workspace.id),
+      false,
     );
+    await assert.rejects(tasks.createBoard(unrelated, workspace.id, { name: 'Outside department', kind: 'SCRUM' }));
+    await db.workspaceMembership.delete({ where: { id: staleMembership.id } });
     assert.equal((await tasks.board(activeMember, workspace.id, scrum.id)).board.id, scrum.id);
     await assert.rejects(
       tasks.createSprint(director, scrum.id, {

@@ -50,10 +50,7 @@ export abstract class TaskBaseService {
       !this.manages(actor, workspace.departmentId) &&
       actor.employee.departmentId !== workspace.departmentId
     ) {
-      const membership = await this.db.workspaceMembership.findFirst({
-        where: { workspaceId, employeeId: actor.employee.id },
-      });
-      if (!membership) throw new NotFoundException('Workspace not found');
+      throw new NotFoundException('Workspace not found');
     }
     return workspace;
   }
@@ -76,11 +73,6 @@ export abstract class TaskBaseService {
     });
     if (!board) throw new NotFoundException('Board not found');
     await this.workspaceAccess(actor, board.workspaceId);
-    if (this.manages(actor, board.workspace.departmentId) || board.creatorId === actor.employee.id) return board;
-    const collaborator = await this.db.boardCollaborator.findUnique({
-      where: { boardId_employeeId: { boardId, employeeId: actor.employee.id } },
-    });
-    if (!collaborator) throw new NotFoundException('Board not found');
     return board;
   }
 

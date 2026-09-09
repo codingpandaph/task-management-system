@@ -170,42 +170,40 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
       ['CREATE', 'DELETION', 'RESTORATION'],
     );
   });
-  await suite.test('milestone closure rolls unfinished tasks into the next cycle', async () => {
+  await suite.test('closing a Scrum milestone unbinds unfinished tasks', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
-    const first = await tasks.createMilestone(director, workspace.id, {
-      name: 'First cycle',
-      goal: 'First',
-      startDate: `${year}-09-01`,
-      dueDate: `${year}-09-10T17:00:00.000Z`,
-    });
-    const next = await tasks.createMilestone(director, workspace.id, {
-      name: 'Next cycle',
-      goal: 'Next',
-      startDate: `${year}-09-11`,
-      dueDate: `${year}-09-20T17:00:00.000Z`,
+    const board = await tasks.createBoard(director, workspace.id, {
+      name: `Closure ${randomUUID()}`,
+      kind: 'SCRUM',
+      milestoneName: 'Closure cycle',
+      milestoneGoal: 'Close this delivery cycle',
+      milestoneStartDate: `${year}-09-01`,
+      milestoneDueDate: `${year}-09-10`,
     });
     const task = await tasks.createTask(member, {
       workspaceId: workspace.id,
-      boardId: workspace.boards[0].id,
+      boardId: board.id,
       title: 'Rollover work',
       description: '',
       priority: 'MEDIUM',
       estimatedHours: 3,
-      milestoneId: first.id,
     });
-    await tasks.closeMilestone(director, first.id);
-    assert.equal((await db.task.findUniqueOrThrow({ where: { id: task.id } })).milestoneId, next.id);
+    await tasks.closeMilestone(director, board.milestone!.id);
+    assert.equal((await db.task.findUniqueOrThrow({ where: { id: task.id } })).milestoneId, null);
   });
   await suite.test('capacity deducts approved leave and termination clears active assignments', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
-    const milestone = await tasks.createMilestone(director, workspace.id, {
-      name: 'Capacity cycle',
-      goal: 'Capacity',
-      startDate: `${year}-12-01`,
-      dueDate: `${year}-12-18T17:00:00.000Z`,
+    const board = await tasks.createBoard(director, workspace.id, {
+      name: `Capacity ${randomUUID()}`,
+      kind: 'SCRUM',
+      milestoneName: 'Capacity cycle',
+      milestoneGoal: 'Validate capacity',
+      milestoneStartDate: `${year}-12-01`,
+      milestoneDueDate: `${year}-12-18`,
     });
+    const milestone = board.milestone!;
     const capacity = await tasks.capacity(director, milestone.id);
     assert.ok(capacity.availableHours > 0);
     await leave.administrative(hr, {
@@ -220,13 +218,12 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     assert.equal(leaveAdjusted.availableHours, capacity.availableHours - 8);
     const assigned = await tasks.createTask(director, {
       workspaceId: workspace.id,
-      boardId: workspace.boards[0].id,
+      boardId: board.id,
       title: 'Termination cleanup',
       description: '',
       priority: 'HIGH',
       estimatedHours: 4,
       assigneeId: member.employee.id,
-      milestoneId: milestone.id,
     });
     await org.status(hr, member.employee.id, 'TERMINATED', 'Task cleanup integration');
     const cleaned = await db.task.findUniqueOrThrow({ where: { id: assigned.id }, include: { column: true } });

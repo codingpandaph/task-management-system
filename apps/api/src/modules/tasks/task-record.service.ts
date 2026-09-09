@@ -9,15 +9,12 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
   async createTask(actor: Principal, dto: TaskDto) {
     const workspace = await this.canCreate(actor, dto.workspaceId, 'tasks');
     await this.boardAccess(actor, dto.boardId);
-    const [board, assignee, milestone, sprint] = await Promise.all([
+    const [board, assignee, sprint] = await Promise.all([
       this.db.taskBoard.findFirst({
         where: { id: dto.boardId, workspaceId: dto.workspaceId },
-        include: { columns: { where: { isInitial: true } } },
+        include: { columns: { where: { isInitial: true } }, milestone: true },
       }),
       dto.assigneeId ? this.db.employee.findUnique({ where: { id: dto.assigneeId } }) : null,
-      dto.milestoneId
-        ? this.db.milestone.findFirst({ where: { id: dto.milestoneId, workspaceId: dto.workspaceId, status: 'OPEN' } })
-        : null,
       dto.sprintId ? this.db.sprint.findFirst({ where: { id: dto.sprintId, boardId: dto.boardId } }) : null,
     ]);
     if (!board?.columns[0]) throw new BadRequestException('Board requires an initial column');
@@ -25,7 +22,10 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       throw new BadRequestException('Assignee must be active');
     if (assignee && assignee.departmentId !== workspace.departmentId)
       throw new BadRequestException('Assignee must belong to this department');
-    if (dto.milestoneId && !milestone) throw new BadRequestException('Open milestone not found');
+    if (board.kind === 'SCRUM' && (!board.milestone || board.milestone.status !== 'OPEN'))
+      throw new BadRequestException('This Scrum board requires an open milestone');
+    if (dto.milestoneId && dto.milestoneId !== board.milestone?.id)
+      throw new BadRequestException('Tasks can only use their Scrum board milestone');
     if (dto.sprintId && (!sprint || sprint.status === 'COMPLETED'))
       throw new BadRequestException('Choose a current sprint on this board');
     return this.db.transaction(async (tx) => {
@@ -44,24 +44,12 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
           estimatedHours: dto.estimatedHours,
           reporterId: actor.employee.id,
           assigneeId: dto.assigneeId,
-          milestoneId: dto.milestoneId,
+          milestoneId: board.kind === 'SCRUM' ? board.milestone?.id : undefined,
           sprintId: dto.sprintId,
           dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         },
         include: taskInclude,
       });
-      await tx.boardCollaborator.upsert({
-        where: { boardId_employeeId: { boardId: board.id, employeeId: actor.employee.id } },
-        create: { boardId: board.id, employeeId: actor.employee.id },
-        update: {},
-      });
-      if (dto.assigneeId) {
-        await tx.boardCollaborator.upsert({
-          where: { boardId_employeeId: { boardId: board.id, employeeId: dto.assigneeId } },
-          create: { boardId: board.id, employeeId: dto.assigneeId },
-          update: {},
-        });
-      }
       await tx.workspace.update({ where: { id: workspace.id }, data: { nextTaskNumber: { increment: 1 } } });
       await this.activity(tx, task.id, actor.employee.id, 'CREATE', undefined, undefined, {
         publicKey: task.publicKey,
@@ -86,7 +74,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
     const targetMilestoneId = dto.clearMilestone ? null : (dto.milestoneId ?? task.milestoneId);
     const milestone = targetMilestoneId
       ? await this.db.milestone.findFirst({
-          where: { id: targetMilestoneId, workspaceId: task.workspaceId, status: 'OPEN' },
+          where: { id: targetMilestoneId, workspaceId: task.workspaceId, boardId: task.boardId, status: 'OPEN' },
         })
       : null;
     if (targetMilestoneId && !milestone) throw new BadRequestException('Open milestone not found');
@@ -117,13 +105,6 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       if (employee && task.board.kind === 'KANBAN' && task.column.semantic === 'IN_PROGRESS')
         await this.enforceWip(tx, task.workspace.departmentId, employee.id, task.id);
       const updated = await tx.task.update({ where: { id }, data, include: taskInclude });
-      if (employee) {
-        await tx.boardCollaborator.upsert({
-          where: { boardId_employeeId: { boardId: task.boardId, employeeId: employee.id } },
-          create: { boardId: task.boardId, employeeId: employee.id },
-          update: {},
-        });
-      }
       await this.activity(
         tx,
         id,

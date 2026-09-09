@@ -2,7 +2,6 @@
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -47,6 +46,10 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     [dashboard, setDashboard] = useState<Dashboard | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
+  const broad =
+    user.position === 'SENIOR_DIRECTOR' ||
+    (user.department?.kind === 'HR' && user.permissions.includes('REPORTING_READ'));
+  const overview = broad || user.position === 'ACCOUNT_DIRECTOR';
   const start = `${month}-01`,
     last = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate(),
     end = `${month}-${last}`;
@@ -63,7 +66,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
         } else {
           const e = await api<Absence[]>(`reporting/calendar?start=${start}&end=${end}`);
           if (active) setEvents(e);
-          if (path === '/' && user.permissions.includes('REPORTING_READ')) {
+          if (path === '/' && overview) {
             const d = await api<Dashboard>('reporting/dashboard');
             if (active) setDashboard(d);
           }
@@ -79,7 +82,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     return () => {
       active = false;
     };
-  }, [path, start, end, user.permissions]);
+  }, [path, start, end, overview]);
   function shift(offset: number) {
     const d = new Date(`${month}-15T12:00:00Z`);
     d.setUTCMonth(d.getUTCMonth() + offset);
@@ -100,27 +103,44 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
   if (path === '/notifications')
     return <NotificationsScreen notices={notices} setNotices={setNotices} error={error} setError={setError} />;
   const calendar = (
-    <Card title="Who’s out">
+    <Card
+      title={
+        broad
+          ? 'Organization leave calendar'
+          : user.position === 'ACCOUNT_DIRECTOR'
+            ? 'Department leave calendar'
+            : 'My leave calendar'
+      }
+    >
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
+        {broad
+          ? 'Approved leave across the organization.'
+          : user.position === 'ACCOUNT_DIRECTOR'
+            ? `Approved leave in ${user.department?.name ?? 'your department'}.`
+            : 'Your approved leave. Only your absences appear here.'}
+      </Typography>
       <Stack direction={{ xs: 'column', md: 'row' }} sx={{ justifyContent: 'space-between', gap: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'center' } }}>
           <Typography variant="h6">
             {new Date(`${month}-15`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
           </Typography>
-          <TextField
-            select
-            label="Calendar department"
-            size="small"
-            value={calendarDepartment}
-            onChange={(event) => setCalendarDepartment(event.target.value)}
-            sx={{ minWidth: 190 }}
-          >
-            <MenuItem value="ALL">All departments</MenuItem>
-            {calendarDepartments.map((department) => (
-              <MenuItem key={department.id} value={department.id}>
-                {department.name}
-              </MenuItem>
-            ))}
-          </TextField>
+          {broad && (
+            <TextField
+              select
+              label="Calendar department"
+              size="small"
+              value={calendarDepartment}
+              onChange={(event) => setCalendarDepartment(event.target.value)}
+              sx={{ minWidth: 190 }}
+            >
+              <MenuItem value="ALL">All departments</MenuItem>
+              {calendarDepartments.map((department) => (
+                <MenuItem key={department.id} value={department.id}>
+                  {department.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
         </Stack>
         <Stack direction="row">
           <Button aria-label="Previous month" onClick={() => shift(-1)}>
@@ -186,7 +206,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
             </Stack>
           ))
         ) : (
-          <EmptyState title="Everyone is available" detail="There are no approved absences in this month." />
+          <EmptyState title="No approved leave this month" detail="There are no approved absences in this month." />
         )}
       </Box>
     </Card>
@@ -196,21 +216,6 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
       {error && <Alert severity="error">{error}</Alert>}
       {path === '/' && (
         <>
-          <Box
-            sx={{
-              p: { xs: 3, sm: 4 },
-              borderRadius: 3,
-              bgcolor: 'var(--color-leaf)',
-            }}
-          >
-            <Chip label="Today" size="small" sx={{ mb: 2 }} />
-            <Typography component="h2" variant="h4">
-              Good to see you, {user.displayName.split(' ')[0]}.
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
-              Your organization, leave calendar, and delivery signals are ready to review below.
-            </Typography>
-          </Box>
           {dashboard && (
             <div className="stats">
               {[

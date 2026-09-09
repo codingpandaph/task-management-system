@@ -5,12 +5,10 @@ import {
   AttachmentDto,
   BoardDto,
   BulkTaskDto,
-  CollaboratorDto,
   CommentDto,
   EscalationDto,
   LinkDto,
   MembershipDto,
-  MilestoneDto,
   MoveTaskDto,
   SprintDto,
   SavedViewDto,
@@ -43,20 +41,6 @@ class TaskController {
     @Body() dto: MembershipDto,
   ) {
     return this.service.addMembership(request.principal, id, dto);
-  }
-  @Post('task-workspaces/:id/milestones') milestone(
-    @Req() request: AuthRequest,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: MilestoneDto,
-  ) {
-    return this.service.createMilestone(request.principal, id, dto);
-  }
-  @Post('task-boards/:id/collaborators') collaborator(
-    @Req() request: AuthRequest,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CollaboratorDto,
-  ) {
-    return this.service.addCollaborator(request.principal, id, dto);
   }
   @Post('task-boards/:id/sprints') sprint(
     @Req() request: AuthRequest,

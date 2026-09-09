@@ -29,7 +29,7 @@ test('board search follows the active board and tickets move by keyboard or drag
       .filter({ hasText: 'Verify movable board card' }),
   ).toBeVisible();
 
-  await movedCard.dragTo(page.getByLabel('Drop tasks in Review'));
+  await movedCard.dragTo(page.getByLabel('Drop tasks in Review'), { targetPosition: { x: 100, y: 70 } });
   await expect(page.getByLabel('Drop tasks in Review').locator('article.task-card')).toContainText(
     'Verify movable board card',
   );

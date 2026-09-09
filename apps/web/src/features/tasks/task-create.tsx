@@ -18,11 +18,13 @@ import { TaskMarkdown } from './task-markdown';
 
 export function CreateTask({
   workspace,
+  initialBoardId,
   people,
   user,
   refresh,
 }: {
   workspace: Workspace;
+  initialBoardId?: string;
   people: DirectoryEmployee[];
   user: CurrentEmployee;
   refresh: () => Promise<void>;
@@ -30,7 +32,7 @@ export function CreateTask({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [selectedBoardId, setSelectedBoardId] = useState(workspace.boards[0]?.id ?? '');
+  const [selectedBoardId, setSelectedBoardId] = useState(initialBoardId || workspace.boards[0]?.id || '');
   const [description, setDescription] = useState('');
   const selectedBoard = workspace.boards.find((board) => board.id === selectedBoardId);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -47,7 +49,7 @@ export function CreateTask({
         priority: String(data.get('priority')),
         estimatedHours: Number(data.get('estimatedHours')),
         assigneeId: data.get('assigneeId') || undefined,
-        milestoneId: data.get('milestoneId') || undefined,
+        milestoneId: selectedBoard?.kind === 'SCRUM' ? selectedBoard.milestone?.id : undefined,
         sprintId: data.get('sprintId') || undefined,
         dueDate: data.get('dueDate') || undefined,
       });
@@ -123,14 +125,9 @@ export function CreateTask({
                   ))}
               </TextField>
               <Alert severity="info">Reporter: {user.displayName}. The creator is recorded automatically.</Alert>
-              <TextField name="milestoneId" label="Milestone" select defaultValue="">
-                <MenuItem value="">No milestone</MenuItem>
-                {workspace.milestones.map((milestone) => (
-                  <MenuItem key={milestone.id} value={milestone.id}>
-                    {milestone.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              {selectedBoard?.kind === 'SCRUM' && selectedBoard.milestone && (
+                <Alert severity="info">Milestone: {selectedBoard.milestone.name}</Alert>
+              )}
               {selectedBoard?.kind === 'SCRUM' && !!selectedBoard.sprints.length && (
                 <TextField name="sprintId" label="Sprint" select defaultValue="">
                   <MenuItem value="">No sprint</MenuItem>

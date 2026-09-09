@@ -39,7 +39,6 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
               where: { status: 'ACTIVE' },
               include: {
                 creator: { select: { id: true, employeeId: true, firstName: true, lastName: true, position: true } },
-                collaborators: true,
                 sprints: { where: { status: 'ACTIVE' } },
               },
             },

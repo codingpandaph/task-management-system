@@ -7,7 +7,6 @@ const kanban: Template['columns'] = [
   ['Review', false, false],
   ['Done', true, true],
 ];
-const scrum: Template['columns'] = [['Backlog', false, false], ...kanban];
 const list: Template['columns'] = [
   ['Open', false, false],
   ['Done', true, false],
@@ -16,13 +15,9 @@ const list: Template['columns'] = [
 export const workspaceTemplates: Record<WorkspaceFunction, Template[]> = {
   ENGINEERING_PRODUCT: [
     { name: 'Engineering delivery', kind: 'KANBAN', columns: kanban },
-    { name: 'Product sprint', kind: 'SCRUM', columns: scrum },
     { name: 'Request list', kind: 'LIST', columns: list },
   ],
-  MARKETING_CREATIVE: [
-    { name: 'Campaign delivery', kind: 'KANBAN', columns: kanban },
-    { name: 'Campaign sprint', kind: 'SCRUM', columns: scrum },
-  ],
+  MARKETING_CREATIVE: [{ name: 'Campaign delivery', kind: 'KANBAN', columns: kanban }],
   SALES_ACCOUNT_MANAGEMENT: [{ name: 'Client delivery', kind: 'KANBAN', columns: kanban }],
   HR_OPERATIONS: [{ name: 'People operations', kind: 'LIST', columns: list }],
   FINANCE_LEGAL: [{ name: 'Request list', kind: 'LIST', columns: list }],

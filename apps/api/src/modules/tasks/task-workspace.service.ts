@@ -4,7 +4,7 @@ import { dateOnly } from '../../common/dates';
 import { audit } from '../audit/audit';
 import type { Principal } from '../authorization/authorization';
 import type { Transaction } from '../database/database.module';
-import type { BoardDto, CollaboratorDto, MembershipDto, MilestoneDto, SprintDto } from './task.dto';
+import type { BoardDto, MembershipDto, SprintDto } from './task.dto';
 import { TaskBaseService, person, taskInclude } from './task-base.service';
 import { workspaceTemplates } from './task-templates';
 
@@ -43,36 +43,18 @@ function semantic(kind: TaskManagementType, name: string, isDone: boolean, posit
 export abstract class TaskWorkspaceService extends TaskBaseService {
   async workspaces(actor: Principal) {
     const elevated = actor.employee.position === 'SENIOR_DIRECTOR';
-    const managerDepartmentId = actor.employee.position === 'ACCOUNT_DIRECTOR' ? actor.employee.departmentId : null;
     return this.db.workspace.findMany({
-      where: elevated
-        ? {}
-        : {
-            OR: [
-              { departmentId: actor.employee.departmentId! },
-              { memberships: { some: { employeeId: actor.employee.id } } },
-            ],
-          },
+      where: elevated ? {} : { departmentId: actor.employee.departmentId ?? '00000000-0000-0000-0000-000000000000' },
       include: {
         department: true,
         memberships: { where: { milestoneId: null }, include: { employee: { select: person } } },
         boards: {
-          where: {
-            status: 'ACTIVE',
-            ...(elevated || managerDepartmentId
-              ? {}
-              : {
-                  OR: [
-                    { creatorId: actor.employee.id },
-                    { collaborators: { some: { employeeId: actor.employee.id } } },
-                  ],
-                }),
-          },
+          where: { status: 'ACTIVE' },
           include: {
             columns: { orderBy: { position: 'asc' } },
             creator: { select: person },
-            collaborators: { include: { employee: { select: person } } },
             sprints: { orderBy: { startDate: 'desc' } },
+            milestone: true,
           },
         },
         milestones: { where: { status: 'OPEN' }, orderBy: { dueDate: 'asc' } },
@@ -129,7 +111,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
           })),
         },
       },
-      include: { columns: true },
+      include: { columns: true, milestone: true },
     });
   }
 
@@ -147,11 +129,34 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
       : boardColumns[kind];
     if (columns.length < 2 || columns.some(([name]) => !name.trim()))
       throw new BadRequestException('Provide at least two named columns');
+    const milestoneFields = [dto.milestoneName, dto.milestoneGoal, dto.milestoneStartDate, dto.milestoneDueDate];
+    if (kind === 'SCRUM' && milestoneFields.some((value) => !value))
+      throw new BadRequestException('Scrum boards require a milestone name, goal, start date, and due date');
+    if (kind !== 'SCRUM' && milestoneFields.some(Boolean))
+      throw new BadRequestException('Milestones are only available on Scrum boards');
+    const milestoneStartDate = dto.milestoneStartDate ? dateOnly(dto.milestoneStartDate) : undefined;
+    const milestoneDueDate = dto.milestoneDueDate ? dateOnly(dto.milestoneDueDate) : undefined;
+    if (milestoneStartDate && milestoneDueDate && milestoneDueDate <= milestoneStartDate)
+      throw new BadRequestException('Milestone due date must follow its start date');
     return this.db.transaction(async (tx) => {
       const board = await this.createBoardRecord(tx, workspaceId, actor.employee.id, dto.name, kind, columns);
-      await tx.boardCollaborator.create({ data: { boardId: board.id, employeeId: actor.employee.id } });
+      if (kind === 'SCRUM') {
+        await tx.milestone.create({
+          data: {
+            workspaceId,
+            boardId: board.id,
+            name: dto.milestoneName!,
+            goal: dto.milestoneGoal!,
+            startDate: milestoneStartDate!,
+            dueDate: milestoneDueDate!,
+          },
+        });
+      }
       await audit(tx, actor.employee.id, 'TASK_BOARD_CREATED', 'TaskBoard', board.id, { kind });
-      return board;
+      return tx.taskBoard.findUniqueOrThrow({
+        where: { id: board.id },
+        include: { columns: true, milestone: true },
+      });
     });
   }
 
@@ -177,33 +182,10 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
     });
   }
 
-  async addCollaborator(actor: Principal, boardId: string, dto: CollaboratorDto) {
-    const board = await this.db.taskBoard.findUnique({ where: { id: boardId }, include: { workspace: true } });
-    if (!board) throw new NotFoundException('Board not found');
-    if (board.creatorId !== actor.employee.id) await this.workspaceAccess(actor, board.workspaceId, true);
-    const employee = await this.db.employee.findUnique({ where: { id: dto.employeeId } });
-    if (!employee || employee.status !== 'ACTIVE' || employee.departmentId !== board.workspace.departmentId) {
-      throw new BadRequestException('Collaborators must be active members of this department');
-    }
-    return this.db.boardCollaborator.upsert({
-      where: { boardId_employeeId: { boardId, employeeId: employee.id } },
-      create: { boardId, employeeId: employee.id },
-      update: {},
-    });
-  }
-
-  async createMilestone(actor: Principal, workspaceId: string, dto: MilestoneDto) {
-    await this.workspaceAccess(actor, workspaceId, true);
-    const startDate = dateOnly(dto.startDate),
-      dueDate = new Date(dto.dueDate);
-    if (Number.isNaN(dueDate.valueOf()) || dueDate <= startDate)
-      throw new BadRequestException('Due date must follow start date');
-    return this.db.milestone.create({ data: { workspaceId, name: dto.name, goal: dto.goal, startDate, dueDate } });
-  }
-
   async createSprint(actor: Principal, boardId: string, dto: SprintDto) {
     const board = await this.db.taskBoard.findUnique({ where: { id: boardId } });
     if (!board) throw new NotFoundException('Board not found');
+    await this.boardAccess(actor, boardId);
     if (board.creatorId !== actor.employee.id) await this.workspaceAccess(actor, board.workspaceId, true);
     if (board.kind !== 'SCRUM') throw new BadRequestException('Sprints are only available on Scrum boards');
     const startDate = dateOnly(dto.startDate),
@@ -215,6 +197,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
   async changeSprintStatus(actor: Principal, sprintId: string, status: 'ACTIVE' | 'COMPLETED') {
     const sprint = await this.db.sprint.findUnique({ where: { id: sprintId }, include: { board: true } });
     if (!sprint) throw new NotFoundException('Sprint not found');
+    await this.boardAccess(actor, sprint.boardId);
     if (sprint.board.creatorId !== actor.employee.id) await this.workspaceAccess(actor, sprint.board.workspaceId, true);
     if (sprint.status === 'COMPLETED') throw new ConflictException('Completed sprints cannot be reopened');
     return this.db.transaction(async (tx) => {
@@ -232,8 +215,8 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
       where: { workspaceId, status: 'ACTIVE', ...(boardId ? { id: boardId } : {}) },
       include: {
         creator: { select: person },
-        collaborators: { include: { employee: { select: person } } },
         sprints: { orderBy: { startDate: 'desc' } },
+        milestone: true,
         columns: {
           orderBy: { position: 'asc' },
           include: {

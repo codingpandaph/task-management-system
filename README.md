@@ -150,7 +150,7 @@ probationary, concurrency, ledger, and privacy assertions. Both commands refuse 
 
 The portal keeps each screen's actions, tabs, contextual search, and filters inside the content surface they control.
 It uses employee tabs with visible employment history and access grants, searchable approval queues,
-department-filtered calendars, personal task search, horizontal team Kanban boards with uncluttered drag-and-drop and
+role-scoped leave calendars, sortable personal task lists, horizontal team Kanban boards with uncluttered drag-and-drop and
 keyboard movement controls, semantic tags, policy actions, scoped delivery summaries, and plain-language permission
 and recovery messages. Internal authorization and session terminology is translated before it reaches employee-facing
 alerts. Business mutations remain enforced by the API regardless of which controls are visible.
@@ -170,8 +170,8 @@ The leave flow uses explicit Preview, Save draft, and Submit actions, preserves 
 keeps primary evergreen buttons readable with white text in every link, hover, and focus state.
 Approval dialogs use direct Approve and Reject actions. Cancellation queues show the employee, leave dates, request
 reason, workflow step, and status so reviewers can decide without interpreting an opaque reference.
-Organization cards use the complete active hierarchy for their people counts and expose edit plus lifecycle actions in
-place. Employee and employment dialogs reveal contract-end or probation-review fields only when the chosen employment
+Organization lists searchable departments, directors, and counts from the complete active hierarchy; secondary
+settings appear under Department actions. Employee and employment dialogs reveal contract-end or probation-review fields only when the chosen employment
 type requires them. The navigation badge reads live unread state, task notifications open the referenced task directly,
 and authorized users can load older audit pages without losing their current review context.
 
@@ -218,9 +218,10 @@ snapshot under `prisma/fixtures`.
 
 Task workspaces reuse HRIS positions and membership. Serializable workspace counters produce human task keys. Task
 completion enforces blockers and management-locked columns. Departments select Kanban, Scrum, and List workflows and
-set one Kanban limit that is enforced separately for each assignee under a row lock. Board collaborators remain
-separate from member create permissions. Non-directors discover only boards they create, collaborate on, or receive an
-assignment in. Reporters are always derived from the authenticated creator. Capacity uses active employees,
+set one Kanban limit that is enforced separately for each assignee under a row lock. All active department members
+access their department boards automatically and can comment and move tickets, subject to workflow checks. Creating
+tickets and boards requires independent grants (directors have these abilities automatically). There is no board
+collaborator assignment; cross-department board access is limited to the Senior Director. Reporters are always derived from the authenticated creator. Capacity uses active employees,
 business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
 initial lane. Task deletion is reversible and its activity ledger is append-only.
 The Senior Director is an organization-level employee with no department assignment; a PostgreSQL constraint requires
@@ -238,3 +239,22 @@ every API request. Task descriptions render a deliberately limited Markdown subs
 Production deployment still requires HTTPS, independently managed secrets, shared rate limiting for multiple API
 instances, distributed scheduling, approved retention rules, employer-reviewed UK GDPR lawful bases, monitoring, and
 backup/restore procedures. This prototype does not claim legal certification.
+
+### UI access and workflow acceptance
+
+- Overview and Leave calendar use API-enforced scope: organization-wide for the Senior Director and authorized HR
+  reporting users, own department for Account Directors, and own approved leave only for members. People navigation
+  and `/employees` pages are limited to HR and the Senior Director; employee detail still requires its capability.
+- Create/edit department uses Kanban, Scrum, and List checkboxes plus Select all. The Kanban WIP field appears only
+  while Kanban is selected. At least one type is required.
+- Policies has one **Create** button for the selected Regular leave or Christmas tab and its permission.
+- Team boards omits the duplicate introduction panel. Creating a Scrum board also creates its single required
+  milestone with date-only start and due dates; Scrum tasks use that milestone automatically. Saved views and bulk
+  actions expand on demand.
+- My tasks is a sortable table with search, status, and priority filters. Task and employment tables sort by clicking
+  headers; People sorting applies on the API before pagination. Empty task due dates sort last in both directions.
+- Targeted browser regression: `yarn playwright test tests/e2e/ui-feedback.spec.ts --project=chromium` after preparing
+  the dedicated `tms_test` fixtures with `yarn e2e:db:reset`. This reset deletes only that test database's data and must
+  not target application or production data. The test covers permissions, department board interaction, conditional
+  controls, sorting, console errors, accessibility, and 375, 599/600/601, 768, 899/900/901, 1199/1200/1201, 1440, and
+  1535/1536/1537-pixel viewports. See the manual acceptance flows in both feature documents.

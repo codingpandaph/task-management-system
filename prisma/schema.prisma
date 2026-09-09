@@ -677,6 +677,7 @@ model TaskBoard {
   tasks         Task[]
   collaborators BoardCollaborator[]
   sprints       Sprint[]
+  milestone     Milestone?
 
   @@unique([workspaceId, name])
 }
@@ -735,11 +736,13 @@ model Milestone {
   name           String
   goal           String
   startDate      DateTime              @db.Date
-  dueDate        DateTime              @db.Timestamptz(3)
+  dueDate        DateTime              @db.Date
   status         MilestoneStatus       @default(OPEN)
   isOvercapacity Boolean               @default(false)
   workspaceId    String                @db.Uuid
   workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  boardId        String?               @unique @db.Uuid
+  board          TaskBoard?            @relation(fields: [boardId], references: [id], onDelete: Restrict)
   tasks          Task[]
   memberships    WorkspaceMembership[]
 

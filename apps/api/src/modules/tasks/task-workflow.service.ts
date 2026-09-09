@@ -235,23 +235,14 @@ export abstract class TaskWorkflowService extends TaskRecordService {
     if (!milestone) throw new NotFoundException('Milestone not found');
     await this.workspaceAccess(actor, milestone.workspaceId, true);
     return this.db.transaction(async (tx) => {
-      const next = await tx.milestone.findFirst({
-        where: {
-          workspaceId: milestone.workspaceId,
-          status: 'OPEN',
-          id: { not: id },
-          dueDate: { gt: milestone.dueDate },
-        },
-        orderBy: { dueDate: 'asc' },
-      });
       const active = await tx.task.findMany({
         where: { milestoneId: id, isDeleted: false, column: { isDone: false } },
         select: { id: true, milestoneId: true },
       });
       for (const task of active) {
-        await tx.task.update({ where: { id: task.id }, data: { milestoneId: next?.id ?? null } });
+        await tx.task.update({ where: { id: task.id }, data: { milestoneId: null } });
         await this.activity(tx, task.id, actor.employee.id, 'UPDATE_FIELD', 'milestoneId', id, {
-          milestoneId: next?.id ?? null,
+          milestoneId: null,
         });
       }
       const closed = await tx.milestone.update({ where: { id }, data: { status: 'CLOSED' } });
