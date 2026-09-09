@@ -248,9 +248,9 @@ backup/restore procedures. This prototype does not claim legal certification.
 - Create/edit department uses Kanban, Scrum, and List checkboxes plus Select all. The Kanban WIP field appears only
   while Kanban is selected. At least one type is required.
 - Policies has one **Create** button for the selected Regular leave or Christmas tab and its permission.
-- Team boards omits the duplicate introduction panel. Creating a Scrum board also creates its single required
-  milestone with date-only start and due dates; Scrum tasks use that milestone automatically. Saved views and bulk
-  actions expand on demand.
+- Team boards omits the duplicate introduction panel. Each Scrum board represents one sprint and creates its single
+  required milestone with date-only start and due dates; the next sprint uses a new board. Scrum tasks use that
+  milestone automatically. Saved views and bulk actions expand on demand.
 - My tasks is a sortable table with search, status, and priority filters. Task and employment tables sort by clicking
   headers; People sorting applies on the API before pagination. Empty task due dates sort last in both directions.
 - Targeted browser regression: `yarn playwright test tests/e2e/ui-feedback.spec.ts --project=chromium` after preparing

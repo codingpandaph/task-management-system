@@ -85,7 +85,6 @@ export class TaskDto {
   @Type(() => Number) @IsNumber() @Min(0) @Max(10000) estimatedHours!: number;
   @IsOptional() @IsUUID() assigneeId?: string;
   @IsOptional() @IsUUID() milestoneId?: string;
-  @IsOptional() @IsUUID() sprintId?: string;
   @IsOptional() @IsDateString({ strict: true }) dueDate?: string;
 }
 export class TaskEditDto {
@@ -97,8 +96,6 @@ export class TaskEditDto {
   @IsOptional() @IsBoolean() clearAssignee?: boolean;
   @IsOptional() @IsUUID() milestoneId?: string;
   @IsOptional() @IsBoolean() clearMilestone?: boolean;
-  @IsOptional() @IsUUID() sprintId?: string;
-  @IsOptional() @IsBoolean() clearSprint?: boolean;
   @IsOptional() @IsDateString({ strict: true }) dueDate?: string;
   @IsOptional() @IsBoolean() clearDueDate?: boolean;
 }
@@ -145,10 +142,4 @@ export class MembershipDto {
   @IsOptional() @IsDateString({ strict: true }) effectiveTo?: string;
   @IsOptional() @IsBoolean() canCreateTasks?: boolean;
   @IsOptional() @IsBoolean() canCreateBoards?: boolean;
-}
-export class SprintDto {
-  @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
-  @IsString() @IsNotEmpty() @MaxLength(2000) goal!: string;
-  @IsDateString({ strict: true }) startDate!: string;
-  @IsDateString({ strict: true }) endDate!: string;
 }

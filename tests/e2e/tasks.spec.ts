@@ -118,7 +118,7 @@ test('reporter is automatic, assignees are department-scoped, and Kanban uses dr
   await expect(page.getByText('WIP demonstration', { exact: true })).toBeVisible();
 });
 
-test('Scrum validates and runs a sprint while HR renders a plain List board', async ({ browser }) => {
+test('each Scrum sprint uses its own board and milestone while HR renders a plain List board', async ({ browser }) => {
   const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
   const hrContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
   try {
@@ -140,29 +140,19 @@ test('Scrum validates and runs a sprint while HR renders a plain List board', as
       await expect(director.getByRole('tab', { name: 'Client sprint', exact: true })).toBeVisible();
     }
     await director.getByRole('tab', { name: 'Client sprint' }).click();
-    await director.getByRole('button', { name: 'New sprint' }).click();
-    const sprint = director.getByRole('dialog', { name: 'Create sprint' });
-    await sprint.getByLabel('Sprint name').fill('Validation sprint');
-    await sprint.getByLabel('Sprint goal').fill('Prepare the technical validation');
-    await sprint.getByLabel('Start date').fill('2026-09-14');
-    await sprint.getByLabel('End date').fill('2026-09-28');
-    await sprint.getByRole('button', { name: 'Save changes' }).click();
-    await expect(director.getByText('Validation sprint')).toBeVisible();
-    await director.getByRole('button', { name: 'Activate' }).click();
-    await expect(director.getByText('ACTIVE')).toBeVisible();
+    await expect(director.getByRole('button', { name: 'New sprint' })).toHaveCount(0);
+    await expect(director.getByRole('button', { name: /Client delivery milestone/ })).toBeVisible();
     await director.getByRole('button', { name: 'Create task', exact: true }).click();
     const task = director.getByRole('dialog', { name: 'Create a task' });
     await task.getByLabel('Task title').fill('Sprint delivery proof');
     await task.getByLabel('Description').fill('## Acceptance\n- Safe preview\n- Sprint ownership');
     await task.getByLabel('Board').click();
     await director.getByRole('option', { name: 'Client sprint', exact: true }).click();
-    await task.getByLabel('Sprint').click();
-    await director.getByRole('option', { name: 'Validation sprint', exact: true }).click();
     await task.getByLabel('Due date').fill('2026-09-24');
     await task.getByRole('button', { name: 'Create task', exact: true }).click();
     await director.getByRole('button', { name: /Sprint delivery proof/ }).click();
     const detail = director.getByRole('dialog');
-    await expect(detail.getByText(/Validation sprint/)).toBeVisible();
+    await expect(detail.getByText(/Client delivery milestone/)).toBeVisible();
     await expect(detail.getByRole('heading', { name: 'Acceptance' })).toBeVisible();
     await detail.getByRole('button', { name: 'Close task' }).click();
 

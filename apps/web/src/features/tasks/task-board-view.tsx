@@ -16,7 +16,6 @@ import { ListBoard } from './list-board';
 import { MilestoneStrip } from './milestone-strip';
 import type { BoardResponse, DepartmentOption, Workspace } from './task-types';
 import { WorkspaceActions } from './workspace-actions';
-import { SprintPanel } from './sprint-panel';
 import { TaskProductActions } from './task-product-actions';
 import { TaskBoardFilters } from './task-board-filters';
 interface TaskBoardViewProps {
@@ -68,7 +67,6 @@ export function TaskBoardView(props: TaskBoardViewProps) {
   const canCreateTasks =
     workspaceManager ||
     !!workspace?.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateTasks);
-  const boardManager = workspaceManager || board?.board.creator.id === user.id;
   return (
     <Stack spacing={3}>
       {workspaces.length && workspace ? (
@@ -94,7 +92,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                   refresh={refresh}
                 />
               )}
-              <WorkspaceActions workspace={workspace} board={board?.board} user={user} refresh={refresh} />
+              <WorkspaceActions workspace={workspace} user={user} refresh={refresh} />
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-navigation">
@@ -144,7 +142,6 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 .join(' · ')}
             </Typography>
           )}
-          {board && <SprintPanel board={board.board} canManage={boardManager} refresh={refresh} />}
           {board && (
             <TaskBoardFilters
               boardName={board.board.name}

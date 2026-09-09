@@ -145,7 +145,7 @@ deletes to this log. Comments and task changes also emit activity entries.
 | Area          | Endpoints                                                                                      |
 | ------------- | ---------------------------------------------------------------------------------------------- |
 | Workspaces    | `GET/POST /api/task-workspaces`, board creation with a Scrum milestone, and membership changes |
-| Boards        | Department board read/create and Scrum sprint actions                                          |
+| Boards        | Department board read/create; each Scrum board represents one sprint                           |
 | Personal work | `GET /api/tasks/mine`                                                                          |
 | Tasks         | `POST /api/tasks`, `GET/PATCH/DELETE /api/tasks/:id`, restore and move actions                 |
 | Collaboration | Comments and dependency links under `/api/tasks/:id`                                           |
@@ -155,21 +155,21 @@ deletes to this log. Comments and task changes also emit activity entries.
 
 Department settings are available through `GET /api/departments/:id` and
 `PATCH /api/departments/:id/task-settings`. The obsolete board collaborator endpoint has been removed.
-Scrum uses board sprint creation plus explicit activate and complete actions.
+Each Scrum board represents one sprint and owns that sprint's milestone.
 
 ## Current department workflows
 
 - **Kanban** is continuous flow with To do, In progress, Review, and Done. Board cards move by drag and drop; the task
   detail status selector keeps movement keyboard accessible. The API validates every move.
-- **Scrum** adds Backlog and time-boxed sprints. A sprint requires a name, goal, start date, and later end date. A board
-  may have only one active sprint, and completed sprints cannot be reopened. Tasks can be created and edited with a
-  current sprint and due date; completed sprints reject new task assignments while retaining their history.
+- **Scrum** adds Backlog for a time-boxed sprint. Each sprint uses a separate Scrum board with one milestone. Creating
+  the board requires the milestone name, goal, date-only start date, and later date-only due date. Tasks on that board
+  inherit its milestone automatically.
 - **List** renders a table with title, status, assignee, reporter, priority, and due date. It has no columns or sprint UI.
   The existing Human Resources department has List enabled and is not duplicated.
 
 Each department selects one or more supported workflow types. Board creation offers only those values and the API rejects
-an unsupported type. The board creator is recorded automatically. Collaborators are active employees from the board’s
-department and do not inherit board or task creation permissions.
+an unsupported type. The board creator is recorded automatically. Every active department member can view, comment on,
+and move its tickets; task and board creation remain separate permissions.
 
 ## Kanban WIP rule
 
@@ -211,8 +211,8 @@ active views and WIP counts.
    reporter, then assign a same-department employee.
 6. **WIP (3 minutes):** Drag two tasks for Alex into In progress, show 2/2, and demonstrate the third rejection. Move one
    task to Review and retry successfully. Move an unassigned task into In progress to show it consumes no personal slot.
-7. **Scrum and List (2 minutes):** Create and activate a valid Scrum sprint, briefly show date validation, then switch to
-   HR’s plain List table.
+7. **Scrum and List (2 minutes):** Create a Scrum board for one sprint with its milestone and date range, briefly show
+   date validation, then create a second board for the next sprint and switch to HR’s plain List table.
 8. **Security and archive (1 minute):** Show an Account Director denied from another department, mention server-side
    department-access/assignee/type/reporter checks, archive a task, and restore it from Task archive.
 9. **Account and evidence (1 minute):** Open Password from the authenticated header, point out confirmation, then mention
@@ -338,7 +338,8 @@ at least two assigned tasks. Use `tests/e2e/ui-feedback.spec.ts` with the affect
       abilities for their scope; the Senior Director can work across departments.
 - [ ] **Board layout and context:** Open Team boards. The selected board’s toolbar appears directly below the page
       heading, without a duplicate introduction panel or collaborator controls. Switch Kanban → Scrum → List. Only
-      Kanban shows the per-person WIP limit; only Scrum shows its milestone and sprint controls.
+      Kanban shows the per-person WIP limit; each Scrum board shows its single sprint milestone and has no nested sprint
+      controls.
       Expand Saved views and bulk actions when needed; saved filters and bulk triage remain functional.
 - [ ] **Scrum dates and task form:** Create a Scrum board with a milestone name, goal, start date, and later due date.
       Both inputs use calendar dates with no time field. Equal or reversed dates fail validation. Create task defaults

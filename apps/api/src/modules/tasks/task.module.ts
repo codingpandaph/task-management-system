@@ -10,7 +10,6 @@ import {
   LinkDto,
   MembershipDto,
   MoveTaskDto,
-  SprintDto,
   SavedViewDto,
   TaskDto,
   TaskEditDto,
@@ -41,19 +40,6 @@ class TaskController {
     @Body() dto: MembershipDto,
   ) {
     return this.service.addMembership(request.principal, id, dto);
-  }
-  @Post('task-boards/:id/sprints') sprint(
-    @Req() request: AuthRequest,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: SprintDto,
-  ) {
-    return this.service.createSprint(request.principal, id, dto);
-  }
-  @Post('sprints/:id/activate') activateSprint(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
-    return this.service.changeSprintStatus(request.principal, id, 'ACTIVE');
-  }
-  @Post('sprints/:id/complete') completeSprint(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
-    return this.service.changeSprintStatus(request.principal, id, 'COMPLETED');
   }
   @Get('task-workspaces/:id/board') taskBoard(
     @Req() request: AuthRequest,

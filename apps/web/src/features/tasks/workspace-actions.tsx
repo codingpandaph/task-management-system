@@ -2,27 +2,24 @@ import Box from '@mui/material/Box';
 import type { CurrentEmployee } from '@tms/contracts';
 import { api } from '@/lib/api';
 import { ModalForm } from '../hr/ui';
-import type { Board, Workspace } from './task-types';
+import type { Workspace } from './task-types';
 
 export function WorkspaceActions({
   workspace,
   user,
-  board,
   refresh,
 }: {
   workspace: Workspace;
   user: CurrentEmployee;
-  board?: Board;
   refresh: () => Promise<void>;
 }) {
   const manager =
     user.position === 'SENIOR_DIRECTOR' ||
     (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === workspace.departmentId);
-  const boardManager = manager || board?.creator.id === user.id;
   const canCreateBoards =
     manager ||
     workspace.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateBoards);
-  if (!canCreateBoards && !boardManager) return null;
+  if (!canCreateBoards) return null;
   return (
     <Box className="workspace-actions">
       {canCreateBoards && (
@@ -65,22 +62,6 @@ export function WorkspaceActions({
               milestoneStartDate: values.milestoneStartDate,
               milestoneDueDate: values.milestoneDueDate,
             });
-            await refresh();
-          }}
-        />
-      )}
-      {boardManager && board?.kind === 'SCRUM' && (
-        <ModalForm
-          buttonLabel="New sprint"
-          title="Create sprint"
-          fields={[
-            { name: 'name', label: 'Sprint name' },
-            { name: 'goal', label: 'Sprint goal' },
-            { name: 'startDate', label: 'Start date', type: 'date' },
-            { name: 'endDate', label: 'End date', type: 'date' },
-          ]}
-          onSubmit={async (values) => {
-            await api(`task-boards/${board.id}/sprints`, values);
             await refresh();
           }}
         />

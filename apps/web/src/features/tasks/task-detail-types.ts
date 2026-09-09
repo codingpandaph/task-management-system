@@ -1,10 +1,4 @@
-import type {
-  CurrentEmployee,
-  DirectoryEmployee,
-  SprintStatus,
-  TaskColumnContract,
-  TaskContract,
-} from '@tms/contracts';
+import type { CurrentEmployee, DirectoryEmployee, TaskColumnContract, TaskContract } from '@tms/contracts';
 
 export interface TaskDetailProps {
   taskId: string;
@@ -20,7 +14,6 @@ export type TaskDetailResponse = TaskContract & {
     id: string;
     name: string;
     columns: Omit<TaskColumnContract, 'tasks'>[];
-    sprints: { id: string; name: string; status: SprintStatus }[];
   };
   comments: { id: string; body: string; author: { firstName: string; lastName: string } }[];
   attachments: { id: string; name: string; url: string; mediaType: string; sizeBytes: number }[];

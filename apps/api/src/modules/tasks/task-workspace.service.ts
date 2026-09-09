@@ -1,10 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { TaskColumnSemantic, TaskManagementType, WorkspaceFunction } from '../../generated/prisma/client';
 import { dateOnly } from '../../common/dates';
 import { audit } from '../audit/audit';
 import type { Principal } from '../authorization/authorization';
 import type { Transaction } from '../database/database.module';
-import type { BoardDto, MembershipDto, SprintDto } from './task.dto';
+import type { BoardDto, MembershipDto } from './task.dto';
 import { TaskBaseService, person, taskInclude } from './task-base.service';
 import { workspaceTemplates } from './task-templates';
 
@@ -53,7 +53,6 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
           include: {
             columns: { orderBy: { position: 'asc' } },
             creator: { select: person },
-            sprints: { orderBy: { startDate: 'desc' } },
             milestone: true,
           },
         },
@@ -182,40 +181,12 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
     });
   }
 
-  async createSprint(actor: Principal, boardId: string, dto: SprintDto) {
-    const board = await this.db.taskBoard.findUnique({ where: { id: boardId } });
-    if (!board) throw new NotFoundException('Board not found');
-    await this.boardAccess(actor, boardId);
-    if (board.creatorId !== actor.employee.id) await this.workspaceAccess(actor, board.workspaceId, true);
-    if (board.kind !== 'SCRUM') throw new BadRequestException('Sprints are only available on Scrum boards');
-    const startDate = dateOnly(dto.startDate),
-      endDate = dateOnly(dto.endDate);
-    if (endDate <= startDate) throw new BadRequestException('End date must follow start date');
-    return this.db.sprint.create({ data: { boardId, name: dto.name, goal: dto.goal, startDate, endDate } });
-  }
-
-  async changeSprintStatus(actor: Principal, sprintId: string, status: 'ACTIVE' | 'COMPLETED') {
-    const sprint = await this.db.sprint.findUnique({ where: { id: sprintId }, include: { board: true } });
-    if (!sprint) throw new NotFoundException('Sprint not found');
-    await this.boardAccess(actor, sprint.boardId);
-    if (sprint.board.creatorId !== actor.employee.id) await this.workspaceAccess(actor, sprint.board.workspaceId, true);
-    if (sprint.status === 'COMPLETED') throw new ConflictException('Completed sprints cannot be reopened');
-    return this.db.transaction(async (tx) => {
-      if (status === 'ACTIVE') {
-        const active = await tx.sprint.findFirst({ where: { boardId: sprint.boardId, status: 'ACTIVE' } });
-        if (active && active.id !== sprint.id) throw new ConflictException('This board already has an active sprint');
-      }
-      return tx.sprint.update({ where: { id: sprintId }, data: { status } });
-    });
-  }
-
   async board(actor: Principal, workspaceId: string, boardId?: string) {
     const workspace = await this.workspaceAccess(actor, workspaceId);
     const board = await this.db.taskBoard.findFirst({
       where: { workspaceId, status: 'ACTIVE', ...(boardId ? { id: boardId } : {}) },
       include: {
         creator: { select: person },
-        sprints: { orderBy: { startDate: 'desc' } },
         milestone: true,
         columns: {
           orderBy: { position: 'asc' },

@@ -62,7 +62,7 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
     assert.equal(typeof reports[0]?.averageCycleDays, 'number');
     await tasks.deleteView(activeMember, view.id);
   });
-  await suite.test('department board access and sprint lifecycle enforce scope', async () => {
+  await suite.test('department board access and one-board-per-sprint scope are enforced', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
     await assert.rejects(tasks.createBoard(director, workspace.id, { name: 'Invalid list', kind: 'LIST' }));
@@ -91,51 +91,17 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
     await assert.rejects(tasks.createBoard(unrelated, workspace.id, { name: 'Outside department', kind: 'SCRUM' }));
     await db.workspaceMembership.delete({ where: { id: staleMembership.id } });
     assert.equal((await tasks.board(activeMember, workspace.id, scrum.id)).board.id, scrum.id);
-    await assert.rejects(
-      tasks.createSprint(director, scrum.id, {
-        name: 'Invalid sprint',
-        goal: 'Validate dates',
-        startDate: `${year}-10-10`,
-        endDate: `${year}-10-01`,
-      }),
-    );
-    const sprint = await tasks.createSprint(director, scrum.id, {
-      name: 'Validation sprint',
-      goal: 'Validate workflow',
-      startDate: `${year}-10-01`,
-      endDate: `${year}-10-14`,
-    });
-    assert.equal((await tasks.changeSprintStatus(director, sprint.id, 'ACTIVE')).status, 'ACTIVE');
     const sprintTask = await tasks.createTask(director, {
       workspaceId: workspace.id,
       boardId: scrum.id,
-      sprintId: sprint.id,
       dueDate: `${year}-10-10`,
       title: 'Sprint delivery',
       priority: 'HIGH',
       estimatedHours: 4,
       assigneeId: activeMember.employee.id,
     });
-    assert.equal(sprintTask.sprintId, sprint.id);
+    assert.equal(sprintTask.milestoneId, scrum.milestone!.id);
     assert.equal((await tasks.detail(activeMember, sprintTask.id)).id, sprintTask.id);
-    const another = await tasks.createSprint(director, scrum.id, {
-      name: 'Next sprint',
-      goal: 'Next workflow',
-      startDate: `${year}-10-15`,
-      endDate: `${year}-10-28`,
-    });
-    await assert.rejects(tasks.changeSprintStatus(director, another.id, 'ACTIVE'));
-    assert.equal((await tasks.changeSprintStatus(director, sprint.id, 'COMPLETED')).status, 'COMPLETED');
-    await assert.rejects(
-      tasks.createTask(director, {
-        workspaceId: workspace.id,
-        boardId: scrum.id,
-        sprintId: sprint.id,
-        title: 'Closed sprint task',
-        priority: 'LOW',
-        estimatedHours: 1,
-      }),
-    );
   });
   await suite.test('Kanban WIP is department-configured and independently enforced per assignee', async () => {
     const director = await actor('Jordan');

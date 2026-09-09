@@ -129,11 +129,13 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
               <br />
               {task.estimatedHours} hours
             </Typography>
-            <Typography variant="body2">
-              <strong>Sprint</strong>
-              <br />
-              {task.sprint?.name ?? 'No sprint'}
-            </Typography>
+            {task.milestone && (
+              <Typography variant="body2">
+                <strong>Milestone</strong>
+                <br />
+                {task.milestone.name}
+              </Typography>
+            )}
             <Typography variant="body2">
               <strong>Due date</strong>
               <br />
@@ -168,23 +170,10 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                       .map((employee) => ({ value: employee.id, label: employee.displayName })),
                   ],
                 },
-                {
-                  name: 'sprintId',
-                  label: 'Sprint',
-                  optional: true,
-                  value: task.sprint?.id ?? '',
-                  options: [
-                    { value: '', label: 'No sprint' },
-                    ...task.board.sprints
-                      .filter((sprint) => sprint.status !== 'COMPLETED' || sprint.id === task.sprint?.id)
-                      .map((sprint) => ({ value: sprint.id, label: sprint.name })),
-                  ],
-                },
                 { name: 'dueDate', label: 'Due date', type: 'date', optional: true, value: task.dueDate?.slice(0, 10) },
               ]}
               onSubmit={async (values) => {
                 const assigneeId = String(values.assigneeId ?? '');
-                const sprintId = String(values.sprintId ?? '');
                 const dueDate = String(values.dueDate ?? '');
                 await api(
                   `tasks/${task.id}`,
@@ -194,7 +183,6 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                     priority: values.priority,
                     estimatedHours: values.estimatedHours,
                     ...(assigneeId ? { assigneeId } : { clearAssignee: true }),
-                    ...(sprintId ? { sprintId } : { clearSprint: true }),
                     ...(dueDate ? { dueDate } : { clearDueDate: true }),
                   },
                   'PATCH',

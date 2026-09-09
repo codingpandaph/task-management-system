@@ -1,20 +1,10 @@
-import type { SprintStatus, TaskColumnContract, TaskContract, TaskManagementType, TaskPerson } from '@tms/contracts';
-
-export type Sprint = {
-  id: string;
-  name: string;
-  goal: string;
-  startDate: string;
-  endDate: string;
-  status: SprintStatus;
-};
+import type { TaskColumnContract, TaskContract, TaskManagementType, TaskPerson } from '@tms/contracts';
 export type Board = {
   id: string;
   name: string;
   kind: TaskManagementType;
   columns: TaskColumnContract[];
   creator: TaskPerson;
-  sprints: Sprint[];
   milestone: Milestone | null;
 };
 export type Milestone = {

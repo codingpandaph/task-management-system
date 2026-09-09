@@ -50,7 +50,6 @@ export function CreateTask({
         estimatedHours: Number(data.get('estimatedHours')),
         assigneeId: data.get('assigneeId') || undefined,
         milestoneId: selectedBoard?.kind === 'SCRUM' ? selectedBoard.milestone?.id : undefined,
-        sprintId: data.get('sprintId') || undefined,
         dueDate: data.get('dueDate') || undefined,
       });
       setOpen(false);
@@ -127,18 +126,6 @@ export function CreateTask({
               <Alert severity="info">Reporter: {user.displayName}. The creator is recorded automatically.</Alert>
               {selectedBoard?.kind === 'SCRUM' && selectedBoard.milestone && (
                 <Alert severity="info">Milestone: {selectedBoard.milestone.name}</Alert>
-              )}
-              {selectedBoard?.kind === 'SCRUM' && !!selectedBoard.sprints.length && (
-                <TextField name="sprintId" label="Sprint" select defaultValue="">
-                  <MenuItem value="">No sprint</MenuItem>
-                  {selectedBoard.sprints
-                    .filter((sprint) => sprint.status !== 'COMPLETED')
-                    .map((sprint) => (
-                      <MenuItem key={sprint.id} value={sprint.id}>
-                        {sprint.name}
-                      </MenuItem>
-                    ))}
-                </TextField>
               )}
               <TextField name="dueDate" label="Due date" type="date" slotProps={{ inputLabel: { shrink: true } }} />
               {error && <Alert severity="error">{error}</Alert>}

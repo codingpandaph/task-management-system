@@ -387,8 +387,9 @@ The dashboard greeting contains no duplicate navigation actions; users act from 
 Authorization failures explain who can perform the action and how to recover. Internal phrases such as “HR scope,”
 token names, transport formats, and database identifiers are not shown in employee-facing alerts.
 Task boards keep the selected board's actions, contextual search, filters, Scrum milestones, and columns in one surface.
-Creating a Scrum board requires its single milestone in the same form. Start and due values are calendar dates without
-times, and new Scrum tasks use that board milestone automatically.
+Each Scrum board represents one sprint and requires its single milestone in the same form. Start and due values are
+calendar dates without times, and new Scrum tasks use that board milestone automatically. The next sprint uses a new
+Scrum board.
 Tickets use drag-and-drop on the board and retain the labelled status selector in task details for keyboard access; the API
 still enforces every workflow rule and announces success or rejection without relying on color.
 

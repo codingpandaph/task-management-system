@@ -9,13 +9,12 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
   async createTask(actor: Principal, dto: TaskDto) {
     const workspace = await this.canCreate(actor, dto.workspaceId, 'tasks');
     await this.boardAccess(actor, dto.boardId);
-    const [board, assignee, sprint] = await Promise.all([
+    const [board, assignee] = await Promise.all([
       this.db.taskBoard.findFirst({
         where: { id: dto.boardId, workspaceId: dto.workspaceId },
         include: { columns: { where: { isInitial: true } }, milestone: true },
       }),
       dto.assigneeId ? this.db.employee.findUnique({ where: { id: dto.assigneeId } }) : null,
-      dto.sprintId ? this.db.sprint.findFirst({ where: { id: dto.sprintId, boardId: dto.boardId } }) : null,
     ]);
     if (!board?.columns[0]) throw new BadRequestException('Board requires an initial column');
     if (dto.assigneeId && (!assignee || assignee.status !== 'ACTIVE'))
@@ -26,8 +25,6 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       throw new BadRequestException('This Scrum board requires an open milestone');
     if (dto.milestoneId && dto.milestoneId !== board.milestone?.id)
       throw new BadRequestException('Tasks can only use their Scrum board milestone');
-    if (dto.sprintId && (!sprint || sprint.status === 'COMPLETED'))
-      throw new BadRequestException('Choose a current sprint on this board');
     return this.db.transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Workspace" WHERE id = ${workspace.id}::uuid FOR UPDATE`;
       const current = await tx.workspace.findUniqueOrThrow({ where: { id: workspace.id } });
@@ -45,7 +42,6 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
           reporterId: actor.employee.id,
           assigneeId: dto.assigneeId,
           milestoneId: board.kind === 'SCRUM' ? board.milestone?.id : undefined,
-          sprintId: dto.sprintId,
           dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
         },
         include: taskInclude,
@@ -85,12 +81,6 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       if (employee.departmentId !== task.workspace.departmentId)
         throw new BadRequestException('Assignee must belong to this department');
     }
-    const targetSprintId = dto.clearSprint ? null : (dto.sprintId ?? task.sprintId);
-    if (targetSprintId) {
-      const sprint = await this.db.sprint.findFirst({ where: { id: targetSprintId, boardId: task.boardId } });
-      if (!sprint || sprint.status === 'COMPLETED')
-        throw new BadRequestException('Choose a current sprint on this board');
-    }
     const data = {
       title: dto.title,
       description: dto.description,
@@ -98,7 +88,6 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       estimatedHours: dto.estimatedHours,
       ...(dto.clearAssignee || dto.assigneeId ? { assigneeId } : {}),
       ...(dto.clearMilestone ? { milestoneId: null } : dto.milestoneId ? { milestoneId: dto.milestoneId } : {}),
-      ...(dto.clearSprint ? { sprintId: null } : dto.sprintId ? { sprintId: dto.sprintId } : {}),
       ...(dto.clearDueDate ? { dueDate: null } : dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
     };
     return this.db.transaction(async (tx) => {
