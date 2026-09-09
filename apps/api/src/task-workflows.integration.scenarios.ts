@@ -69,7 +69,6 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
     const scrum = await tasks.createBoard(director, workspace.id, {
       name: `Scrum ${randomUUID()}`,
       kind: 'SCRUM',
-      milestoneName: 'Account delivery',
       milestoneGoal: 'Complete the planned account work',
       milestoneStartDate: `${year}-10-01`,
       milestoneDueDate: `${year}-10-31`,

@@ -49,12 +49,12 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
         department: true,
         memberships: { where: { milestoneId: null }, include: { employee: { select: person } } },
         boards: {
-          where: { status: 'ACTIVE' },
           include: {
             columns: { orderBy: { position: 'asc' } },
             creator: { select: person },
             milestone: true,
           },
+          orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
         },
         milestones: { where: { status: 'OPEN' }, orderBy: { dueDate: 'asc' } },
       },
@@ -128,9 +128,9 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
       : boardColumns[kind];
     if (columns.length < 2 || columns.some(([name]) => !name.trim()))
       throw new BadRequestException('Provide at least two named columns');
-    const milestoneFields = [dto.milestoneName, dto.milestoneGoal, dto.milestoneStartDate, dto.milestoneDueDate];
+    const milestoneFields = [dto.milestoneGoal, dto.milestoneStartDate, dto.milestoneDueDate];
     if (kind === 'SCRUM' && milestoneFields.some((value) => !value))
-      throw new BadRequestException('Scrum boards require a milestone name, goal, start date, and due date');
+      throw new BadRequestException('Scrum boards require a sprint goal, start date, and due date');
     if (kind !== 'SCRUM' && milestoneFields.some(Boolean))
       throw new BadRequestException('Milestones are only available on Scrum boards');
     const milestoneStartDate = dto.milestoneStartDate ? dateOnly(dto.milestoneStartDate) : undefined;
@@ -144,7 +144,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
           data: {
             workspaceId,
             boardId: board.id,
-            name: dto.milestoneName!,
+            name: dto.name,
             goal: dto.milestoneGoal!,
             startDate: milestoneStartDate!,
             dueDate: milestoneDueDate!,
@@ -184,7 +184,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
   async board(actor: Principal, workspaceId: string, boardId?: string) {
     const workspace = await this.workspaceAccess(actor, workspaceId);
     const board = await this.db.taskBoard.findFirst({
-      where: { workspaceId, status: 'ACTIVE', ...(boardId ? { id: boardId } : {}) },
+      where: { workspaceId, ...(boardId ? { id: boardId } : { status: 'ACTIVE' }) },
       include: {
         creator: { select: person },
         milestone: true,

@@ -15,6 +15,7 @@ import { TaskRecordService } from './task-record.service';
 export abstract class TaskWorkflowService extends TaskRecordService {
   async move(actor: Principal, id: string, columnId: string) {
     const task = await this.detail(actor, id);
+    if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     const column = await this.db.taskColumn.findFirst({ where: { id: columnId, boardId: task.boardId } });
     if (!column) throw new BadRequestException('Column is not on this board');
     if (column.managementLocked && !task.isManagementApproved && actor.employee.position !== 'SENIOR_DIRECTOR')
@@ -40,6 +41,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async approve(actor: Principal, id: string, approved: boolean) {
     const task = await this.detail(actor, id);
+    if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (!this.manages(actor, task.workspace.departmentId))
       throw new ForbiddenException('Account Director or Senior Director required');
     return this.db.transaction(async (tx) => {
@@ -67,6 +69,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async escalate(actor: Principal, id: string, escalated: boolean) {
     const task = await this.detail(actor, id);
+    if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (!this.manages(actor, task.workspace.departmentId) || actor.employee.position === 'MEMBER')
       throw new ForbiddenException('Director required');
     return this.db.transaction(async (tx) => {
@@ -86,6 +89,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async remove(actor: Principal, id: string) {
     const task = await this.detail(actor, id);
+    if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (task.reporterId !== actor.employee.id && !this.manages(actor, task.workspace.departmentId))
       throw new ForbiddenException('Reporter or manager required');
     return this.db.transaction(async (tx) => {
@@ -132,6 +136,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async link(actor: Principal, sourceTaskId: string, targetTaskId: string, type: TaskLinkType) {
     const [source, target] = await Promise.all([this.detail(actor, sourceTaskId), this.detail(actor, targetTaskId)]);
+    if (source.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (source.id === target.id) throw new UnprocessableEntityException('A task cannot depend on itself');
     if (type === 'BLOCKED_BY' && (await this.dependencyPath(target.id, source.id)))
       throw new UnprocessableEntityException('This dependency would create a cycle');
@@ -174,7 +179,8 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   }
 
   async addAttachment(actor: Principal, taskId: string, dto: AttachmentDto) {
-    await this.detail(actor, taskId);
+    const task = await this.detail(actor, taskId);
+    if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     return this.db.transaction(async (tx) => {
       const attachment = await tx.taskAttachment.create({ data: { taskId, ...dto } });
       await this.activity(tx, taskId, actor.employee.id, 'ATTACHMENT', 'attachment', undefined, {
@@ -231,23 +237,16 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   }
 
   async closeMilestone(actor: Principal, id: string) {
-    const milestone = await this.db.milestone.findUnique({ where: { id }, include: { workspace: true } });
+    const milestone = await this.db.milestone.findUnique({ where: { id }, include: { workspace: true, board: true } });
     if (!milestone) throw new NotFoundException('Milestone not found');
     await this.workspaceAccess(actor, milestone.workspaceId, true);
     return this.db.transaction(async (tx) => {
-      const active = await tx.task.findMany({
-        where: { milestoneId: id, isDeleted: false, column: { isDone: false } },
-        select: { id: true, milestoneId: true },
-      });
-      for (const task of active) {
-        await tx.task.update({ where: { id: task.id }, data: { milestoneId: null } });
-        await this.activity(tx, task.id, actor.employee.id, 'UPDATE_FIELD', 'milestoneId', id, {
-          milestoneId: null,
-        });
-      }
+      if (!milestone.board || milestone.board.kind !== 'SCRUM')
+        throw new BadRequestException('Milestone is not attached to a Scrum sprint board');
       const closed = await tx.milestone.update({ where: { id }, data: { status: 'CLOSED' } });
+      await tx.taskBoard.update({ where: { id: milestone.board.id }, data: { status: 'INACTIVE' } });
       await audit(tx, actor.employee.id, 'TASK_MILESTONE_CLOSED', 'Milestone', id, {
-        rolledTasks: active.length,
+        boardId: milestone.board.id,
       });
       return closed;
     });

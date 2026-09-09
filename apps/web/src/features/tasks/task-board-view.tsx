@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
+import ListSubheader from '@mui/material/ListSubheader';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { CurrentEmployee, DirectoryEmployee } from '@tms/contracts';
@@ -82,7 +82,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               </Typography>
             </Box>
             <Box className="workspace-actions">
-              {canCreateTasks && (
+              {canCreateTasks && board?.board.status === 'ACTIVE' && (
                 <CreateTask
                   key={`${workspace.id}:${boardId}`}
                   initialBoardId={boardId}
@@ -115,24 +115,49 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 </MenuItem>
               ))}
             </TextField>
-            <Tabs
-              value={boardId || false}
-              onChange={(_, value) => {
-                setBoardId(value);
+            <TextField
+              select
+              label="Board"
+              value={boardId}
+              onChange={(event) => {
+                setBoardId(event.target.value);
                 setSearch('');
                 setPriorityFilter('ALL');
                 setAssigneeFilter('ALL');
               }}
-              variant="scrollable"
-              aria-label="Workspace boards"
+              sx={{ minWidth: 260, flex: 1 }}
             >
-              {workspace?.boards.map((item) => (
-                <Tab key={item.id} value={item.id} label={item.name} />
-              ))}
-            </Tabs>
+              <ListSubheader>Current boards</ListSubheader>
+              {workspace.boards
+                .filter((item) => item.status === 'ACTIVE')
+                .map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.kind === 'SCRUM' ? `Sprint · ${item.name}` : item.name}
+                  </MenuItem>
+                ))}
+              {!!workspace.boards.some((item) => item.status === 'INACTIVE') && (
+                <ListSubheader>Completed sprints</ListSubheader>
+              )}
+              {workspace.boards
+                .filter((item) => item.status === 'INACTIVE')
+                .map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+            </TextField>
           </Stack>
+          {board?.board.status === 'INACTIVE' && (
+            <Alert severity="info">This sprint is complete. Its board is read-only.</Alert>
+          )}
           {board?.board.kind === 'SCRUM' && (
-            <MilestoneStrip workspace={workspace} milestone={board.board.milestone} user={user} refresh={refresh} />
+            <MilestoneStrip
+              workspace={workspace}
+              milestone={board.board.milestone}
+              canClose={board.board.status === 'ACTIVE'}
+              user={user}
+              refresh={refresh}
+            />
           )}
           {board?.board.kind === 'KANBAN' && (
             <Typography variant="body2" color="text.secondary" sx={{ px: 0.5 }}>
@@ -179,6 +204,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               assigneeFilter={assigneeFilter}
               selectTask={setSelected}
               refresh={refresh}
+              readOnly={board.board.status === 'INACTIVE'}
             />
           )}
           {board && board.board.kind === 'LIST' && (
@@ -241,6 +267,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           taskId={selected}
           user={user}
           people={people}
+          readOnly={board?.board.status === 'INACTIVE'}
           onClose={() => setSelected(undefined)}
           refresh={refresh}
         />

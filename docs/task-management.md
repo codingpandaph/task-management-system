@@ -69,7 +69,7 @@ The public reference is `<workspace code>-#<number>`, such as `ACC-#24`. Numbers
 and gaps are harmless.
 
 A task has a title, Markdown-compatible description, Low/Medium/High priority, nonnegative estimated hours, one required
-reporter, zero or one active assignee, board column, optional milestone/sprint/due date, links, comments, sign-off,
+reporter, zero or one active assignee, board column, optional milestone and due date, links, comments, sign-off,
 escalation, and archive state. Eight stored hours equal one work day; `12` renders as `1d 4h` in capacity. The backend
 always records the authenticated creator as reporter; neither create nor edit accepts reporter selection.
 Descriptions have a live and detail-page preview for headings, lists, bold text, inline code, and secure web links. The
@@ -113,8 +113,8 @@ milestones, and the five highest active workloads by employee. Account Directors
 department. Task detail renders the immutable activity ledger as a readable actor/action/change timeline.
 
 Each Scrum board has exactly one milestone, created with the board. It defines a goal, date-only start and due dates,
-Open/Closed state, and overcapacity flag. Scrum tasks use their board milestone automatically. Closing it removes the
-milestone from unfinished tasks; completed tasks retain their historical milestone.
+Open/Closed state, and overcapacity flag. Scrum tasks use their board milestone automatically. Closing it completes the
+sprint board, preserves every task's milestone history, and makes the board read-only under Completed sprints.
 
 ## Capacity and HRIS lifecycle integration
 
@@ -162,8 +162,8 @@ Each Scrum board represents one sprint and owns that sprint's milestone.
 - **Kanban** is continuous flow with To do, In progress, Review, and Done. Board cards move by drag and drop; the task
   detail status selector keeps movement keyboard accessible. The API validates every move.
 - **Scrum** adds Backlog for a time-boxed sprint. Each sprint uses a separate Scrum board with one milestone. Creating
-  the board requires the milestone name, goal, date-only start date, and later date-only due date. Tasks on that board
-  inherit its milestone automatically.
+  the board requires one name, a sprint goal, date-only start date, and later date-only due date. The milestone inherits
+  the board name, and tasks on that board inherit its milestone automatically.
 - **List** renders a table with title, status, assignee, reporter, priority, and due date. It has no columns or sprint UI.
   The existing Human Resources department has List enabled and is not duplicated.
 
@@ -206,7 +206,7 @@ active views and WIP counts.
    one member, and show another member without those permissions.
 4. **Board controls (1 minute):** Create a board and show that Client Services offers Kanban and Scrum but not List.
    Sign in as a department member without creation grants: the new board is already visible and its tickets can be
-   commented on or moved; Create task and New board remain unavailable.
+   commented on or moved; Create task and Create board remain unavailable.
 5. **Task identity (1 minute):** Create an unassigned task with Markdown-style description and due date. Show the automatic
    reporter, then assign a same-department employee.
 6. **WIP (3 minutes):** Drag two tasks for Alex into In progress, show 2/2, and demonstrate the third rejection. Move one
@@ -261,27 +261,27 @@ or builds. A tooling regression test enforces this clean-runner requirement.
 The repository-wide ESLint configuration caps source and test files at 300 lines. Task-domain modules must use the same
 responsibility-based split as HRIS services and browser scenario files.
 
-| Flow                 | Role                         | Manual steps                                                                  | Expected result                                                         | Automated coverage                           |
-| -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
-| Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces          | Playwright individual/team/reporting flow    |
-| Create task          | Member                       | Open **Team boards**, choose **Create task**, fill the task details           | Card receives next workspace key and starts in initial lane             | Playwright creation; concurrency integration |
-| Edit task            | Member                       | Open a card, choose **Edit task**, change core fields or active assignee      | Facts update immediately and activity records old/new values            | Playwright task journey; service integration |
-| Manager handoff      | Account Director then Member | Create and assign work; employee opens it under My tasks and advances it      | Both sessions see one authoritative task, comment, workflow, and owner  | Playwright two-session assignment journey    |
-| Discuss work         | Member                       | Open task, enter comment, press Enter                                         | Comment appears with author; activity appends                           | Playwright task journey                      |
-| Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                        | Playwright two-session journey               |
-| Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                            | PostgreSQL integration                       |
-| Escalation           | Account Director             | Open task and choose **Escalate**; Senior Director opens its notification     | Flag appears; unread count updates and the notification opens that task | Playwright deep-link and service integration |
-| Team view            | Account Director             | Open **Team boards**, switch boards, search and drag a card                   | Search follows the selected board; the move persists                    | Playwright and authorization logic           |
-| Workspace management | Senior/Account Director      | Provision workspace; create a board and its required Scrum milestone          | Correct templates and scoped management changes persist                 | Playwright director; template integration    |
-| Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities   | Playwright and PostgreSQL integration        |
-| Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, and confirm the reporter   | Creator is the immutable reporter; selected colleague persists          | Playwright and PostgreSQL integration        |
-| Leadership report    | Senior Director              | Open **Delivery reports** and compare portfolio and team workload cards       | Both teams show completion, blockers, risks, workflow, hours and load   | Playwright reporting/breakpoints             |
-| Activity timeline    | Any task participant         | Open a task after creating, editing, moving, or assigning it                  | Actor, action, changed field, prior/new value and time remain readable  | Playwright journey and immutable ledger      |
-| Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity         | PostgreSQL integration                       |
-| Milestone closure    | Account Director             | Close a Scrum board milestone with unfinished work                            | Incomplete work becomes unbound; completed work keeps its history       | PostgreSQL integration                       |
-| Soft delete/restore  | Reporter then manager        | Archive, verify hidden, restore                                               | Card returns to prior column; logs remain                               | PostgreSQL integration                       |
-| Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain            | PostgreSQL integration                       |
-| Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable        | Playwright breakpoint loop                   |
+| Flow                 | Role                         | Manual steps                                                                  | Expected result                                                                | Automated coverage                           |
+| -------------------- | ---------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
+| Individual focus     | Member                       | Open **My tasks**, search by task key/title, open a card                      | Only assigned active work appears across accessible workspaces                 | Playwright individual/team/reporting flow    |
+| Create task          | Member                       | Open **Team boards**, choose **Create task**, fill the task details           | Card receives next workspace key and starts in initial lane                    | Playwright creation; concurrency integration |
+| Edit task            | Member                       | Open a card, choose **Edit task**, change core fields or active assignee      | Facts update immediately and activity records old/new values                   | Playwright task journey; service integration |
+| Manager handoff      | Account Director then Member | Create and assign work; employee opens it under My tasks and advances it      | Both sessions see one authoritative task, comment, workflow, and owner         | Playwright two-session assignment journey    |
+| Discuss work         | Member                       | Open task, enter comment, press Enter                                         | Comment appears with author; activity appends                                  | Playwright task journey                      |
+| Director sign-off    | Member then Account Director | Member attempts locked Done; director signs off; member retries               | First move is rejected; signed-off move succeeds                               | Playwright two-session journey               |
+| Dependencies         | Member                       | Make A blocked by B, advance A, then link B back to A                         | Blocker prevents movement; cycle returns 422                                   | PostgreSQL integration                       |
+| Escalation           | Account Director             | Open task and choose **Escalate**; Senior Director opens its notification     | Flag appears; unread count updates and the notification opens that task        | Playwright deep-link and service integration |
+| Team view            | Account Director             | Open **Team boards**, switch boards, search and drag a card                   | Search follows the selected board; the move persists                           | Playwright and authorization logic           |
+| Workspace management | Senior/Account Director      | Provision workspace; create a board and its required Scrum milestone          | Correct templates and scoped management changes persist                        | Playwright director; template integration    |
+| Delegate creation    | Account Director             | Grant a member ticket and board creation, then sign in as that member         | Member gains only the selected creation controls and API capabilities          | Playwright and PostgreSQL integration        |
+| Reporter/assignment  | Member                       | Create a ticket, assign self/department colleague, and confirm the reporter   | Creator is the immutable reporter; selected colleague persists                 | Playwright and PostgreSQL integration        |
+| Leadership report    | Senior Director              | Open **Delivery reports** and compare portfolio and team workload cards       | Both teams show completion, blockers, risks, workflow, hours and load          | Playwright reporting/breakpoints             |
+| Activity timeline    | Any task participant         | Open a task after creating, editing, moving, or assigning it                  | Actor, action, changed field, prior/new value and time remain readable         | Playwright journey and immutable ledger      |
+| Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity                | PostgreSQL integration                       |
+| Milestone closure    | Account Director             | Close a Scrum board milestone with unfinished work                            | Board moves under Completed sprints, becomes read-only, and keeps task history | PostgreSQL integration                       |
+| Soft delete/restore  | Reporter then manager        | Archive, verify hidden, restore                                               | Card returns to prior column; logs remain                                      | PostgreSQL integration                       |
+| Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain                   | PostgreSQL integration                       |
+| Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable               | Playwright breakpoint loop                   |
 
 Task modules and browser scenarios follow the repository-wide 300-line limit. `yarn lint:common`, `yarn lint:js`,
 `yarn lint:ts`, and `yarn lint:react` expose the shared correctness, language-specific, and React/Next.js checks used
@@ -332,7 +332,7 @@ at least two assigned tasks. Use `tests/e2e/ui-feedback.spec.ts` with the affect
       is visible immediately without invitations or collaborator setup. Open the ticket, post a comment, and move it to
       In progress. Verify the comment and lane persist. Existing WIP, dependency and management-sign-off failures still
       prevent invalid transitions. Another department’s member cannot open the board or ticket by direct URL/API.
-- [ ] **Separate creation permissions:** With both switches off, Create task and New board are absent and direct
+- [ ] **Separate creation permissions:** With both switches off, Create task and Create board are absent and direct
       create requests are denied. Enable only Create tasks: ticket creation succeeds and board creation stays denied.
       Enable only Create boards: board creation succeeds and ticket creation stays denied. Directors retain creation
       abilities for their scope; the Senior Director can work across departments.
@@ -341,7 +341,7 @@ at least two assigned tasks. Use `tests/e2e/ui-feedback.spec.ts` with the affect
       Kanban shows the per-person WIP limit; each Scrum board shows its single sprint milestone and has no nested sprint
       controls.
       Expand Saved views and bulk actions when needed; saved filters and bulk triage remain functional.
-- [ ] **Scrum dates and task form:** Create a Scrum board with a milestone name, goal, start date, and later due date.
+- [ ] **Scrum dates and task form:** Create a Scrum board with one sprint name, goal, start date, and later due date.
       Both inputs use calendar dates with no time field. Equal or reversed dates fail validation. Create task defaults
       to the selected board and shows its assigned milestone on Scrum. There is no milestone picker or separate create
       action because each Scrum board owns one milestone. Switch the form to Kanban/List: the milestone notice disappears.
@@ -354,5 +354,4 @@ at least two assigned tasks. Use `tests/e2e/ui-feedback.spec.ts` with the affect
       navigation and keyboard actions, contained overflow, readable states, and console errors. The HR document records
       the matching policy, department settings, People restrictions, and personal/department/organization calendar flows.
 
-The old BoardCollaborator storage is retained only as historical data; application access no longer reads or writes it.
-Milestone capacity still accounts for its existing effective-dated planning memberships; those are not board access.
+Milestone capacity accounts for effective-dated planning memberships; those memberships do not grant board access.

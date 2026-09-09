@@ -7,12 +7,14 @@ export interface TaskDetailProps {
   onClose: () => void;
   refresh: () => Promise<void>;
   people: DirectoryEmployee[];
+  readOnly?: boolean;
 }
 
 export type TaskDetailResponse = TaskContract & {
   board: {
     id: string;
     name: string;
+    status: 'ACTIVE' | 'INACTIVE';
     columns: Omit<TaskColumnContract, 'tasks'>[];
   };
   comments: { id: string; body: string; author: { firstName: string; lastName: string } }[];

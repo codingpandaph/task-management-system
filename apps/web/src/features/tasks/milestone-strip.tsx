@@ -15,17 +15,19 @@ import type { Milestone, Workspace } from './task-types';
 export function MilestoneStrip({
   workspace,
   milestone,
+  canClose,
   user,
   refresh,
 }: {
   workspace: Workspace;
   milestone: Milestone | null;
+  canClose: boolean;
   user: CurrentEmployee;
   refresh: () => Promise<void>;
 }) {
   const [capacity, setCapacity] = useState<{
     milestoneId: string;
-    collaborators: { id: string; name: string }[];
+    teamMembers: { id: string; name: string }[];
     businessDays: number;
     approvedLeaveDays: number;
     available: string;
@@ -76,7 +78,7 @@ export function MilestoneStrip({
                 </Box>
               </div>
               <Typography variant="body2">
-                {capacity.collaborators.length} team members · {capacity.businessDays} business days ·{' '}
+                {capacity.teamMembers.length} team members · {capacity.businessDays} business days ·{' '}
                 {capacity.approvedLeaveDays} approved leave days
               </Typography>
               <Typography variant="body2" color={capacity.remainingHours < 0 ? 'error' : 'text.secondary'}>
@@ -86,7 +88,7 @@ export function MilestoneStrip({
           )}
         </DialogContent>
         <DialogActions>
-          {manager && capacity && (
+          {manager && canClose && capacity && (
             <Button
               color="error"
               onClick={async () => {

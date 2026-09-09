@@ -389,7 +389,8 @@ token names, transport formats, and database identifiers are not shown in employ
 Task boards keep the selected board's actions, contextual search, filters, Scrum milestones, and columns in one surface.
 Each Scrum board represents one sprint and requires its single milestone in the same form. Start and due values are
 calendar dates without times, and new Scrum tasks use that board milestone automatically. The next sprint uses a new
-Scrum board.
+Scrum board. Closing the milestone completes the sprint board, preserves task history, and moves the board into the
+read-only Completed sprints group.
 Tickets use drag-and-drop on the board and retain the labelled status selector in task details for keyboard access; the API
 still enforces every workflow rule and announces success or rejection without relying on color.
 

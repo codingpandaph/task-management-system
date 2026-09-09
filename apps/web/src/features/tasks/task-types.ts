@@ -3,6 +3,7 @@ export type Board = {
   id: string;
   name: string;
   kind: TaskManagementType;
+  status: 'ACTIVE' | 'INACTIVE';
   columns: TaskColumnContract[];
   creator: TaskPerson;
   milestone: Milestone | null;
@@ -14,6 +15,7 @@ export type Milestone = {
   startDate: string;
   dueDate: string;
   isOvercapacity: boolean;
+  status: 'OPEN' | 'CLOSED';
 };
 export type Workspace = {
   id: string;

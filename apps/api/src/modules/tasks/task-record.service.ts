@@ -17,6 +17,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
       dto.assigneeId ? this.db.employee.findUnique({ where: { id: dto.assigneeId } }) : null,
     ]);
     if (!board?.columns[0]) throw new BadRequestException('Board requires an initial column');
+    if (board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (dto.assigneeId && (!assignee || assignee.status !== 'ACTIVE'))
       throw new BadRequestException('Assignee must be active');
     if (assignee && assignee.departmentId !== workspace.departmentId)
@@ -66,6 +67,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
 
   async edit(actor: Principal, id: string, dto: TaskEditDto) {
     const task = await this.detail(actor, id);
+    if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     const assigneeId = dto.clearAssignee ? null : dto.assigneeId;
     const targetMilestoneId = dto.clearMilestone ? null : (dto.milestoneId ?? task.milestoneId);
     const milestone = targetMilestoneId

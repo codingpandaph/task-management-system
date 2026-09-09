@@ -220,10 +220,10 @@ Task workspaces reuse HRIS positions and membership. Serializable workspace coun
 completion enforces blockers and management-locked columns. Departments select Kanban, Scrum, and List workflows and
 set one Kanban limit that is enforced separately for each assignee under a row lock. All active department members
 access their department boards automatically and can comment and move tickets, subject to workflow checks. Creating
-tickets and boards requires independent grants (directors have these abilities automatically). There is no board
-collaborator assignment; cross-department board access is limited to the Senior Director. Reporters are always derived from the authenticated creator. Capacity uses active employees,
-business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
-initial lane. Task deletion is reversible and its activity ledger is append-only.
+tickets and boards requires independent grants (directors have these abilities automatically). Cross-department board
+access is limited to the Senior Director. Reporters are always derived from the authenticated creator. Capacity uses
+active employees, business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and
+returns them to the initial lane. Task deletion is reversible and its activity ledger is append-only.
 The Senior Director is an organization-level employee with no department assignment; a PostgreSQL constraint requires
 every Member and Account Director to remain attached to exactly one department. Delivery reports compare portfolio
 completion, open and blocked work, escalations, capacity risks, workflow distribution, and named workload concentration

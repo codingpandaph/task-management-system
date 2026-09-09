@@ -22,7 +22,6 @@ export interface DepartmentDetail extends Omit<Department, 'workspace_department
       name: string;
       kind: TaskManagementType;
       creator: { firstName: string; lastName: string };
-      sprints: { id: string }[];
     }[];
   } | null;
 }

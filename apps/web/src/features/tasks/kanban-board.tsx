@@ -14,10 +14,11 @@ interface KanbanBoardProps {
   refresh: () => Promise<void>;
   search: string;
   selectTask: (id: string) => void;
+  readOnly?: boolean;
 }
 
 export function KanbanBoard(props: KanbanBoardProps) {
-  const { assigneeFilter, board, priorityFilter, refresh, search, selectTask } = props;
+  const { assigneeFilter, board, priorityFilter, readOnly, refresh, search, selectTask } = props;
   const [targetColumn, setTargetColumn] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const columns = board.board.columns;
@@ -64,6 +65,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
               key={column.id}
               aria-label={`Drop tasks in ${column.name}`}
               onDragOver={(event) => {
+                if (readOnly) return;
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'move';
                 setTargetColumn(column.id);
@@ -72,6 +74,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                 if (!event.currentTarget.contains(event.relatedTarget as Node)) setTargetColumn('');
               }}
               onDrop={(event) => {
+                if (readOnly) return;
                 event.preventDefault();
                 const taskId = event.dataTransfer.getData('text/plain');
                 const task = columns.flatMap((item) => item.tasks).find((item) => item.id === taskId);
@@ -93,10 +96,14 @@ export function KanbanBoard(props: KanbanBoardProps) {
                     key={task.id}
                     task={task}
                     open={() => selectTask(task.id)}
-                    onDragStart={(event) => {
-                      event.dataTransfer.effectAllowed = 'move';
-                      event.dataTransfer.setData('text/plain', task.id);
-                    }}
+                    onDragStart={
+                      readOnly
+                        ? undefined
+                        : (event) => {
+                            event.dataTransfer.effectAllowed = 'move';
+                            event.dataTransfer.setData('text/plain', task.id);
+                          }
+                    }
                     onDragEnd={() => {
                       setTargetColumn('');
                     }}

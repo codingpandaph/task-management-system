@@ -11,6 +11,7 @@ export const taskInclude = {
       id: true,
       name: true,
       kind: true,
+      status: true,
       columns: { orderBy: { position: 'asc' as const } },
     },
   },

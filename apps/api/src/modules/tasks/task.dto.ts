@@ -34,11 +34,6 @@ export enum TaskManagementTypeDto {
   SCRUM = 'SCRUM',
   LIST = 'LIST',
 }
-export enum SprintStatusDto {
-  PLANNED = 'PLANNED',
-  ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED',
-}
 export enum TaskColumnSemanticDto {
   BACKLOG = 'BACKLOG',
   TODO = 'TODO',
@@ -65,7 +60,6 @@ export class ColumnDto {
 export class BoardDto {
   @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
   @IsOptional() @IsEnum(TaskManagementTypeDto) kind?: keyof typeof TaskManagementTypeDto;
-  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(120) milestoneName?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(2000) milestoneGoal?: string;
   @IsOptional() @IsDateString({ strict: true }) milestoneStartDate?: string;
   @IsOptional() @IsDateString({ strict: true }) milestoneDueDate?: string;

@@ -2,7 +2,11 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 import type { CurrentEmployee, TaskContract } from '@tms/contracts';
 import { login, post, usernames, year } from './hr.helpers';
 const baseURL = 'http://127.0.0.1:3100';
-type Workspace = { id: string; departmentId: string; boards: { id: string; name: string; kind: string }[] };
+type Workspace = {
+  id: string;
+  departmentId: string;
+  boards: { id: string; name: string; kind: string; status: string }[];
+};
 export function registerAccessFeedbackScenarios() {
   test('overview and calendar enforce organization, department, and personal scope', async ({
     playwright,
@@ -152,9 +156,10 @@ export function registerAccessFeedbackScenarios() {
       ).toBe(403);
       const page = await member.newPage();
       await page.goto('/workspaces');
-      await page.getByRole('tab', { name: 'Department access regression' }).click();
+      await page.getByRole('combobox', { name: 'Board', exact: true }).click();
+      await page.getByRole('option', { name: 'Department access regression' }).click();
       await expect(page.getByRole('button', { name: 'Create task', exact: true })).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'New board', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Create board', exact: true })).toHaveCount(0);
       await expect(page.getByRole('button', { name: /collaborator|Give board access/ })).toHaveCount(0);
       const ticket = page.getByRole('button', { name: /Shared department ticket/ });
       await page
@@ -176,9 +181,10 @@ export function registerAccessFeedbackScenarios() {
         canCreateBoards: false,
       });
       await page.reload();
-      await page.getByRole('tab', { name: 'Department access regression' }).click();
+      await page.getByRole('combobox', { name: 'Board', exact: true }).click();
+      await page.getByRole('option', { name: 'Department access regression' }).click();
       await expect(page.getByRole('button', { name: 'Create task', exact: true })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'New board', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Create board', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Create task', exact: true }).click();
       await page.getByRole('dialog').getByLabel('Task title').fill('Permitted task');
       await page.getByRole('dialog').getByRole('button', { name: 'Create task', exact: true }).click();

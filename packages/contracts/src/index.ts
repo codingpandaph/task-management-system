@@ -122,7 +122,6 @@ export type WorkspaceFunction =
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 export type TaskManagementType = 'KANBAN' | 'SCRUM' | 'LIST';
 export type TaskColumnSemantic = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'OPEN';
-export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 export interface TaskPerson {
   id: string;
   employeeId: string;
@@ -153,7 +152,6 @@ export interface TaskContract {
   column: { id: string; name: string; isInitial: boolean; isDone: boolean; managementLocked: boolean };
   boardId: string;
   dueDate: string | null;
-  sprint: { id: string; name: string; status: SprintStatus } | null;
   workspaceId: string;
   workspace: { id: string; code: string; name: string; departmentId: string };
   reporter: TaskPerson;

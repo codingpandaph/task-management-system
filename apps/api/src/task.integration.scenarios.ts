@@ -170,13 +170,12 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
       ['CREATE', 'DELETION', 'RESTORATION'],
     );
   });
-  await suite.test('closing a Scrum milestone unbinds unfinished tasks', async () => {
+  await suite.test('closing a Scrum milestone completes its board and preserves task history', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
     const board = await tasks.createBoard(director, workspace.id, {
       name: `Closure ${randomUUID()}`,
       kind: 'SCRUM',
-      milestoneName: 'Closure cycle',
       milestoneGoal: 'Close this delivery cycle',
       milestoneStartDate: `${year}-09-01`,
       milestoneDueDate: `${year}-09-10`,
@@ -190,7 +189,17 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
       estimatedHours: 3,
     });
     await tasks.closeMilestone(director, board.milestone!.id);
-    assert.equal((await db.task.findUniqueOrThrow({ where: { id: task.id } })).milestoneId, null);
+    assert.equal((await db.task.findUniqueOrThrow({ where: { id: task.id } })).milestoneId, board.milestone!.id);
+    assert.equal((await db.taskBoard.findUniqueOrThrow({ where: { id: board.id } })).status, 'INACTIVE');
+    await assert.rejects(
+      tasks.createTask(director, {
+        workspaceId: workspace.id,
+        boardId: board.id,
+        title: 'Late sprint work',
+        priority: 'LOW',
+        estimatedHours: 1,
+      }),
+    );
   });
   await suite.test('capacity deducts approved leave and termination clears active assignments', async () => {
     const director = await actor('Jordan');
@@ -198,7 +207,6 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     const board = await tasks.createBoard(director, workspace.id, {
       name: `Capacity ${randomUUID()}`,
       kind: 'SCRUM',
-      milestoneName: 'Capacity cycle',
       milestoneGoal: 'Validate capacity',
       milestoneStartDate: `${year}-12-01`,
       milestoneDueDate: `${year}-12-18`,

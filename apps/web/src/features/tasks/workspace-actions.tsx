@@ -24,11 +24,11 @@ export function WorkspaceActions({
     <Box className="workspace-actions">
       {canCreateBoards && (
         <ModalForm
-          buttonLabel="New board"
+          buttonLabel="Create board"
           title="Create board"
-          description="Choose the workflow. A Scrum board is created with one milestone and calendar dates."
+          description="Each Scrum board represents one sprint. Its milestone uses the same name and calendar dates."
           fields={[
-            { name: 'name', label: 'Board name' },
+            { name: 'name', label: 'Board or sprint name' },
             {
               name: 'kind',
               label: 'Board type',
@@ -38,17 +38,16 @@ export function WorkspaceActions({
                 label: kind[0] + kind.slice(1).toLowerCase(),
               })),
             },
-            { name: 'milestoneName', label: 'Milestone name', showWhen: { field: 'kind', values: ['SCRUM'] } },
-            { name: 'milestoneGoal', label: 'Milestone goal', showWhen: { field: 'kind', values: ['SCRUM'] } },
+            { name: 'milestoneGoal', label: 'Sprint goal', showWhen: { field: 'kind', values: ['SCRUM'] } },
             {
               name: 'milestoneStartDate',
-              label: 'Milestone start date',
+              label: 'Start date',
               type: 'date',
               showWhen: { field: 'kind', values: ['SCRUM'] },
             },
             {
               name: 'milestoneDueDate',
-              label: 'Milestone due date',
+              label: 'Due date',
               type: 'date',
               showWhen: { field: 'kind', values: ['SCRUM'] },
             },
@@ -57,7 +56,6 @@ export function WorkspaceActions({
             await api(`task-workspaces/${workspace.id}/boards`, {
               name: values.name,
               kind: values.kind,
-              milestoneName: values.milestoneName,
               milestoneGoal: values.milestoneGoal,
               milestoneStartDate: values.milestoneStartDate,
               milestoneDueDate: values.milestoneDueDate,

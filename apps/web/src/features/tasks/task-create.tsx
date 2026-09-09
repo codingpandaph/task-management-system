@@ -94,11 +94,13 @@ export function CreateTask({
                 value={selectedBoardId}
                 onChange={(event) => setSelectedBoardId(event.target.value)}
               >
-                {workspace.boards.map((board) => (
-                  <MenuItem key={board.id} value={board.id}>
-                    {board.name}
-                  </MenuItem>
-                ))}
+                {workspace.boards
+                  .filter((board) => board.status === 'ACTIVE')
+                  .map((board) => (
+                    <MenuItem key={board.id} value={board.id}>
+                      {board.name}
+                    </MenuItem>
+                  ))}
               </TextField>
               <TextField name="priority" label="Priority" select required defaultValue="MEDIUM">
                 <MenuItem value="LOW">Low</MenuItem>

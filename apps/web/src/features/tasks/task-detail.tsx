@@ -26,7 +26,7 @@ import { TaskActivity } from './task-activity';
 import { TaskMarkdown } from './task-markdown';
 import { TaskAttachments } from './task-attachments';
 
-export function TaskDetail({ taskId, user, columns = [], onClose, refresh, people }: TaskDetailProps) {
+export function TaskDetail({ taskId, user, columns = [], onClose, refresh, people, readOnly }: TaskDetailProps) {
   const [task, setTask] = useState<TaskDetailResponse>(),
     [commentText, setCommentText] = useState(''),
     [error, setError] = useState(''),
@@ -39,6 +39,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
         <LoadingState label="Loading task" />
       </Dialog>
     );
+  const locked = readOnly || task.board.status === 'INACTIVE';
   async function mutate(path: string, body: unknown, method = 'POST') {
     try {
       setError('');
@@ -141,100 +142,114 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
               <br />
               {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
             </Typography>
-            <ModalForm
-              buttonLabel="Edit task"
-              title="Edit task details"
-              fields={[
-                { name: 'title', label: 'Task title', value: task.title },
-                { name: 'description', label: 'Description', value: task.description, optional: true },
-                {
-                  name: 'priority',
-                  label: 'Priority',
-                  value: task.priority,
-                  options: [
-                    { value: 'LOW', label: 'Low' },
-                    { value: 'MEDIUM', label: 'Medium' },
-                    { value: 'HIGH', label: 'High' },
-                  ],
-                },
-                { name: 'estimatedHours', label: 'Estimate in hours', type: 'number', value: task.estimatedHours },
-                {
-                  name: 'assigneeId',
-                  label: 'Assignee',
-                  optional: true,
-                  value: task.assignee?.id ?? '',
-                  options: [
-                    { value: '', label: 'Unassigned' },
-                    ...people
-                      .filter((employee) => employee.department?.id === task.workspace.departmentId)
-                      .map((employee) => ({ value: employee.id, label: employee.displayName })),
-                  ],
-                },
-                { name: 'dueDate', label: 'Due date', type: 'date', optional: true, value: task.dueDate?.slice(0, 10) },
-              ]}
-              onSubmit={async (values) => {
-                const assigneeId = String(values.assigneeId ?? '');
-                const dueDate = String(values.dueDate ?? '');
-                await api(
-                  `tasks/${task.id}`,
+            {!locked && (
+              <ModalForm
+                buttonLabel="Edit task"
+                title="Edit task details"
+                fields={[
+                  { name: 'title', label: 'Task title', value: task.title },
+                  { name: 'description', label: 'Description', value: task.description, optional: true },
                   {
-                    title: values.title,
-                    description: values.description ?? '',
-                    priority: values.priority,
-                    estimatedHours: values.estimatedHours,
-                    ...(assigneeId ? { assigneeId } : { clearAssignee: true }),
-                    ...(dueDate ? { dueDate } : { clearDueDate: true }),
+                    name: 'priority',
+                    label: 'Priority',
+                    value: task.priority,
+                    options: [
+                      { value: 'LOW', label: 'Low' },
+                      { value: 'MEDIUM', label: 'Medium' },
+                      { value: 'HIGH', label: 'High' },
+                    ],
                   },
-                  'PATCH',
-                );
-                await load();
-                await refresh();
-              }}
-            />
-            <FormControl size="small" fullWidth>
-              <InputLabel id="move-task-label">Move to</InputLabel>
-              <Select
-                labelId="move-task-label"
-                label="Move to"
-                value={task.columnId}
-                onChange={(event) => mutate(`tasks/${task.id}/move`, { columnId: event.target.value })}
-              >
-                {(columns.length ? columns : task.board.columns).map((column) => (
-                  <MenuItem key={column.id} value={column.id}>
-                    {column.name}
-                    {column.managementLocked ? ' · sign-off' : ''}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" fullWidth>
-              <InputLabel id="blocker-label">Blocked by</InputLabel>
-              <Select
-                labelId="blocker-label"
-                label="Blocked by"
-                value={blockerId}
-                onChange={(event) => setBlockerId(event.target.value)}
-              >
-                <MenuItem value="">Choose a task</MenuItem>
-                {columns
-                  .flatMap((column) => column.tasks)
-                  .filter((candidate) => candidate.id !== task.id)
-                  .map((candidate) => (
-                    <MenuItem key={candidate.id} value={candidate.id}>
-                      {candidate.publicKey} · {candidate.title}
+                  { name: 'estimatedHours', label: 'Estimate in hours', type: 'number', value: task.estimatedHours },
+                  {
+                    name: 'assigneeId',
+                    label: 'Assignee',
+                    optional: true,
+                    value: task.assignee?.id ?? '',
+                    options: [
+                      { value: '', label: 'Unassigned' },
+                      ...people
+                        .filter((employee) => employee.department?.id === task.workspace.departmentId)
+                        .map((employee) => ({ value: employee.id, label: employee.displayName })),
+                    ],
+                  },
+                  {
+                    name: 'dueDate',
+                    label: 'Due date',
+                    type: 'date',
+                    optional: true,
+                    value: task.dueDate?.slice(0, 10),
+                  },
+                ]}
+                onSubmit={async (values) => {
+                  const assigneeId = String(values.assigneeId ?? '');
+                  const dueDate = String(values.dueDate ?? '');
+                  await api(
+                    `tasks/${task.id}`,
+                    {
+                      title: values.title,
+                      description: values.description ?? '',
+                      priority: values.priority,
+                      estimatedHours: values.estimatedHours,
+                      ...(assigneeId ? { assigneeId } : { clearAssignee: true }),
+                      ...(dueDate ? { dueDate } : { clearDueDate: true }),
+                    },
+                    'PATCH',
+                  );
+                  await load();
+                  await refresh();
+                }}
+              />
+            )}
+            {!locked && (
+              <FormControl size="small" fullWidth>
+                <InputLabel id="move-task-label">Move to</InputLabel>
+                <Select
+                  labelId="move-task-label"
+                  label="Move to"
+                  value={task.columnId}
+                  onChange={(event) => mutate(`tasks/${task.id}/move`, { columnId: event.target.value })}
+                >
+                  {(columns.length ? columns : task.board.columns).map((column) => (
+                    <MenuItem key={column.id} value={column.id}>
+                      {column.name}
+                      {column.managementLocked ? ' · sign-off' : ''}
                     </MenuItem>
                   ))}
-              </Select>
-            </FormControl>
-            <Button
-              variant="outlined"
-              startIcon={<LinkOutlined />}
-              disabled={!blockerId}
-              onClick={() => mutate(`tasks/${task.id}/links`, { targetTaskId: blockerId, type: 'BLOCKED_BY' })}
-            >
-              Add blocker
-            </Button>
-            {canManageTask(user, task) && (
+                </Select>
+              </FormControl>
+            )}
+            {!locked && (
+              <FormControl size="small" fullWidth>
+                <InputLabel id="blocker-label">Blocked by</InputLabel>
+                <Select
+                  labelId="blocker-label"
+                  label="Blocked by"
+                  value={blockerId}
+                  onChange={(event) => setBlockerId(event.target.value)}
+                >
+                  <MenuItem value="">Choose a task</MenuItem>
+                  {columns
+                    .flatMap((column) => column.tasks)
+                    .filter((candidate) => candidate.id !== task.id)
+                    .map((candidate) => (
+                      <MenuItem key={candidate.id} value={candidate.id}>
+                        {candidate.publicKey} · {candidate.title}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            )}
+            {!locked && (
+              <Button
+                variant="outlined"
+                startIcon={<LinkOutlined />}
+                disabled={!blockerId}
+                onClick={() => mutate(`tasks/${task.id}/links`, { targetTaskId: blockerId, type: 'BLOCKED_BY' })}
+              >
+                Add blocker
+              </Button>
+            )}
+            {!locked && canManageTask(user, task) && (
               <Button
                 variant="outlined"
                 startIcon={<CheckCircleOutlineOutlined />}
@@ -243,7 +258,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                 {task.isManagementApproved ? 'Remove sign-off' : 'Sign off task'}
               </Button>
             )}
-            {(canManageTask(user, task) || task.reporter.id === user.id) && (
+            {!locked && (canManageTask(user, task) || task.reporter.id === user.id) && (
               <Button
                 color="error"
                 variant="text"
@@ -257,7 +272,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                 Archive task
               </Button>
             )}
-            {canManageTask(user, task) && (
+            {!locked && canManageTask(user, task) && (
               <Button
                 variant="outlined"
                 startIcon={<FlagOutlined />}

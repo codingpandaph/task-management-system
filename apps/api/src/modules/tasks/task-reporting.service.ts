@@ -149,7 +149,7 @@ export abstract class TaskReportingService extends TaskWorkflowService {
       await this.db.milestone.update({ where: { id: milestone.id }, data: { isOvercapacity } });
     return {
       milestoneId,
-      collaborators: [...members.values()].map((employee) => ({ id: employee.id, name: display(employee) })),
+      teamMembers: [...members.values()].map((employee) => ({ id: employee.id, name: display(employee) })),
       businessDays,
       approvedLeaveDays: approvedLeave,
       availableHours,
