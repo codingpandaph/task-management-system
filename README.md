@@ -42,14 +42,35 @@ Fresh mode refuses remote hosts and the dedicated E2E database.
 The web application runs at <http://localhost:3000>, the API at <http://localhost:3001/api>, and liveness is available
 at <http://localhost:3001/health>. Browser API calls pass through the same-origin Next.js `/api` rewrite.
 
-The development-only seed is non-destructive and refuses production execution. Its fictional users all start with
-`Demo only password 2026!`. Examples for the current year are `<year>-ORG-000001` (Senior Director),
-`<year>-HR-000004` (HR Account Director), `<year>-HR-000005` (final HR approver), and `<year>-ACC-000007`
-(member). `<year>-ACC-000011` demonstrates mandatory first-login password change.
+The development-only seed is non-destructive and refuses production execution. Use these fictional accounts after
+running `yarn dev:fresh` or `ALLOW_DEMO_SEED=true yarn db:seed`. Every account starts with the password
+`Demo only password 2026!`.
+
+## Demo credentials
+
+| Employee ID       | Name         | Perspective                | Useful manual flows                                       |
+| ----------------- | ------------ | -------------------------- | --------------------------------------------------------- |
+| `2026-ORG-000001` | Avery Morgan | Senior Director            | Organization overview, governance, reports, approvals     |
+| `2026-ACC-000002` | Jordan Ellis | Client Account Director    | Team settings, boards, tasks, leave approval              |
+| `2026-MKT-000003` | Casey Rowan  | Marketing Account Director | Second-team scope and reporting                           |
+| `2026-HR-000004`  | Taylor Quinn | HR Director                | Employees, policies, lifecycle, leave administration      |
+| `2026-HR-000005`  | Morgan Reed  | Final HR approver          | Final leave approval and ordinary HR visibility           |
+| `2026-HR-000006`  | Riley Shaw   | HR employee                | Employee leave flow without HR administration privileges  |
+| `2026-ACC-000007` | Alex Finch   | Client Services employee   | Personal tasks, team boards, filing and cancelling leave  |
+| `2026-MKT-000008` | Sam River    | Marketing employee         | Probationary employee and second-team member perspective  |
+| `2026-ACC-000009` | Jamie Brook  | Suspended employee         | Authentication denial and suspended-account demonstration |
+| `2026-MKT-000010` | Robin Vale   | Inactive employee          | Inactive/expired-contract authentication denial           |
+| `2026-ACC-000011` | Drew Lane    | New starter                | Mandatory first-login password change                     |
+
+Employee IDs use the current London creation year. Replace `2026` with the current year if the seed is run in a later
+year. The limited Playwright seed contains accounts `000001` through `000007`; the full development seed contains all
+accounts above. Drew's listed password is temporary and the application requires a new password immediately after
+login.
 
 The full seed creates three departments. Client Services and Marketing each contain one Account Director and 15
-members; Human Resources contains the additional HR roles and the Senior Director. Simon's core hierarchy therefore
-contains 33 people when “15 people underneath” excludes each team leader. E2E keeps a seven-user subset.
+members. Human Resources contains its director and two HR employees, while the Senior Director is organization-wide
+and belongs to no department. Simon's core hierarchy is 33 people; the additional HR department adds three people,
+giving the full demonstration 36 people. E2E keeps a seven-user subset.
 
 ## Database and migrations
 
