@@ -610,3 +610,64 @@ a:not(.MuiButton-root) {
 .MuiTableSortLabel-root {
   min-height: 44px;
 }
+.organization-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: var(--color-line);
+}
+
+.organization-metrics > div {
+  padding: 18px;
+  background: var(--color-paper);
+}
+
+.leadership-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(20, 112, 95, 0.12), rgba(20, 112, 95, 0.03));
+}
+
+.leadership-avatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-evergreen);
+  color: white;
+  font-weight: 800;
+}
+
+.department-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.department-summary-card {
+  padding: 24px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-paper);
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.04);
+}
+
+.milestone-summary {
+  padding: 20px;
+  border-left: 4px solid var(--color-evergreen);
+}
+
+@media (max-width: 599px) {
+  .organization-metrics,
+  .department-grid {
+    grid-template-columns: 1fr;
+  }
+}

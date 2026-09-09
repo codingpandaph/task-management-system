@@ -83,17 +83,18 @@ test('Account Director configures workflows, delegates access, and creates a typ
 
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Create board' });
-  await dialog.getByLabel('Board or sprint name').fill('Client sprint');
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Board name').fill('Client sprint');
   await dialog.getByLabel('Board type').click();
   await expect(page.getByRole('option', { name: 'Kanban' })).toBeVisible();
   await expect(page.getByRole('option', { name: 'Scrum' })).toBeVisible();
   await expect(page.getByRole('option', { name: 'List' })).toHaveCount(0);
   await page.getByRole('option', { name: 'Scrum' }).click();
+  await dialog.getByLabel('Sprint name').fill('Client sprint');
   await dialog.getByLabel('Sprint goal').fill('Deliver the client sprint outcomes');
   await dialog.getByLabel('Start date').fill('2026-09-01');
   await dialog.getByLabel('Due date').fill('2026-09-30');
-  await dialog.getByRole('button', { name: 'Save changes' }).click();
+  await dialog.getByRole('button', { name: 'Create sprint board' }).click();
   await page.getByRole('combobox', { name: 'Board', exact: true }).click();
   await expect(page.getByRole('option', { name: 'Sprint · Client sprint', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -134,18 +135,19 @@ test('each Scrum sprint uses its own board and milestone while HR renders a plai
     } else {
       await director.keyboard.press('Escape');
       await director.getByRole('button', { name: 'Create board', exact: true }).click();
-      const board = director.getByRole('dialog', { name: 'Create board' });
-      await board.getByLabel('Board or sprint name').fill('Client sprint');
+      const board = director.getByRole('dialog');
+      await board.getByLabel('Board name').fill('Client sprint');
       await board.getByLabel('Board type').click();
       await director.getByRole('option', { name: 'Scrum', exact: true }).click();
+      await board.getByLabel('Sprint name').fill('Client sprint');
       await board.getByLabel('Sprint goal').fill('Deliver the client sprint outcomes');
       await board.getByLabel('Start date').fill('2026-09-01');
       await board.getByLabel('Due date').fill('2026-09-30');
-      await board.getByRole('button', { name: 'Save changes' }).click();
+      await board.getByRole('button', { name: 'Create sprint board' }).click();
       await expect(director.getByRole('combobox', { name: 'Board', exact: true })).toContainText('Client sprint');
     }
     await expect(director.getByRole('button', { name: 'New sprint' })).toHaveCount(0);
-    await expect(director.getByRole('button', { name: /Client sprint/ })).toBeVisible();
+    await expect(director.getByText('Client sprint', { exact: true }).last()).toBeVisible();
     await director.getByRole('button', { name: 'Create task', exact: true }).click();
     const task = director.getByRole('dialog', { name: 'Create a task' });
     await task.getByLabel('Task title').fill('Sprint delivery proof');

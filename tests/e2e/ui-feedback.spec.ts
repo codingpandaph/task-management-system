@@ -46,16 +46,21 @@ test('department checkboxes, policy actions, and Scrum dates follow the current 
   await page.goto('/workspaces');
   await expect(page.getByRole('button', { name: 'New milestone', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
-  await page.getByRole('dialog').getByLabel('Board or sprint name').fill('UI Scrum');
+  await page.getByRole('dialog').getByLabel('Board name').fill('UI Scrum');
   await select(page, 'Board type', 'Scrum');
+  await expect(page.getByRole('dialog', { name: 'Create sprint board' })).toBeVisible();
+  await page.getByRole('dialog').getByLabel('Sprint name').fill('UI Scrum');
   await page.getByRole('dialog').getByLabel('Sprint goal').fill('Ship the UI feedback work');
-  await expect(page.getByLabel('Start date', { exact: true })).toHaveAttribute('type', 'date');
-  await expect(page.getByLabel('Due date', { exact: true })).toHaveAttribute('type', 'date');
-  await page.getByLabel('Start date', { exact: true }).fill('2026-09-01');
-  await page.getByLabel('Due date', { exact: true }).fill('2026-09-30');
-  await page.getByRole('dialog').getByRole('button', { name: 'Save changes' }).click();
+  const sprintDialog = page.getByRole('dialog', { name: 'Create sprint board' });
+  const startDate = sprintDialog.locator('input[name="milestoneStartDate"]');
+  const dueDate = sprintDialog.locator('input[name="milestoneDueDate"]');
+  await expect(startDate).toHaveAttribute('type', 'date');
+  await expect(dueDate).toHaveAttribute('type', 'date');
+  await startDate.fill('2026-09-01');
+  await dueDate.fill('2026-09-30');
+  await page.getByRole('dialog').getByRole('button', { name: 'Create sprint board' }).click();
   await select(page, 'Board', 'Sprint · UI Scrum');
-  await expect(page.getByRole('button', { name: /UI Scrum/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'UI Scrum' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'New milestone', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('combobox', { name: 'Board', exact: true })).toContainText(
@@ -64,16 +69,20 @@ test('department checkboxes, policy actions, and Scrum dates follow the current 
   await expect(page.getByRole('dialog').getByText('Milestone: UI Scrum')).toBeVisible();
   await expect(page.getByRole('dialog').getByRole('combobox', { name: 'Milestone', exact: true })).toHaveCount(0);
   await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
-  await page.getByRole('button', { name: /UI Scrum/ }).click();
+  await page.getByRole('button', { name: 'View capacity' }).click();
   await page
     .getByRole('dialog', { name: 'Milestone capacity' })
-    .getByRole('button', { name: 'Close milestone' })
+    .getByRole('button', { name: 'Complete sprint' })
+    .click();
+  await expect(page.getByText('Completing the sprint closes its milestone')).toBeVisible();
+  await page
+    .getByRole('dialog', { name: 'Complete this sprint?' })
+    .getByRole('button', { name: 'Complete sprint' })
     .click();
   await expect(page.getByText('This sprint is complete. Its board is read-only.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create task', exact: true })).toHaveCount(0);
-  await page.getByRole('combobox', { name: 'Board', exact: true }).click();
-  await expect(page.getByText('Completed sprints', { exact: true })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Sprint history' }).click();
+  await expect(page.getByRole('dialog', { name: 'Completed sprints' }).getByText('UI Scrum')).toBeVisible();
 });
 
 test('My tasks and People sort real records with accessible column state', async ({ page }) => {

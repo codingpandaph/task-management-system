@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
-import ListSubheader from '@mui/material/ListSubheader';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -16,6 +15,7 @@ import { ListBoard } from './list-board';
 import { MilestoneStrip } from './milestone-strip';
 import type { BoardResponse, DepartmentOption, Workspace } from './task-types';
 import { WorkspaceActions } from './workspace-actions';
+import { SprintHistory } from './sprint-history';
 import { TaskProductActions } from './task-product-actions';
 import { TaskBoardFilters } from './task-board-filters';
 interface TaskBoardViewProps {
@@ -60,6 +60,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
     workspaces,
   } = props;
   const workspace = workspaces.find((item) => item.id === workspaceId);
+  const selectedBoard = workspace?.boards.find((item) => item.id === boardId);
   const workspaceManager =
     !!workspace &&
     (user.position === 'SENIOR_DIRECTOR' ||
@@ -93,6 +94,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 />
               )}
               <WorkspaceActions workspace={workspace} user={user} refresh={refresh} />
+              <SprintHistory boards={workspace.boards} select={setBoardId} />
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-navigation">
@@ -127,7 +129,6 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               }}
               sx={{ minWidth: 260, flex: 1 }}
             >
-              <ListSubheader>Current boards</ListSubheader>
               {workspace.boards
                 .filter((item) => item.status === 'ACTIVE')
                 .map((item) => (
@@ -135,16 +136,9 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                     {item.kind === 'SCRUM' ? `Sprint · ${item.name}` : item.name}
                   </MenuItem>
                 ))}
-              {!!workspace.boards.some((item) => item.status === 'INACTIVE') && (
-                <ListSubheader>Completed sprints</ListSubheader>
+              {boardId && selectedBoard?.status !== 'ACTIVE' && (
+                <MenuItem value={boardId}>Completed · {selectedBoard?.name ?? board?.board.name ?? 'Sprint'}</MenuItem>
               )}
-              {workspace.boards
-                .filter((item) => item.status === 'INACTIVE')
-                .map((item) => (
-                  <MenuItem key={item.id} value={item.id}>
-                    {item.name}
-                  </MenuItem>
-                ))}
             </TextField>
           </Stack>
           {board?.board.status === 'INACTIVE' && (

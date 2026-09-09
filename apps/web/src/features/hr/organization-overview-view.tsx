@@ -113,15 +113,36 @@ export function OrganizationOverviewView({
         }
       >
         {summary && (
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
-            {summary.departments} departments · {summary.activeEmployees} active employees · {summary.boards} boards
-          </Typography>
+          <Box className="organization-metrics" sx={{ mb: 3 }}>
+            {[
+              ['Active people', summary.activeEmployees],
+              ['Departments', summary.departments],
+              ['Team boards', summary.boards],
+            ].map(([label, value]) => (
+              <Box key={label}>
+                <Typography variant="h4" component="p">
+                  {value}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
         )}
         {leadership.map((employee) => (
-          <Stack key={employee.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Typography sx={{ fontWeight: 700 }}>{employee.displayName}</Typography>
-            <Typography color="text.secondary">Senior Director · Organization-wide</Typography>
-          </Stack>
+          <Box key={employee.id} className="leadership-banner">
+            <Box className="leadership-avatar">{employee.displayName.slice(0, 1)}</Box>
+            <Box>
+              <Typography variant="overline">Organization leadership</Typography>
+              <Typography variant="h6" component="p">
+                {employee.displayName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Senior Director · Organization-wide oversight
+              </Typography>
+            </Box>
+          </Box>
         ))}
         {!leadership.length && <Alert severity="warning">A Senior Director must be assigned.</Alert>}
       </Card>
@@ -143,15 +164,10 @@ export function OrganizationOverviewView({
           <MenuItem value="desc">Name: Z to A</MenuItem>
         </TextField>
       </Stack>
-      <Stack spacing={0}>
+      <Box className="department-grid">
         {!visibleDepartments.length && <Typography>No departments match your search.</Typography>}
         {visibleDepartments.map((d) => (
-          <Box
-            component="section"
-            key={d.id}
-            aria-label={d.name}
-            sx={{ py: 3, borderBottom: '1px solid', borderColor: 'divider' }}
-          >
+          <Box component="section" key={d.id} aria-label={d.name} className="department-summary-card">
             <Typography component="h2" variant="h6">
               <Link href={`/departments/${d.id}`}>{d.name}</Link>
             </Typography>
@@ -254,7 +270,7 @@ export function OrganizationOverviewView({
             </details>
           </Box>
         ))}
-      </Stack>
+      </Box>
     </Stack>
   );
 }
