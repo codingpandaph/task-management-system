@@ -7,6 +7,7 @@ export interface Field {
   optional?: boolean;
   value?: string | number;
   options?: { value: string; label: string }[];
+  multiple?: boolean;
   showWhen?: { field: string; values: string[] };
 }
 

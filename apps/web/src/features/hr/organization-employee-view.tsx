@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { ModalForm, type Field } from './ui';
 import { EmployeeProfileCard } from './employee-profile-card';
 import type { EmployeeDetail, EmploymentRecord, PermissionGrant } from './organization-types';
+import { permissionName, plainName } from './plain-language';
 
 export function OrganizationEmployeeView({
   can,
@@ -37,7 +38,7 @@ export function OrganizationEmployeeView({
   options: { value: string; label: string }[];
   permissionGrants: PermissionGrant[];
   policyOptions: { value: string; label: string }[];
-  save: (endpoint: string, values: Record<string, string | number>, method?: string) => Promise<void>;
+  save: (endpoint: string, values: Record<string, unknown>, method?: string) => Promise<void>;
   setEmployeeTab: (value: number) => void;
   setSecret: (value: string) => void;
   user: CurrentEmployee;
@@ -134,7 +135,7 @@ export function OrganizationEmployeeView({
                         label: 'Employment type',
                         options: ['FULL_TIME', 'CONTRACTUAL', 'PROBATIONARY'].map((value) => ({
                           value,
-                          label: value.replaceAll('_', ' '),
+                          label: plainName(value),
                         })),
                       },
                       { name: 'startDate', label: 'Employment start', type: 'date' },
@@ -165,7 +166,7 @@ export function OrganizationEmployeeView({
                         label: 'Permission',
                         options: PERMISSIONS.filter((permission) =>
                           canRoleHoldPermission(detail.position, detail.department?.kind === 'HR', permission),
-                        ).map((value) => ({ value, label: value })),
+                        ).map((value) => ({ value, label: permissionName(value) })),
                       },
                       {
                         name: 'action',

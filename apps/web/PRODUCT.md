@@ -8,14 +8,14 @@ web
 
 ## Users
 
-CPPinSync serves employees, Account Directors, HR staff, and one Senior Director in a department-scale organization.
+CPSync serves employees, Account Directors, HR staff, and one Senior Director in a department-scale organization.
 Employees manage their own leave and assigned work. Account Directors coordinate department delivery and approvals. HR
 staff manage people operations and leave administration according to explicit capabilities. The Senior Director
 governs organization-wide access and reviews delivery across teams.
 
 ## Product Purpose
 
-CPPinSync combines employee administration, leave management, individual tasks, team boards, and leadership reporting
+CPSync combines employee administration, leave management, individual tasks, team boards, and leadership reporting
 in one operational workspace. Success means employees can complete routine work independently, directors can
 coordinate their teams without losing governance, and leadership can rely on organization-wide status.
 
@@ -47,8 +47,8 @@ database seed.
 
 ## Brand Commitments
 
-The product name is CPPinSync. Its established voice is concise, calm, operational, and human. It uses plain language,
-short labels, accessible controls, and a restrained green identity. Existing CPPinSync wording and identity should be
+The product name is CPSync. Its established voice is concise, calm, operational, and human. It uses plain language,
+short labels, accessible controls, and a restrained green identity. Existing CPSync wording and identity should be
 preserved unless the user explicitly requests a rebrand.
 
 ## Evidence on Hand

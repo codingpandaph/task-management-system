@@ -97,6 +97,18 @@ enum TaskPriority {
   HIGH
 }
 
+enum TaskManagementType {
+  KANBAN
+  SCRUM
+  LIST
+}
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+
 enum TaskLinkType {
   BLOCKS
   BLOCKED_BY
@@ -133,6 +145,8 @@ model Department {
   status                                   RecordStatus                    @default(ACTIVE)
   kind                                     DepartmentKind                  @default(OPERATIONAL)
   version                                  Int                             @default(1)
+  taskManagementTypes                      TaskManagementType[]            @default([KANBAN])
+  kanbanWipLimit                           Int                             @default(3)
   employee_department                      Employee[]                      @relation("Employee_department")
   employeeOrganizationHistory_department   EmployeeOrganizationHistory[]   @relation("EmployeeOrganizationHistory_department")
   leaveApprovalStep_department             LeaveApprovalStep[]             @relation("LeaveApprovalStep_department")
@@ -190,6 +204,8 @@ model Employee {
   task_assignee                              Task[]                              @relation("Task_assignee")
   taskActivityLog_actor                      TaskActivityLog[]                   @relation("TaskActivityLog_actor")
   taskComment_author                         TaskComment[]                       @relation("TaskComment_author")
+  taskBoard_creator                          TaskBoard[]                         @relation("TaskBoard_creator")
+  boardCollaborator_employee                 BoardCollaborator[]                 @relation("BoardCollaborator_employee")
 
   @@index([departmentId, status, position])
 }
@@ -634,17 +650,51 @@ model WorkspaceMembership {
 }
 
 model TaskBoard {
-  id          String       @id @default(uuid()) @db.Uuid
-  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(3)
-  name        String
-  kind        String
-  workspaceId String       @db.Uuid
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  columns     TaskColumn[]
-  tasks       Task[]
+  id            String              @id @default(uuid()) @db.Uuid
+  createdAt     DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime            @updatedAt @db.Timestamptz(3)
+  name          String
+  kind          TaskManagementType  @default(KANBAN)
+  status        RecordStatus        @default(ACTIVE)
+  creatorId     String              @db.Uuid
+  creator       Employee            @relation("TaskBoard_creator", fields: [creatorId], references: [id], onDelete: Restrict)
+  workspaceId   String              @db.Uuid
+  workspace     Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  columns       TaskColumn[]
+  tasks         Task[]
+  collaborators BoardCollaborator[]
+  sprints       Sprint[]
 
   @@unique([workspaceId, name])
+}
+
+model BoardCollaborator {
+  id         String    @id @default(uuid()) @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  boardId    String    @db.Uuid
+  board      TaskBoard @relation(fields: [boardId], references: [id], onDelete: Restrict)
+  employeeId String    @db.Uuid
+  employee   Employee  @relation("BoardCollaborator_employee", fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([boardId, employeeId])
+  @@index([employeeId])
+}
+
+model Sprint {
+  id        String       @id @default(uuid()) @db.Uuid
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @db.Timestamptz(3)
+  name      String
+  goal      String
+  startDate DateTime     @db.Date
+  endDate   DateTime     @db.Date
+  status    SprintStatus @default(PLANNED)
+  boardId   String       @db.Uuid
+  board     TaskBoard    @relation(fields: [boardId], references: [id], onDelete: Restrict)
+  tasks     Task[]
+
+  @@unique([boardId, name])
+  @@index([boardId, status])
 }
 
 model TaskColumn {
@@ -705,6 +755,9 @@ model Task {
   column               TaskColumn         @relation(fields: [columnId], references: [id], onDelete: Restrict)
   milestoneId          String?            @db.Uuid
   milestone            Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  sprintId             String?            @db.Uuid
+  sprint               Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  dueDate              DateTime?          @db.Date
   reporterId           String             @db.Uuid
   reporter             Employee           @relation("Task_reporter", fields: [reporterId], references: [id], onDelete: Restrict)
   assigneeId           String?            @db.Uuid
@@ -719,6 +772,7 @@ model Task {
   @@index([assigneeId, isDeleted])
   @@index([workspaceId, columnId, isDeleted])
   @@index([milestoneId])
+  @@index([sprintId])
 }
 
 model DefinitionOfDone {

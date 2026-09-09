@@ -4,12 +4,54 @@ import type { Employee } from '../../generated/prisma/client';
 import { audit } from '../audit/audit';
 import { Principal, requireHr } from '../authorization/authorization';
 import { lockEmployee, type Transaction } from '../database/database.module';
-import { DepartmentDto, EditDepartmentDto, PermissionDto } from './dto';
+import { DepartmentDto, DepartmentTaskSettingsDto, EditDepartmentDto, PermissionDto } from './dto';
+import { directory } from './organization-base.service';
 import { OrganizationEmployeeService } from './organization-employee.service';
 
 export abstract class OrganizationGovernanceService extends OrganizationEmployeeService {
-  async departments() {
-    return this.db.department.findMany({ orderBy: { name: 'asc' } });
+  async departments(actor: Principal) {
+    if (actor.employee.position !== 'SENIOR_DIRECTOR' && !actor.permissions.includes('EMPLOYEE_READ')) {
+      return this.db.department.findMany({ where: { id: actor.employee.departmentId! }, orderBy: { name: 'asc' } });
+    }
+    return this.db.department.findMany({
+      include: {
+        _count: { select: { employee_department: true } },
+        workspace_department: { select: { _count: { select: { boards: true } } } },
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+  async department(actor: Principal, id: string) {
+    const broad = actor.employee.position === 'SENIOR_DIRECTOR' || actor.permissions.includes('EMPLOYEE_READ');
+    if (!broad && actor.employee.departmentId !== id) throw new ForbiddenException('You can only view your department');
+    const department = await this.db.department.findUnique({
+      where: { id },
+      include: {
+        employee_department: {
+          where: { status: 'ACTIVE' },
+          include: { department: true },
+          orderBy: [{ position: 'asc' }, { lastName: 'asc' }],
+        },
+        workspace_department: {
+          include: {
+            memberships: { where: { milestoneId: null } },
+            boards: {
+              where: { status: 'ACTIVE' },
+              include: {
+                creator: { select: { id: true, employeeId: true, firstName: true, lastName: true, position: true } },
+                collaborators: true,
+                sprints: { where: { status: 'ACTIVE' } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!department) throw new ConflictException('Department not found');
+    return {
+      ...department,
+      employee_department: department.employee_department.map(directory),
+    };
   }
   async createDepartment(actor: Principal, dto: DepartmentDto) {
     requireHr(actor, 'DEPARTMENT_CREATE');
@@ -24,10 +66,36 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     return this.db.transaction(async (tx) => {
       const r = await tx.department.updateMany({
         where: { id, version: dto.version },
-        data: { name: dto.name, description: dto.description, version: { increment: 1 } },
+        data: {
+          name: dto.name,
+          description: dto.description,
+          taskManagementTypes: dto.taskManagementTypes,
+          kanbanWipLimit: dto.kanbanWipLimit,
+          version: { increment: 1 },
+        },
       });
       if (!r.count) throw new ConflictException('Department changed');
       await audit(tx, actor.employee.id, 'DEPARTMENT_UPDATED', 'Department', id);
+      return { ok: true };
+    });
+  }
+  async configureTasks(actor: Principal, id: string, dto: DepartmentTaskSettingsDto) {
+    const managesOwn = actor.employee.position === 'ACCOUNT_DIRECTOR' && actor.employee.departmentId === id;
+    if (!managesOwn) requireHr(actor, 'DEPARTMENT_UPDATE');
+    return this.db.transaction(async (tx) => {
+      const updated = await tx.department.updateMany({
+        where: { id, version: dto.version },
+        data: {
+          taskManagementTypes: dto.taskManagementTypes,
+          kanbanWipLimit: dto.kanbanWipLimit,
+          version: { increment: 1 },
+        },
+      });
+      if (!updated.count) throw new ConflictException('Department changed; reload before saving');
+      await audit(tx, actor.employee.id, 'DEPARTMENT_TASK_SETTINGS_CHANGED', 'Department', id, {
+        taskManagementTypes: dto.taskManagementTypes,
+        kanbanWipLimit: dto.kanbanWipLimit,
+      });
       return { ok: true };
     });
   }
@@ -156,7 +224,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       await lockEmployee(tx, id);
       const target = await tx.employee.findUniqueOrThrow({ where: { id }, include: { department: true } });
       if (target.position !== 'SENIOR_DIRECTOR' && target.department?.kind !== 'HR')
-        throw new ForbiddenException('Administrative grants require HR scope');
+        throw new ForbiddenException('Administrative access can only be given to eligible HR employees');
       if (!revoke && !canRoleHoldPermission(target.position, target.department?.kind === 'HR', dto.code))
         throw new ForbiddenException('Permission exceeds the target role');
       const permission = await tx.permission.findUniqueOrThrow({ where: { code: dto.code } });

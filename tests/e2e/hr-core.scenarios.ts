@@ -39,7 +39,7 @@ export function registerCoreScenarios() {
     await employeeForm.getByLabel('Last name', { exact: true }).fill(suffix);
     await employeeForm.getByLabel('Birth date', { exact: true }).fill('1992-03-04');
     await select(page, 'Department', department);
-    await select(page, 'Employment type', 'FULL TIME');
+    await select(page, 'Employment type', 'Permanent');
     await employeeForm.getByLabel('Employment start', { exact: true }).fill(`${year}-01-01`);
     await page.getByRole('combobox', { name: 'Leave policy', exact: true }).click();
     await page.getByRole('option').first().click();
@@ -60,6 +60,10 @@ export function registerCoreScenarios() {
     expect((await page.request.get('/api/employees')).status()).toBe(403);
     await page.getByLabel('Temporary password').fill(credentials[1]);
     await page.getByLabel('New password', { exact: true }).fill('New employee secure password 2026!');
+    await page.getByLabel('Confirm new password', { exact: true }).fill('Different secure password 2026!');
+    await page.getByRole('button', { name: 'Change password', exact: true }).click();
+    await expect(page.getByText('The new passwords do not match. Try again.')).toBeVisible();
+    await page.getByLabel('Confirm new password', { exact: true }).fill('New employee secure password 2026!');
     await page.getByRole('button', { name: 'Change password', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
   });
@@ -163,8 +167,8 @@ export function registerCoreScenarios() {
     await expect(page.getByRole('heading', { name: 'Create employee', exact: true })).toHaveCount(0);
     expect((await page.request.get('/api/employees')).status()).toBe(403);
     await page.goto('/hr');
-    await expect(page.getByRole('heading', { name: 'Access denied', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Return to overview', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
     await page.goto('/calendar');
     for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
       await page.setViewportSize({ width, height: 900 });

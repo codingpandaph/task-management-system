@@ -42,7 +42,7 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     assert.equal(new Set(created.map((task) => task.publicKey)).size, 2);
     assert.ok(created.every((task) => task.publicKey.startsWith('ACC-#')));
   });
-  await suite.test('directors delegate task and board creation while reporters remain editable', async () => {
+  await suite.test('directors delegate task and board creation while reporters remain authenticated', async () => {
     const director = await actor('Jordan');
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
     await tasks.addMembership(director, workspace.id, {
@@ -91,10 +91,9 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     assert.equal(created.assigneeId, member.employee.id);
     const edited = await tasks.edit(member, created.id, {
       assigneeId: director.employee.id,
-      reporterId: director.employee.id,
     });
     assert.equal(edited.assigneeId, director.employee.id);
-    assert.equal(edited.reporterId, director.employee.id);
+    assert.equal(edited.reporterId, member.employee.id);
   });
   await suite.test('Senior Director provisions the correct adaptive workspace templates', async () => {
     const workspace = await tasks.createWorkspace(senior, dep.id, 'ENGINEERING_PRODUCT');
@@ -102,10 +101,10 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
       where: { id: workspace.id },
       include: { boards: { include: { columns: true } } },
     });
-    assert.deepEqual(created.boards.map((board) => board.name).sort(), ['Backlog', 'Features', 'Scrum milestones']);
+    assert.deepEqual(created.boards.map((board) => board.name).sort(), ['Engineering delivery']);
     assert.ok(created.boards.every((board) => board.columns.some((column) => column.isInitial)));
   });
-  await suite.test('task completion requires DoD and management sign-off', async () => {
+  await suite.test('task completion requires management sign-off', async () => {
     const workspace = await db.workspace.findFirstOrThrow({
       where: { code: 'ACC' },
       include: { boards: { include: { columns: true } } },
@@ -119,10 +118,7 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
       description: '',
       priority: 'HIGH',
       estimatedHours: 8,
-      definitionOfDone: ['Reviewed'],
     });
-    await assert.rejects(tasks.move(member, task.id, done.id));
-    await tasks.checkDod(member, task.id, task.definitionOfDone[0].id, true);
     await assert.rejects(tasks.move(member, task.id, done.id));
     const director = await actor('Jordan');
     await assert.rejects(tasks.move(director, task.id, done.id));

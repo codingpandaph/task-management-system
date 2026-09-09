@@ -12,6 +12,7 @@ import { resolveAccessRole } from '@tms/contracts';
 import type { ReactNode } from 'react';
 import { Card, EmptyState, StatusTag, Tag } from './ui';
 import type { EmployeeDetail, EmploymentRecord, PermissionGrant } from './organization-types';
+import { plainName } from './plain-language';
 
 export function EmployeeProfileCard({
   detail,
@@ -72,7 +73,7 @@ export function EmployeeProfileCard({
           </div>
           <div>
             <span>Position</span>
-            <strong>{detail.position.replaceAll('_', ' ')}</strong>
+            <strong>{plainName(detail.position)}</strong>
           </div>
           {detail.email && (
             <div>

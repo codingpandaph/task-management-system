@@ -1,5 +1,18 @@
 let csrf = '';
 let refreshPromise: Promise<void> | null = null;
+
+const friendlyErrors: Record<string, string> = {
+  'HR scope required': 'This action is only available to authorized HR employees.',
+  'Administrative grants require HR scope': 'Administrative access can only be given to eligible HR employees.',
+  'Permission required': 'You do not have access to do that.',
+  'Organizational role required': 'Your role does not include this action.',
+  'Invalid CSRF token': 'Your session could not be verified. Refresh the page and try again.',
+  PASSWORD_CHANGE_REQUIRED: 'Change your temporary password to continue.',
+};
+
+function friendlyError(value: string) {
+  return friendlyErrors[value] ?? value;
+}
 export class RequestError extends Error {
   constructor(
     message: string,
@@ -52,7 +65,8 @@ export async function api<T>(
   }
   const data: unknown = await response.json();
   if (!response.ok) {
-    const message = typeof data === 'object' && data && 'message' in data ? String(data.message) : 'Request failed';
+    const rawMessage = typeof data === 'object' && data && 'message' in data ? String(data.message) : 'Request failed';
+    const message = friendlyError(rawMessage);
     throw new RequestError(message, response.status);
   }
   if (typeof data === 'object' && data && 'csrf' in data && typeof data.csrf === 'string') csrf = data.csrf;

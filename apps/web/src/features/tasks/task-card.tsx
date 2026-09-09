@@ -1,7 +1,4 @@
-import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
-import ArrowForwardOutlined from '@mui/icons-material/ArrowForwardOutlined';
 import DragIndicatorOutlined from '@mui/icons-material/DragIndicatorOutlined';
-import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { TaskContract } from '@tms/contracts';
@@ -14,18 +11,14 @@ export function personName(person: TaskContract['assignee']) {
 }
 
 interface TaskCardProps {
-  moveBack?: () => void;
-  moveForward?: () => void;
-  nextColumn?: string;
   onDragEnd?: DragEventHandler<HTMLElement>;
   onDragStart?: DragEventHandler<HTMLElement>;
   open: () => void;
-  previousColumn?: string;
   task: TaskContract;
 }
 
 export function TaskCard(props: TaskCardProps) {
-  const { moveBack, moveForward, nextColumn, onDragEnd, onDragStart, open, previousColumn, task } = props;
+  const { onDragEnd, onDragStart, open, task } = props;
   return (
     <article className="task-card" draggable={!!onDragStart} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <button className="task-card-open" onClick={open} aria-label={`Open ${task.publicKey} ${task.title}`}>
@@ -54,24 +47,6 @@ export function TaskCard(props: TaskCardProps) {
           </Stack>
         )}
       </button>
-      {(moveBack || moveForward) && (
-        <div className="task-card-move-actions" aria-label={`Move ${task.publicKey}`}>
-          <IconButton
-            disabled={!moveBack}
-            onClick={moveBack}
-            aria-label={`Move ${task.publicKey} to ${previousColumn}`}
-          >
-            <ArrowBackOutlined fontSize="small" />
-          </IconButton>
-          <IconButton
-            disabled={!moveForward}
-            onClick={moveForward}
-            aria-label={`Move ${task.publicKey} to ${nextColumn}`}
-          >
-            <ArrowForwardOutlined fontSize="small" />
-          </IconButton>
-        </div>
-      )}
     </article>
   );
 }

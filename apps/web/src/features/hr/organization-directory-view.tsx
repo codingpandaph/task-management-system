@@ -18,6 +18,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Card, EmptyState, ModalForm, Tag } from './ui';
 import type { Department } from './organization-types';
+import { plainName } from './plain-language';
 
 export function OrganizationDirectoryView({
   can,
@@ -85,7 +86,7 @@ export function OrganizationDirectoryView({
                   label: 'Employment type',
                   options: ['FULL_TIME', 'CONTRACTUAL', 'PROBATIONARY'].map((value) => ({
                     value,
-                    label: value.replaceAll('_', ' '),
+                    label: plainName(value),
                   })),
                 },
                 { name: 'startDate', label: 'Employment start', type: 'date' },

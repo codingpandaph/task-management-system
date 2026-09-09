@@ -28,6 +28,16 @@ export enum TaskPriorityDto {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
+export enum TaskManagementTypeDto {
+  KANBAN = 'KANBAN',
+  SCRUM = 'SCRUM',
+  LIST = 'LIST',
+}
+export enum SprintStatusDto {
+  PLANNED = 'PLANNED',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+}
 export enum TaskLinkTypeDto {
   BLOCKS = 'BLOCKS',
   BLOCKED_BY = 'BLOCKED_BY',
@@ -44,8 +54,13 @@ export class ColumnDto {
 }
 export class BoardDto {
   @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
-  @IsOptional() @IsString() @MaxLength(40) kind?: string;
-  @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => ColumnDto) columns!: ColumnDto[];
+  @IsOptional() @IsEnum(TaskManagementTypeDto) kind?: keyof typeof TaskManagementTypeDto;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => ColumnDto)
+  columns?: ColumnDto[];
 }
 export class MilestoneDto {
   @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
@@ -61,9 +76,9 @@ export class TaskDto {
   @IsEnum(TaskPriorityDto) priority!: keyof typeof TaskPriorityDto;
   @Type(() => Number) @IsNumber() @Min(0) @Max(10000) estimatedHours!: number;
   @IsOptional() @IsUUID() assigneeId?: string;
-  @IsOptional() @IsUUID() reporterId?: string;
   @IsOptional() @IsUUID() milestoneId?: string;
-  @IsOptional() @IsArray() @ArrayMaxSize(50) @MaxLength(500, { each: true }) definitionOfDone?: string[];
+  @IsOptional() @IsUUID() sprintId?: string;
+  @IsOptional() @IsDateString({ strict: true }) dueDate?: string;
 }
 export class TaskEditDto {
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) title?: string;
@@ -72,9 +87,12 @@ export class TaskEditDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(10000) estimatedHours?: number;
   @IsOptional() @IsUUID() assigneeId?: string;
   @IsOptional() @IsBoolean() clearAssignee?: boolean;
-  @IsOptional() @IsUUID() reporterId?: string;
   @IsOptional() @IsUUID() milestoneId?: string;
   @IsOptional() @IsBoolean() clearMilestone?: boolean;
+  @IsOptional() @IsUUID() sprintId?: string;
+  @IsOptional() @IsBoolean() clearSprint?: boolean;
+  @IsOptional() @IsDateString({ strict: true }) dueDate?: string;
+  @IsOptional() @IsBoolean() clearDueDate?: boolean;
 }
 export class MoveTaskDto {
   @IsUUID() columnId!: string;
@@ -84,12 +102,6 @@ export class ApprovalDto {
 }
 export class EscalationDto {
   @IsBoolean() escalated!: boolean;
-}
-export class DodDto {
-  @IsString() @IsNotEmpty() @MaxLength(500) item!: string;
-}
-export class DodCheckDto {
-  @IsBoolean() isChecked!: boolean;
 }
 export class LinkDto {
   @IsUUID() targetTaskId!: string;
@@ -105,4 +117,13 @@ export class MembershipDto {
   @IsOptional() @IsDateString({ strict: true }) effectiveTo?: string;
   @IsOptional() @IsBoolean() canCreateTasks?: boolean;
   @IsOptional() @IsBoolean() canCreateBoards?: boolean;
+}
+export class CollaboratorDto {
+  @IsUUID() employeeId!: string;
+}
+export class SprintDto {
+  @IsString() @IsNotEmpty() @MaxLength(120) name!: string;
+  @IsString() @IsNotEmpty() @MaxLength(2000) goal!: string;
+  @IsDateString({ strict: true }) startDate!: string;
+  @IsDateString({ strict: true }) endDate!: string;
 }

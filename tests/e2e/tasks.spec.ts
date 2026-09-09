@@ -1,15 +1,11 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? Number(process.env.DEMO_SLOWMO_MS ?? 1200) : 0 } });
-test.beforeEach(async ({ page }, testInfo) => {
-  void page;
-  if (process.env.PLAYWRIGHT_DEMO) testInfo.setTimeout(240_000);
-});
-
 const password = 'Demo only password 2026!';
 const users = {
   senior: '2026-ORG-000001',
   director: '2026-ACC-000002',
+  hrDirector: '2026-HR-000004',
   member: '2026-ACC-000007',
 };
 
@@ -21,264 +17,138 @@ async function signIn(page: Page, employeeId: string) {
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
 }
 
-test('Account Director assigns work and the employee completes the full personal journey', async ({ browser }) => {
-  const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
-  const employeeContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
-  try {
-    const director = await directorContext.newPage();
-    const employee = await employeeContext.newPage();
+async function setMemberAccess(page: Page, label: 'Create boards' | 'Create tasks', checked: boolean) {
+  const row = page.getByText('Alex Finch', { exact: true }).locator('..').locator('..');
+  const control = row.getByRole('checkbox', { name: label });
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 
-    await signIn(director, users.director);
-    await director.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await director.getByRole('button', { name: 'Create task', exact: true }).click();
-    const create = director.getByRole('dialog', { name: 'Create a task' });
-    await create.getByLabel('Task title').fill('Prepare validation briefing');
-    await create.getByLabel('Description').fill('Summarize the prototype decisions for the colleague review.');
-    await create.getByLabel('Priority').click();
-    await director.getByRole('option', { name: 'High' }).click();
-    await create.getByLabel('Estimate in hours').fill('8');
-    await create.getByLabel('Assignee').click();
-    await director.getByRole('option', { name: 'Alex Finch' }).click();
-    await expect(create.getByLabel('Reporter')).toContainText('Jordan Ellis');
-    await create.getByLabel('Definition of Done (one item per line)').fill('Brief reviewed\nQuestions prepared');
-    await create.getByRole('button', { name: 'Create task', exact: true }).click();
-    await expect(director.getByRole('button', { name: /Prepare validation briefing/ })).toBeVisible();
-
-    await signIn(employee, users.member);
-    await employee.getByRole('link', { name: 'My tasks', exact: true }).click();
-    await expect(employee.getByText('Every task assigned to you, across department workspaces.')).toBeVisible();
-    await employee.getByLabel('Priority', { exact: true }).click();
-    await employee.getByRole('option', { name: 'High', exact: true }).click();
-    await employee.getByLabel('Status', { exact: true }).click();
-    await employee.getByRole('option', { name: 'To do', exact: true }).click();
-    await employee.getByLabel('Search my tasks').fill('validation briefing');
-    const assignedTask = employee.getByRole('button', { name: /Prepare validation briefing/ });
-    await expect(assignedTask).toBeVisible();
-    await employee.getByRole('button', { name: 'Clear filters', exact: true }).click();
-    await employee.getByLabel('Search my tasks').fill('validation briefing');
-    await assignedTask.click();
-    let detail = employee.getByRole('dialog');
-    await expect(detail.locator('p').filter({ hasText: /Assignee\s*Alex Finch/ })).toBeVisible();
-    await expect(detail.locator('p').filter({ hasText: /Reporter\s*Jordan Ellis/ })).toBeVisible();
-    await expect(detail.getByText('High', { exact: true })).toBeVisible();
-    await detail.getByLabel('Write a comment').fill('I have started the briefing.');
-    await detail.getByLabel('Write a comment').press('Enter');
-    await expect(detail.getByText('I have started the briefing.')).toBeVisible();
-    await expect(detail.getByText('Activity', { exact: true })).toBeVisible();
-    await detail.getByLabel('Move to').click();
-    await employee.getByRole('option', { name: 'In progress' }).click();
-    await expect(detail.getByText('Progress', { exact: true }).first()).toBeVisible();
-    await detail.getByRole('button', { name: 'Close task' }).click();
-
-    await director.reload();
-    await director.getByRole('button', { name: /Prepare validation briefing/ }).click();
-    detail = director.getByRole('dialog');
-    await expect(detail.getByText('I have started the briefing.')).toBeVisible();
-    await detail.getByRole('button', { name: 'Close task' }).click();
-
-    await employee.reload();
-    await employee.getByLabel('Search my tasks').fill('validation briefing');
-    await employee.getByRole('button', { name: /Prepare validation briefing/ }).click();
-    detail = employee.getByRole('dialog');
-    await detail.getByLabel('Brief reviewed').click();
-    await detail.getByLabel('Questions prepared').click();
-    await detail.getByLabel('Move to').click();
-    await employee.getByRole('option', { name: 'Review' }).click();
-    await expect(detail.getByText('Review', { exact: true }).first()).toBeVisible();
-    await detail.getByRole('button', { name: 'Close task' }).click();
-
-    await director.reload();
-    await director.getByRole('button', { name: /Prepare validation briefing/ }).click();
-    detail = director.getByRole('dialog');
-    await detail.getByLabel('Move to').click();
-    await director.getByRole('option', { name: 'Done · sign-off' }).click();
-    await expect(detail.getByText('Management sign-off is required')).toBeVisible();
-    await detail.getByRole('button', { name: 'Sign off task', exact: true }).click();
-    await detail.getByLabel('Move to').click();
-    await director.getByRole('option', { name: 'Done · sign-off' }).click();
-    await expect(detail.getByText('Done', { exact: true }).first()).toBeVisible();
-    await detail.getByRole('button', { name: 'Close task' }).click();
-
-    await employee.reload();
-    await employee.getByRole('button', { name: /Prepare validation briefing/ }).click();
-    await expect(employee.getByRole('dialog').getByText('Done', { exact: true }).first()).toBeVisible();
-    await employee.getByRole('dialog').getByRole('button', { name: 'Close task' }).click();
-    await director.getByRole('link', { name: 'Delivery reports', exact: true }).click();
-    await expect(director.getByText('Client Services workspace')).toBeVisible();
-    await director.getByLabel('Search departments').fill('missing department');
-    await expect(director.getByText('No matching departments')).toBeVisible();
-    await director.getByLabel('Search departments').fill('client');
-    await expect(director.getByText('Client Services workspace')).toBeVisible();
-  } finally {
-    await directorContext.close();
-    await employeeContext.close();
+async function createTask(page: Page, title: string, assignee = 'Alex Finch') {
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Create a task' });
+  await dialog.getByLabel('Task title').fill(title);
+  await dialog.getByLabel('Description').fill('**Demo:** clear ownership and traceable delivery.');
+  if (assignee) {
+    await dialog.getByLabel('Assignee').click();
+    await page.getByRole('option', { name: assignee, exact: true }).click();
   }
-});
+  await expect(dialog.getByText('Reporter: Jordan Ellis')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page.getByRole('button', { name: new RegExp(title) })).toBeVisible();
+}
 
-test('member creates, discusses, completes DoD, and advances a signed-off task', async ({ browser }) => {
+async function column(page: Page, name: string): Promise<Locator> {
+  return page.locator('.kanban-column').filter({ has: page.getByRole('heading', { name, exact: true }) });
+}
+
+test('role-aware navigation and department visibility enforce scope', async ({ browser }) => {
   const memberContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
-  const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  const seniorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
   try {
     const member = await memberContext.newPage();
-    const director = await directorContext.newPage();
     await signIn(member, users.member);
-    await member.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await expect(member.getByRole('heading', { name: 'Team boards', exact: true })).toBeVisible();
-    await member.getByRole('button', { name: 'Create task', exact: true }).click();
-    const create = member.getByRole('dialog', { name: 'Create a task' });
-    await create.getByLabel('Task title').fill('Publish customer handover');
-    await create.getByLabel('Description').fill('Prepare the handover notes and confirm ownership.');
-    await create.getByLabel('Estimate in hours').fill('12');
-    await create.getByLabel('Assignee').click();
-    await member.getByRole('option', { name: 'Alex Finch' }).click();
-    await create.getByLabel('Definition of Done (one item per line)').fill('Notes reviewed');
-    await create.getByRole('button', { name: 'Create task', exact: true }).click();
+    await expect(member.getByRole('link', { name: 'Department', exact: true })).toBeVisible();
+    await expect(member.getByRole('link', { name: 'Organization', exact: true })).toHaveCount(0);
+    await member.goto('/organization');
+    await expect(member).toHaveURL(/\/$/);
+    await expect(member.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
 
-    await member.getByRole('button', { name: /Open ACC-#\d+ Publish customer handover/ }).click();
-    const detail = member.getByRole('dialog');
-    await detail.getByLabel('Write a comment').fill('Ready for director review');
-    await detail.getByLabel('Write a comment').press('Enter');
-    await expect(detail.getByText('Ready for director review')).toBeVisible();
-    await detail.getByRole('button', { name: 'Edit task', exact: true }).click();
-    const edit = member.getByRole('dialog', { name: 'Edit task details' });
-    await edit.getByLabel('Estimate in hours').fill('10');
-    await edit.getByRole('button', { name: 'Save changes' }).click();
-    await expect(detail.getByText('10 hours')).toBeVisible();
-    await detail.getByLabel('Notes reviewed').click();
-    await expect(detail.getByLabel('Notes reviewed')).toBeChecked();
-    await detail.getByLabel('Move to').click();
-    await member.getByRole('option', { name: 'Done · sign-off' }).click();
-    await expect(detail.getByText('Management sign-off is required')).toBeVisible();
-    await detail.getByRole('button', { name: 'Close task' }).click();
-
-    await signIn(director, users.director);
-    await director.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await director.getByRole('button', { name: /Open ACC-#\d+ Publish customer handover/ }).click();
-    await director.getByRole('button', { name: 'Sign off task', exact: true }).click();
-    await expect(director.getByText('Signed', { exact: true })).toBeVisible();
-    await director.getByRole('button', { name: 'Close task' }).click();
-
-    await member.reload();
-    await member.getByRole('button', { name: /Open ACC-#\d+ Publish customer handover/ }).click();
-    await member.getByLabel('Move to').click();
-    await member.getByRole('option', { name: 'Done · sign-off' }).click();
-    await expect(member.getByText('Done', { exact: true }).first()).toBeVisible();
-    await member.getByRole('button', { name: 'Delete task', exact: true }).click();
-    await expect(member.getByRole('button', { name: /Publish customer handover/ })).toHaveCount(0);
-
-    await director.getByRole('link', { name: 'Task archive', exact: true }).click();
-    await expect(director.getByText('Publish customer handover', { exact: true })).toBeVisible();
-    await director.getByRole('button', { name: 'Restore task', exact: true }).click();
-    await expect(director.getByText('Archive is empty')).toBeVisible();
+    const senior = await seniorContext.newPage();
+    await signIn(senior, users.senior);
+    await senior.getByRole('link', { name: 'Organization', exact: true }).click();
+    await expect(senior.getByText('Employees', { exact: true })).toBeVisible();
+    await expect(senior.getByText('Boards', { exact: true })).toBeVisible();
+    await senior.getByRole('link', { name: 'View department' }).first().click();
+    await expect(senior.getByRole('heading', { name: /Client Services|Human Resources|Marketing/ })).toBeVisible();
   } finally {
     await memberContext.close();
-    await directorContext.close();
+    await seniorContext.close();
   }
 });
 
-test('individual, team, and Senior Director reporting surfaces are scoped and responsive', async ({ page }) => {
-  await signIn(page, users.senior);
-  await page.getByRole('link', { name: 'My tasks', exact: true }).click();
-  await expect(page.getByText('Every task assigned to you, across department workspaces.')).toBeVisible();
+test('Account Director configures workflows, delegates access, and creates a typed board', async ({ page }) => {
+  await signIn(page, users.director);
+  await page.getByRole('link', { name: 'Department', exact: true }).click();
+  await expect(page.getByText('Alex Finch', { exact: true })).toBeVisible();
+  await page.getByLabel('Maximum in progress tasks per member').fill('2');
+  await page.getByRole('button', { name: 'Save settings' }).click();
+  await setMemberAccess(page, 'Create boards', true);
+  await setMemberAccess(page, 'Create tasks', true);
+
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
-  await expect(page.getByLabel(/board$/)).toBeVisible();
-  await page.getByRole('link', { name: 'Delivery reports', exact: true }).click();
-  await expect(page.getByText('Client Services workspace')).toBeVisible();
-  await expect(page.getByText('Marketing workspace')).toBeVisible();
-  await expect(page.getByText('Completion', { exact: true })).toBeVisible();
-  await expect(page.getByText('Delivery risks', { exact: true })).toBeVisible();
-  await expect(page.getByText('Highest active workloads', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'New board', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Create board' });
+  await dialog.getByLabel('Board name').fill('Client sprint');
+  await dialog.getByLabel('Board type').click();
+  await expect(page.getByRole('option', { name: 'Kanban' })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Scrum' })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'List' })).toHaveCount(0);
+  await page.getByRole('option', { name: 'Scrum' }).click();
+  await dialog.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('tab', { name: 'Client sprint' })).toBeVisible();
+});
+
+test('reporter is automatic, assignees are department-scoped, and Kanban uses drag and drop', async ({ page }) => {
+  await signIn(page, users.director);
+  await page.getByRole('link', { name: 'Team boards', exact: true }).click();
+  await createTask(page, 'WIP demonstration');
+  await expect(page.getByRole('button', { name: /Move .* to/ })).toHaveCount(0);
+  const todo = await column(page, 'To do');
+  const progress = await column(page, 'In progress');
+  const card = todo.getByRole('button', { name: /WIP demonstration/ });
+  await card.dragTo(progress);
+  await expect(progress.getByRole('button', { name: /WIP demonstration/ })).toBeVisible();
+  await progress.getByRole('button', { name: /WIP demonstration/ }).click();
+  const detail = page.getByRole('dialog');
+  await expect(detail.getByText(/Reporter\s*Jordan Ellis/)).toBeVisible();
+  await expect(detail.getByText('Completion checklist')).toHaveCount(0);
+  await detail.getByRole('button', { name: 'Archive task' }).click();
+  await expect(page.getByRole('button', { name: /WIP demonstration/ })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Task archive', exact: true }).click();
+  await expect(page.getByText('WIP demonstration', { exact: true })).toBeVisible();
+});
+
+test('Scrum validates and runs a sprint while HR renders a plain List board', async ({ browser }) => {
+  const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  const hrContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+  try {
+    const director = await directorContext.newPage();
+    await signIn(director, users.director);
+    await director.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await director.getByRole('tab', { name: 'Client sprint' }).click();
+    await director.getByRole('button', { name: 'New sprint' }).click();
+    const sprint = director.getByRole('dialog', { name: 'Create sprint' });
+    await sprint.getByLabel('Sprint name').fill('Validation sprint');
+    await sprint.getByLabel('Sprint goal').fill('Prepare the technical validation');
+    await sprint.getByLabel('Start date').fill('2026-09-14');
+    await sprint.getByLabel('End date').fill('2026-09-28');
+    await sprint.getByRole('button', { name: 'Save changes' }).click();
+    await expect(director.getByText('Validation sprint')).toBeVisible();
+    await director.getByRole('button', { name: 'Activate' }).click();
+    await expect(director.getByText('ACTIVE')).toBeVisible();
+
+    const hr = await hrContext.newPage();
+    await signIn(hr, users.hrDirector);
+    await hr.getByRole('link', { name: 'Team boards', exact: true }).click();
+    await expect(hr.getByRole('table', { name: 'People operations tasks' })).toBeVisible();
+    await expect(hr.locator('.kanban-column')).toHaveCount(0);
+  } finally {
+    await directorContext.close();
+    await hrContext.close();
+  }
+});
+
+test('authenticated password settings and responsive breakpoints remain usable', async ({ page }) => {
+  await signIn(page, users.director);
+  await page.getByRole('link', { name: 'Password', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Choose your password' })).toBeVisible();
+  await expect(page.getByLabel('Confirm new password')).toBeVisible();
   for (const width of [375, 599, 600, 601, 899, 900, 901, 1199, 1200, 1201, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.locator('body')).not.toHaveCSS('overflow-x', 'scroll');
-    await expect(page.getByRole('heading', { name: 'Delivery reports' })).toBeVisible();
   }
-});
-
-test('Account Director creates a board, milestone, collaborator allocation, and reviews capacity', async ({ page }) => {
-  const year = new Date().getFullYear();
-  await signIn(page, users.director);
-  await page.getByRole('link', { name: 'Team boards', exact: true }).click();
-
-  await page.getByRole('button', { name: 'New board', exact: true }).click();
-  await page
-    .getByRole('dialog', { name: 'Create Kanban board' })
-    .getByLabel('Board name')
-    .fill('Implementation tracker');
-  await page.getByRole('dialog', { name: 'Create Kanban board' }).getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByRole('tab', { name: 'Implementation tracker' })).toBeVisible();
-
-  await page.getByRole('button', { name: 'New milestone', exact: true }).click();
-  const milestone = page.getByRole('dialog', { name: 'Create milestone' });
-  await milestone.getByLabel('Milestone name').fill('Technical validation');
-  await milestone.getByLabel('Goal').fill('Validate the prototype with two colleagues');
-  await milestone.getByLabel('Start date').fill(`${year}-10-01`);
-  await milestone.getByLabel('Due date and time').fill(`${year}-10-16T17:00`);
-  await milestone.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByRole('button', { name: /Technical validation/ })).toBeVisible();
-
-  await page.getByRole('button', { name: 'Add collaborator', exact: true }).click();
-  const collaborator = page.getByRole('dialog', { name: 'Add workspace collaborator' });
-  await collaborator.getByLabel('Active employee').click();
-  await page.getByRole('option', { name: 'Riley Shaw' }).click();
-  await collaborator.getByLabel('Milestone scope').click();
-  await page.getByRole('option', { name: 'Technical validation' }).click();
-  await collaborator.getByRole('button', { name: 'Save changes' }).click();
-
-  await page.getByRole('button', { name: /Technical validation/ }).click();
-  await expect(page.getByRole('dialog', { name: 'Milestone capacity' }).getByText(/collaborators/)).toBeVisible();
-  await page
-    .getByRole('dialog', { name: 'Milestone capacity' })
-    .getByRole('button', { name: 'Close', exact: true })
-    .click();
-});
-
-test('director delegates creation; member assigns department work and edits the reporter', async ({ browser }) => {
-  const directorContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
-  const memberContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
-  try {
-    const director = await directorContext.newPage();
-    await signIn(director, users.director);
-    await director.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await director.getByRole('button', { name: 'Add collaborator', exact: true }).click();
-    const access = director.getByRole('dialog', { name: 'Add workspace collaborator' });
-    await access.getByLabel('Active employee').click();
-    await director.getByRole('option', { name: 'Alex Finch' }).click();
-    await access.getByLabel('Can create tickets').click();
-    await director.getByRole('option', { name: 'Yes' }).click();
-    await access.getByLabel('Can create boards').click();
-    await director.getByRole('option', { name: 'Yes' }).click();
-    await access.getByRole('button', { name: 'Save changes' }).click();
-
-    const member = await memberContext.newPage();
-    await signIn(member, users.member);
-    await member.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await expect(member.getByRole('button', { name: 'New board', exact: true })).toBeVisible();
-    await member.getByRole('button', { name: 'New board', exact: true }).click();
-    const board = member.getByRole('dialog', { name: 'Create Kanban board' });
-    await board.getByLabel('Board name').fill('Member-created board');
-    await board.getByRole('button', { name: 'Save changes' }).click();
-    await expect(member.getByRole('tab', { name: 'Member-created board' })).toBeVisible();
-
-    await member.getByRole('button', { name: 'Create task', exact: true }).click();
-    const create = member.getByRole('dialog', { name: 'Create a task' });
-    await create.getByLabel('Task title').fill('Department-owned follow-up');
-    await create.getByLabel('Assignee').click();
-    await member.getByRole('option', { name: 'Jordan Ellis' }).click();
-    await expect(create.getByLabel('Reporter')).toContainText('Alex Finch');
-    await create.getByRole('button', { name: 'Create task', exact: true }).click();
-    await member.getByRole('tab', { name: 'Client delivery' }).click();
-    await member.getByRole('button', { name: /Open ACC-#\d+ Department-owned follow-up/ }).click();
-    const detail = member.getByRole('dialog');
-    await expect(detail.locator('p').filter({ hasText: /Reporter\s*Alex Finch/ })).toBeVisible();
-    await detail.getByRole('button', { name: 'Edit task', exact: true }).click();
-    const edit = member.getByRole('dialog', { name: 'Edit task details' });
-    await edit.getByLabel('Reporter').click();
-    await member.getByRole('option', { name: 'Jordan Ellis' }).click();
-    await edit.getByRole('button', { name: 'Save changes' }).click();
-    await expect(detail.getByText(/Jordan Ellis/)).toHaveCount(2);
-  } finally {
-    await directorContext.close();
-    await memberContext.close();
-  }
+  await page.context().clearCookies();
+  await page.goto('/change-password');
+  await expect(page).toHaveURL(/\/login$/);
 });

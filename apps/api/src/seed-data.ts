@@ -1,4 +1,6 @@
 import type { Position } from './generated/prisma/client';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 type SeedPerson = [string, string, string | null, Position];
 
@@ -54,4 +56,11 @@ export function seedPeople(limited: boolean): SeedPerson[] {
     ...clientMembers.map(([first, last]) => [first, last, 'ACC', 'MEMBER'] as SeedPerson),
     ...marketingMembers.map(([first, last]) => [first, last, 'MKT', 'MEMBER'] as SeedPerson),
   ];
+}
+
+export async function seedHolidayEvents() {
+  const data = JSON.parse(
+    await readFile(resolve(process.cwd(), '../../prisma/fixtures/uk-bank-holidays.json'), 'utf8'),
+  ) as Record<string, { events: { date: string; title: string }[] }>;
+  return data['england-and-wales'].events;
 }

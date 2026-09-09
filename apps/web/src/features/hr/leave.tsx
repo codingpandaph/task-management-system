@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Card, EmptyState, LoadingState, message, ModalForm, StatusTag, Tag } from './ui';
 import { LeaveActions } from './leave-actions';
+import { plainName } from './plain-language';
 import { LeaveApprovalsView } from './leave-approvals-view';
 import { LeaveDetailView } from './leave-detail-view';
 import { leaveFields, type LeaveDetail as Detail, type LeaveInbox as Inbox, type RequestRow } from './leave-types';
@@ -90,7 +91,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
       {error && <Alert severity="error">{error}</Alert>}
       <div className="stats">
         {balances.map((b) => (
-          <Card key={b.type} title={b.type.replaceAll('_', ' ')}>
+          <Card key={b.type} title={plainName(b.type)}>
             <Typography variant="h3">
               {b.available}
               <Typography component="span" color="text.secondary">
@@ -102,7 +103,7 @@ export function LeaveScreens({ path, user }: { path: string; user: CurrentEmploy
               {b.used} used · {b.reserved} reserved · {b.entitlement} entitlement
             </Typography>
             <LinearProgress
-              aria-label={`${b.type.replaceAll('_', ' ')} allowance used`}
+              aria-label={`${plainName(b.type)} allowance used`}
               value={b.entitlement ? Math.min(100, ((b.used + b.reserved) / b.entitlement) * 100) : 0}
               variant="determinate"
               sx={{ mt: 2, height: 7, borderRadius: 'var(--radius-control)', bgcolor: 'var(--color-line)' }}

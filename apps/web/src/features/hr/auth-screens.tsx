@@ -58,15 +58,18 @@ export function ChangePasswordScreen({ loggedIn }: Props) {
         Choose your password
       </Typography>
       <Alert severity="info" sx={{ mb: 3 }}>
-        Change your temporary password before accessing the portal. Use at least 15 characters.
+        Change your temporary password before accessing the portal. Use at least 15 characters and avoid a password you
+        use elsewhere.
       </Alert>
       <Form
         fields={[
           { name: 'currentPassword', label: 'Temporary password', type: 'password' },
           { name: 'password', label: 'New password', type: 'password' },
+          { name: 'confirmPassword', label: 'Confirm new password', type: 'password' },
         ]}
         label="Change password"
-        onSubmit={async (values) => {
+        onSubmit={async ({ confirmPassword, ...values }) => {
+          if (values.password !== confirmPassword) throw new Error('The new passwords do not match. Try again.');
           await api('auth/change-password', values);
           await loggedIn();
         }}

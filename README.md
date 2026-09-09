@@ -1,4 +1,4 @@
-# CPPinSync — HRIS & Task Management
+# CPSync — HRIS & Task Management
 
 A TypeScript monorepo for employee identity, organization administration, employment lifecycle, leave accounting,
 department task boards, personal work, milestones, capacity, approvals, reporting, notifications, and audit. The
@@ -102,14 +102,15 @@ state and remain ignored in `test-results/` and `playwright-report/`.
 
 ### Acceptance testing
 
-`yarn test:e2e` resets `tms_test` and covers authentication/session rotation, employee onboarding and forced password
+`yarn test:e2e` resets `tms_test` and covers authentication/session rotation, employee onboarding, password confirmation,
+plain-language password guidance, and forced password
 change, directory scope, departments, employee edits/transfers/employment records, permissions, lifecycle transitions,
 regular and Christmas policy creation/versioning/status/assignment, balances, all five approval chains, cancellation,
 editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
 responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the five-path
-matrix. It also covers personal tasks, team boards, task creation, comments, Definition of Done, management sign-off,
-pointer and keyboard movement, contextual per-board search, delegated board/ticket creation, self/department
-assignment, editable reporters, delivery reporting, and
+matrix. It also covers personal tasks, team boards, task creation, comments, management sign-off,
+and drag-and-drop movement, contextual per-board search, delegated board/ticket creation, self/department
+assignment, authenticated creator reporting, delivery reporting, and
 every defined breakpoint. `yarn demo:e2e` runs the complete paced headed tour; its `:hr`, `:leave`, and `:tasks`
 subcommands run one section. Manual
 checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
@@ -130,8 +131,9 @@ probationary, concurrency, ledger, and privacy assertions. Both commands refuse 
 The portal keeps each screen's actions, tabs, contextual search, and filters inside the content surface they control.
 It uses employee tabs with visible employment history and access grants, searchable approval queues,
 department-filtered calendars, personal task search, horizontal team Kanban boards with uncluttered drag-and-drop and
-keyboard movement controls, semantic tags, policy actions, and
-scoped delivery summaries. Business mutations remain enforced by the API regardless of which controls are visible.
+keyboard movement controls, semantic tags, policy actions, scoped delivery summaries, and plain-language permission
+and recovery messages. Internal authorization and session terminology is translated before it reaches employee-facing
+alerts. Business mutations remain enforced by the API regardless of which controls are visible.
 Status and permission pills use one-word labels, while their hover titles preserve the full internal value. Primary
 green actions explicitly use white text across default, hover, and keyboard-focus states.
 On phones, a labelled menu opens the complete role-aware navigation drawer, keeping leave, approval, reporting, and
@@ -142,7 +144,8 @@ RBAC assigns bounded defaults to Member, Account Director, HR Member, and HR Dir
 every system capability. Backend permission and resource checks remain authoritative; the UI uses the same effective
 permissions to hide unavailable navigation and actions.
 Employee access details show the effective role, and permission forms only offer grants inside that role’s ceiling.
-Restricted direct URLs render a clear access-denied recovery screen. MFA and SSO remain documented future work.
+Restricted direct URLs redirect to the employee's Overview before the protected screen mounts. The Nest API still
+returns `403` for unauthorized direct requests. MFA and SSO remain documented future work.
 The leave flow uses explicit Preview, Save draft, and Submit actions, preserves preview results inside the dialog, and
 keeps primary evergreen buttons readable with white text in every link, hover, and focus state.
 Approval dialogs use direct Approve and Reject actions. Cancellation queues show the employee, leave dates, request
@@ -164,8 +167,8 @@ acceptance suite. The following work remains before a production launch:
 - Agree and implement retention, anonymisation, data-subject, and worker-health procedures with the organization.
 - Complete an independent security review, dependency scanning, penetration testing, and deployment rollback rehearsal.
 - Add email or SMS delivery only after notification content, consent, retry, and failure-handling rules are approved.
-- Expand Task Management with configurable boards, saved views, bulk triage,
-  attachments, mentions, repository automation, trend reporting, and exports.
+- Expand Task Management with saved views, bulk triage, attachments, mentions, repository automation, trend reporting,
+  and exports. Department-configured Kanban, Scrum, and List boards are implemented in the prototype.
 - Expand HRIS where required with partial-day leave, proration, carry-over, regional calendars, rehire, and delegated
   approval reassignment.
 
@@ -185,7 +188,9 @@ Business time and contractual expiry use `Europe/London`; bank holidays come fro
 snapshot under `prisma/fixtures`.
 
 Task workspaces reuse HRIS positions and membership. Serializable workspace counters produce human task keys. Task
-completion enforces Definition of Done, blockers, and management-locked columns. Capacity uses active employees,
+completion enforces blockers and management-locked columns. Departments select Kanban, Scrum, and List workflows and
+set one Kanban limit that is enforced separately for each assignee under a row lock. Board collaborators remain
+separate from member create permissions. Reporters are always derived from the authenticated creator. Capacity uses active employees,
 business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and returns them to the
 initial lane. Task deletion is reversible and its activity ledger is append-only.
 The Senior Director is an organization-level employee with no department assignment; a PostgreSQL constraint requires

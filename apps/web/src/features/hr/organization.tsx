@@ -52,7 +52,9 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       api<PageResult<DirectoryEmployee>>(
         `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}${position ? `&position=${position}` : ''}${status ? `&status=${status}` : ''}`,
       ),
-      api<OrganizationHierarchy>('organization'),
+      user.position === 'SENIOR_DIRECTOR' || can('EMPLOYEE_READ')
+        ? api<OrganizationHierarchy>('organization')
+        : Promise.resolve({ departments: [], employees: [] }),
     ])
       .then(([d, p, e, organization]) => {
         if (active) {
@@ -113,7 +115,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       p.christmasPolicyVersion_policy?.slice(0, 1).map((v) => ({ value: v.id, label: `${p.name} · ${v.days} days` })) ??
       [],
   );
-  async function save(endpoint: string, values: Record<string, string | number>, method = 'POST') {
+  async function save(endpoint: string, values: Record<string, unknown>, method = 'POST') {
     await api(endpoint, values, method);
     setRevision((v) => v + 1);
   }
@@ -172,8 +174,8 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         departments={departments}
         employeeOptions={employeeOptions}
         error={error}
-        options={options}
         people={hierarchy.employees}
+        summary={hierarchy.summary}
         save={save}
         user={user}
       />

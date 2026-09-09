@@ -18,6 +18,7 @@ import type { Principal } from './modules/authorization/authorization';
 import { PageDto } from './modules/organization/dto';
 import { TaskService } from './modules/tasks/task.service';
 import { registerTaskIntegrationScenarios } from './task.integration.scenarios';
+import { registerTaskWorkflowScenarios } from './task-workflows.integration.scenarios';
 
 test('HR foundation against PostgreSQL', async (suite) => {
   const url = new URL(process.env.DATABASE_URL ?? '');
@@ -257,6 +258,7 @@ test('HR foundation against PostgreSQL', async (suite) => {
       tasks,
       year,
     });
+    await registerTaskWorkflowScenarios(suite, { actor, db, find, member, tasks, year });
     await suite.test('Senior Director succession moves leadership above departments', async () => {
       const successorDepartmentId = (await db.employee.findUniqueOrThrow({ where: { id: newcomer.id } })).departmentId!;
       await org.director(senior, null, newcomer.id, 'Integration succession');

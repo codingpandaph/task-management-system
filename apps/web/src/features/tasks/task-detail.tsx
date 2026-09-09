@@ -6,7 +6,6 @@ import LinkOutlined from '@mui/icons-material/LinkOutlined';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -25,9 +24,8 @@ import { canManageTask, type TaskDetailProps, type TaskDetailResponse } from './
 import { priorityTone } from './task-types';
 import { TaskActivity } from './task-activity';
 
-export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: TaskDetailProps) {
+export function TaskDetail({ taskId, user, columns = [], onClose, refresh, people }: TaskDetailProps) {
   const [task, setTask] = useState<TaskDetailResponse>(),
-    [dodText, setDodText] = useState(''),
     [commentText, setCommentText] = useState(''),
     [error, setError] = useState(''),
     [blockerId, setBlockerId] = useState('');
@@ -77,45 +75,6 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
             <Box>
               <Typography variant="overline">Description</Typography>
               <Typography sx={{ whiteSpace: 'pre-wrap' }}>{task.description || 'No description yet.'}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="overline">Definition of done</Typography>
-              {task.definitionOfDone.length ? (
-                task.definitionOfDone.map((item) => (
-                  <Stack key={item.id} direction="row" sx={{ alignItems: 'center' }}>
-                    <Checkbox
-                      checked={item.isChecked}
-                      onChange={(event) =>
-                        mutate(
-                          `tasks/${task.id}/definition-of-done/${item.id}`,
-                          { isChecked: event.target.checked },
-                          'PATCH',
-                        )
-                      }
-                      slotProps={{ input: { 'aria-label': item.item } }}
-                    />
-                    <Typography sx={{ textDecoration: item.isChecked ? 'line-through' : 'none' }}>
-                      {item.item}
-                    </Typography>
-                  </Stack>
-                ))
-              ) : (
-                <Typography color="text.secondary">No completion checks.</Typography>
-              )}
-              <TextField
-                size="small"
-                label="Add completion check"
-                sx={{ mt: 1 }}
-                value={dodText}
-                onChange={(event) => setDodText(event.target.value)}
-                onKeyDown={async (event) => {
-                  if (event.key === 'Enter' && dodText.trim()) {
-                    event.preventDefault();
-                    await mutate(`tasks/${task.id}/definition-of-done`, { item: dodText });
-                    setDodText('');
-                  }
-                }}
-              />
             </Box>
             <Box>
               <Typography variant="overline">Discussion</Typography>
@@ -188,16 +147,10 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                   value: task.assignee?.id ?? '',
                   options: [
                     { value: '', label: 'Unassigned' },
-                    ...people.map((employee) => ({ value: employee.id, label: employee.displayName })),
+                    ...people
+                      .filter((employee) => employee.department?.id === task.workspace.departmentId)
+                      .map((employee) => ({ value: employee.id, label: employee.displayName })),
                   ],
-                },
-                {
-                  name: 'reporterId',
-                  label: 'Reporter',
-                  value: task.reporter.id,
-                  options: people
-                    .filter((employee) => employee.department?.id === task.workspace.departmentId)
-                    .map((employee) => ({ value: employee.id, label: employee.displayName })),
                 },
               ]}
               onSubmit={async (values) => {
@@ -210,7 +163,6 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                     priority: values.priority,
                     estimatedHours: values.estimatedHours,
                     ...(assigneeId ? { assigneeId } : { clearAssignee: true }),
-                    reporterId: values.reporterId,
                   },
                   'PATCH',
                 );
@@ -281,7 +233,7 @@ export function TaskDetail({ taskId, user, columns, onClose, refresh, people }: 
                   onClose();
                 }}
               >
-                Delete task
+                Archive task
               </Button>
             )}
             {canManageTask(user, task) && (

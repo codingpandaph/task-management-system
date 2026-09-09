@@ -7,26 +7,12 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Snackbar from '@mui/material/Snackbar';
 import Typography from '@mui/material/Typography';
-import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined';
-import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
-import BeachAccessOutlined from '@mui/icons-material/BeachAccessOutlined';
-import CalendarMonthOutlined from '@mui/icons-material/CalendarMonthOutlined';
-import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
-import FactCheckOutlined from '@mui/icons-material/FactCheckOutlined';
-import GroupsOutlined from '@mui/icons-material/GroupsOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import MenuOutlined from '@mui/icons-material/MenuOutlined';
-import PolicyOutlined from '@mui/icons-material/PolicyOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
-import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
-import ViewKanbanOutlined from '@mui/icons-material/ViewKanbanOutlined';
-import WorkOutlineOutlined from '@mui/icons-material/WorkOutlineOutlined';
-import InsightsOutlined from '@mui/icons-material/InsightsOutlined';
-import DeleteSweepOutlined from '@mui/icons-material/DeleteSweepOutlined';
 import type { CurrentEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -40,7 +26,8 @@ import { LeaveScreens } from './leave';
 import { OverviewScreens } from './overview';
 import { TaskScreens } from '../tasks/tasks';
 import { useUnreadNotifications } from './use-unread-notifications';
-import { NotificationIcon } from './notification-icon';
+import { DepartmentView } from './department-view';
+import { portalNavigation } from './portal-nav';
 
 export default function Portal() {
   const path = usePathname(),
@@ -56,6 +43,7 @@ export default function Portal() {
     return () => window.removeEventListener('hris:notice', showNotice);
   }, []);
   const unread = useUnreadNotifications(user?.id);
+  const routeAllowed = !user || canOpen(path, user);
   useEffect(() => {
     let active = true;
     api<CurrentEmployee>('auth/me')
@@ -79,6 +67,9 @@ export default function Portal() {
       active = false;
     };
   }, [path, router]);
+  useEffect(() => {
+    if (user && !user.mustChangePassword && path !== '/login' && !routeAllowed) router.replace('/');
+  }, [path, routeAllowed, router, user]);
   async function loggedIn() {
     const u = await api<CurrentEmployee>('auth/me');
     setUser(u);
@@ -98,40 +89,16 @@ export default function Portal() {
     );
   if (!user || path === '/login') return <LoginScreen loggedIn={loggedIn} />;
   if (user.mustChangePassword) return <ChangePasswordScreen loggedIn={loggedIn} />;
-  const nav = [
-    { href: '/', label: 'Overview', icon: <DashboardOutlined /> },
-    { href: '/organization', label: 'Organization', icon: <AccountTreeOutlined /> },
-    { href: '/employees', label: 'People', icon: <GroupsOutlined /> },
-    { href: '/tasks', label: 'My tasks', icon: <WorkOutlineOutlined /> },
-    { href: '/workspaces', label: 'Team boards', icon: <ViewKanbanOutlined /> },
-    ...(user.position !== 'MEMBER'
-      ? [{ href: '/task-reports', label: 'Delivery reports', icon: <InsightsOutlined /> }]
-      : []),
-    ...(user.position !== 'MEMBER'
-      ? [{ href: '/task-archive', label: 'Task archive', icon: <DeleteSweepOutlined /> }]
-      : []),
-    { href: '/leave', label: 'My leave', icon: <BeachAccessOutlined /> },
-    ...(user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')
-      ? [{ href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> }]
-      : []),
-    { href: '/calendar', label: 'Who’s out', icon: <CalendarMonthOutlined /> },
-    ...(user.permissions.includes('LEAVE_POLICY_MANAGE') || user.permissions.includes('CHRISTMAS_POLICY_MANAGE')
-      ? [{ href: '/policies', label: 'Policies', icon: <PolicyOutlined /> }]
-      : []),
-    ...(user.permissions.includes('LEAVE_ADMIN')
-      ? [{ href: '/hr', label: 'Leave administration', icon: <AdminPanelSettingsOutlined /> }]
-      : []),
-    ...(user.permissions.includes('AUDIT_READ')
-      ? [{ href: '/audit', label: 'Audit log', icon: <FactCheckOutlined /> }]
-      : []),
-    {
-      href: '/notifications',
-      label: 'Notifications',
-      icon: <NotificationIcon unread={unread} />,
-    },
-  ];
-  const title = nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People';
-  const routeAllowed = canOpen(path, user);
+  if (!routeAllowed)
+    return (
+      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '100dvh' }}>
+        <CircularProgress aria-label="Opening your workspace" />
+      </Box>
+    );
+  const nav = portalNavigation(user, unread);
+  const title = path.startsWith('/departments/')
+    ? 'Department'
+    : (nav.find(({ href }) => (href === '/' ? path === '/' : path.startsWith(href)))?.label ?? 'People');
   return (
     <div className="portal">
       <Snackbar
@@ -148,7 +115,7 @@ export default function Portal() {
         <Link href="/" className="brand">
           <span className="brand-mark">CP</span>
           <span>
-            CPPinSync<small>PEOPLE & ORGANIZATION</small>
+            CPSync<small>PEOPLE & ORGANIZATION</small>
           </span>
         </Link>
         <Typography variant="overline" sx={{ px: 2, mt: 4, color: 'var(--color-leaf)' }}>
@@ -186,7 +153,7 @@ export default function Portal() {
           <Link href="/" className="brand" onClick={() => setMobileNavigationOpen(false)}>
             <span className="brand-mark">CP</span>
             <span>
-              CPPinSync<small>PEOPLE & ORGANIZATION</small>
+              CPSync<small>PEOPLE & ORGANIZATION</small>
             </span>
           </Link>
           <Typography variant="overline" sx={{ display: 'block', px: 2, mt: 3, color: 'var(--color-leaf)' }}>
@@ -217,7 +184,7 @@ export default function Portal() {
             >
               <MenuOutlined />
             </IconButton>
-            <Typography sx={{ fontWeight: 800 }}>CPPinSync</Typography>
+            <Typography sx={{ fontWeight: 800 }}>CPSync</Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary">
             Your organization, connected.
@@ -237,6 +204,9 @@ export default function Portal() {
               {user.displayName.slice(0, 1)}
             </Avatar>
             <Typography variant="body2">{user.displayName}</Typography>
+            <Button size="small" component={Link} href="/change-password" startIcon={<LockOutlined />}>
+              Password
+            </Button>
             <Button
               size="small"
               startIcon={<LogoutOutlined />}
@@ -259,33 +229,26 @@ export default function Portal() {
           <div className="page-heading">
             <div>
               <Typography component="h1" variant="h3">
-                {routeAllowed ? title : 'Access denied'}
+                {title}
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                {routeAllowed ? subtitle(title, user) : 'Your role cannot open this workspace'}
+                {subtitle(title, user)}
               </Typography>
             </div>
             <Chip label="London" title="Europe / London" variant="outlined" size="small" />
           </div>
           {error && <Alert severity="error">{error}</Alert>}
-          {!routeAllowed ? (
-            <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, textAlign: 'center' }}>
-              <LockOutlined color="primary" sx={{ fontSize: 42, mb: 2 }} />
-              <Typography variant="h5" component="h2">
-                This area is restricted
-              </Typography>
-              <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
-                Your current role does not include access to this workspace.
-              </Typography>
-              <Button component={Link} href="/" variant="contained">
-                Return to overview
-              </Button>
-            </Paper>
+          {path === '/change-password' ? (
+            <ChangePasswordScreen loggedIn={loggedIn} />
           ) : path.startsWith('/tasks') ||
             path.startsWith('/workspaces') ||
             path.startsWith('/task-reports') ||
             path.startsWith('/task-archive') ? (
             <TaskScreens path={path} user={user} />
+          ) : path === '/department' ? (
+            <DepartmentView user={user} />
+          ) : path.startsWith('/departments/') ? (
+            <DepartmentView user={user} departmentId={path.split('/')[2]} />
           ) : path.startsWith('/organization') || path.startsWith('/employees') || path === '/policies' ? (
             <OrganizationScreens path={path} user={user} />
           ) : path.startsWith('/leave') || path.startsWith('/approvals') || path.startsWith('/hr') ? (

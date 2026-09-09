@@ -4,6 +4,7 @@ import { AuthRequest } from '../authorization/authorization';
 import {
   AssignmentDto,
   DepartmentDto,
+  DepartmentTaskSettingsDto,
   EditDepartmentDto,
   EditEmployeeDto,
   EmployeeDto,
@@ -21,8 +22,8 @@ class OrganizationController {
   @Get('directory/employees') directory(@Req() r: AuthRequest, @Query() q: PageDto) {
     return this.service.employees(r.principal, q);
   }
-  @Get('organization') organization() {
-    return this.service.hierarchy();
+  @Get('organization') organization(@Req() r: AuthRequest) {
+    return this.service.hierarchy(r.principal);
   }
   @Get('employees') employees(@Req() r: AuthRequest, @Query() q: PageDto) {
     return this.service.employees(r.principal, q, true);
@@ -40,8 +41,11 @@ class OrganizationController {
   ) {
     return this.service.edit(r.principal, id, d);
   }
-  @Get('departments') departments() {
-    return this.service.departments();
+  @Get('departments') departments(@Req() r: AuthRequest) {
+    return this.service.departments(r.principal);
+  }
+  @Get('departments/:id') departmentDetail(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.department(r.principal, id);
   }
   @Post('departments') department(@Req() r: AuthRequest, @Body() d: DepartmentDto) {
     return this.service.createDepartment(r.principal, d);
@@ -52,6 +56,13 @@ class OrganizationController {
     @Body() d: EditDepartmentDto,
   ) {
     return this.service.editDepartment(r.principal, id, d);
+  }
+  @Patch('departments/:id/task-settings') taskSettings(
+    @Req() r: AuthRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() d: DepartmentTaskSettingsDto,
+  ) {
+    return this.service.configureTasks(r.principal, id, d);
   }
   @Post('departments/:id/activate') activate(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.departmentStatus(r.principal, id, true);

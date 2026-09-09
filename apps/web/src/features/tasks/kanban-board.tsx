@@ -57,7 +57,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
         {announcement}
       </div>
       <div className="kanban" aria-label={`${board.board.name} board`}>
-        {columns.map((column, columnIndex) => {
+        {columns.map((column) => {
           const tasks = visible.get(column.id) ?? [];
           return (
             <section
@@ -103,12 +103,6 @@ export function KanbanBoard(props: KanbanBoardProps) {
                       setDraggedId('');
                       setTargetColumn('');
                     }}
-                    moveBack={columnIndex > 0 ? () => void move(task, columns[columnIndex - 1].id) : undefined}
-                    moveForward={
-                      columnIndex < columns.length - 1 ? () => void move(task, columns[columnIndex + 1].id) : undefined
-                    }
-                    previousColumn={columns[columnIndex - 1]?.name}
-                    nextColumn={columns[columnIndex + 1]?.name}
                   />
                 ))}
                 {!tasks.length && (

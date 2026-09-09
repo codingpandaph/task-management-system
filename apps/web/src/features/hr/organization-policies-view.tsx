@@ -23,7 +23,7 @@ export function OrganizationPoliciesView({
   can: (permission: CurrentEmployee['permissions'][number]) => boolean;
   error: string;
   policies: { leave: Policy[]; christmas: Policy[] };
-  save: (endpoint: string, values: Record<string, string | number>, method?: string) => Promise<void>;
+  save: (endpoint: string, values: Record<string, unknown>, method?: string) => Promise<void>;
   search: string;
   setSearch: (value: string) => void;
   setTab: (value: number) => void;

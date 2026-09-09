@@ -120,6 +120,8 @@ export interface LeaveBalance {
 export type WorkspaceFunction =
   'ENGINEERING_PRODUCT' | 'MARKETING_CREATIVE' | 'SALES_ACCOUNT_MANAGEMENT' | 'HR_OPERATIONS' | 'FINANCE_LEGAL';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type TaskManagementType = 'KANBAN' | 'SCRUM' | 'LIST';
+export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';
 export interface TaskPerson {
   id: string;
   employeeId: string;
@@ -148,10 +150,11 @@ export interface TaskContract {
   columnId: string;
   column: { id: string; name: string; isInitial: boolean; isDone: boolean; managementLocked: boolean };
   boardId: string;
+  dueDate: string | null;
+  sprint: { id: string; name: string; status: SprintStatus } | null;
   workspaceId: string;
   workspace: { id: string; code: string; name: string; departmentId: string };
   reporter: TaskPerson;
   assignee: TaskPerson | null;
   milestone: { id: string; name: string; dueDate: string; isOvercapacity: boolean } | null;
-  definitionOfDone: { id: string; item: string; isChecked: boolean }[];
 }

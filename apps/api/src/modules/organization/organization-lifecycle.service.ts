@@ -44,7 +44,7 @@ export abstract class OrganizationLifecycleService extends OrganizationGovernanc
       await lockEmployee(tx, id);
       const e = await tx.employee.findUniqueOrThrow({ where: { id } });
       if (e.position === 'SENIOR_DIRECTOR' || e.status === 'TERMINATED' || e.status === next)
-        throw new ConflictException('Invalid status transition');
+        throw new ConflictException('This status change is not allowed');
       if (next === 'SUSPENDED' && e.status !== 'ACTIVE')
         throw new ConflictException('Only active employees may be suspended');
       if (next === 'ACTIVE' && e.status !== 'INACTIVE')
@@ -122,9 +122,34 @@ export abstract class OrganizationLifecycleService extends OrganizationGovernanc
     });
     return { temporaryPassword: credentials.password };
   }
-  async hierarchy() {
-    const departments = await this.db.department.findMany({ where: { status: 'ACTIVE' }, orderBy: { name: 'asc' } });
-    const employees = await this.db.employee.findMany({ where: { status: 'ACTIVE' }, include: { department: true } });
-    return { departments, employees: employees.map(directory) };
+  async hierarchy(actor: Principal) {
+    if (actor.employee.position !== 'SENIOR_DIRECTOR' && !actor.permissions.includes('EMPLOYEE_READ')) {
+      throw new ForbiddenException('Organization overview requires organization responsibility');
+    }
+    const departments = await this.db.department.findMany({
+      where: { status: 'ACTIVE' },
+      include: {
+        _count: { select: { employee_department: true } },
+        workspace_department: { select: { _count: { select: { boards: true } } } },
+      },
+      orderBy: { name: 'asc' },
+    });
+    const [employees, totalEmployees, suspendedEmployees, boards] = await Promise.all([
+      this.db.employee.findMany({ where: { status: 'ACTIVE' }, include: { department: true } }),
+      this.db.employee.count(),
+      this.db.employee.count({ where: { status: 'SUSPENDED' } }),
+      this.db.taskBoard.count({ where: { status: 'ACTIVE' } }),
+    ]);
+    return {
+      departments,
+      employees: employees.map(directory),
+      summary: {
+        totalEmployees,
+        activeEmployees: employees.length,
+        suspendedEmployees,
+        departments: departments.length,
+        boards,
+      },
+    };
   }
 }

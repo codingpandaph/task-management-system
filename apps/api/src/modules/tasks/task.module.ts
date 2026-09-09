@@ -3,14 +3,14 @@ import type { AuthRequest } from '../authorization/authorization';
 import {
   ApprovalDto,
   BoardDto,
+  CollaboratorDto,
   CommentDto,
-  DodCheckDto,
-  DodDto,
   EscalationDto,
   LinkDto,
   MembershipDto,
   MilestoneDto,
   MoveTaskDto,
+  SprintDto,
   TaskDto,
   TaskEditDto,
   WorkspaceDto,
@@ -47,6 +47,26 @@ class TaskController {
     @Body() dto: MilestoneDto,
   ) {
     return this.service.createMilestone(request.principal, id, dto);
+  }
+  @Post('task-boards/:id/collaborators') collaborator(
+    @Req() request: AuthRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CollaboratorDto,
+  ) {
+    return this.service.addCollaborator(request.principal, id, dto);
+  }
+  @Post('task-boards/:id/sprints') sprint(
+    @Req() request: AuthRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SprintDto,
+  ) {
+    return this.service.createSprint(request.principal, id, dto);
+  }
+  @Post('sprints/:id/activate') activateSprint(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.changeSprintStatus(request.principal, id, 'ACTIVE');
+  }
+  @Post('sprints/:id/complete') completeSprint(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.changeSprintStatus(request.principal, id, 'COMPLETED');
   }
   @Get('task-workspaces/:id/board') taskBoard(
     @Req() request: AuthRequest,
@@ -103,21 +123,6 @@ class TaskController {
   }
   @Post('tasks/:id/restore') restore(@Req() request: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.restore(request.principal, id);
-  }
-  @Post('tasks/:id/definition-of-done') addDod(
-    @Req() request: AuthRequest,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: DodDto,
-  ) {
-    return this.service.addDod(request.principal, id, dto.item);
-  }
-  @Patch('tasks/:taskId/definition-of-done/:itemId') checkDod(
-    @Req() request: AuthRequest,
-    @Param('taskId', ParseUUIDPipe) taskId: string,
-    @Param('itemId', ParseUUIDPipe) itemId: string,
-    @Body() dto: DodCheckDto,
-  ) {
-    return this.service.checkDod(request.principal, taskId, itemId, dto.isChecked);
   }
   @Post('tasks/:id/links') link(
     @Req() request: AuthRequest,

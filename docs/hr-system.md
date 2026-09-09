@@ -1,6 +1,6 @@
 # HR & Organization Foundation
 
-This document is the authoritative HRIS business specification for the CPPinSync prototype. It implements one
+This document is the authoritative HRIS business specification for the CPSync prototype. It implements one
 organization, one PostgreSQL database, dynamic departments, employee identity, employment lifecycle, permission-based
 administration, annual leave, reporting, notifications, and append-oriented audit history. Integrated Task Management
 reuses this identity, hierarchy, lifecycle, leave calendar, notifications, and authentication authority; its behavior
@@ -100,12 +100,11 @@ review in the same status-change transaction. Suspension and temporary inactivit
 not silently rewrite task ownership.
 
 Task workspace permissions remain separate from HR capabilities. Account Directors and the Senior Director may grant
-members ticket creation and board creation independently. Assignment is limited to active colleagues in the department
-unless an explicit cross-team milestone allocation exists. Ticket creation defaults the reporter to the signed-in
-creator, while an authorized edit may select another active colleague from the workspace department.
+members task creation and board creation independently. Assignment is limited to active colleagues in the department.
+Ticket creation always records the signed-in creator as reporter; reporter selection and editing are not exposed.
 The browser acceptance suite verifies that identity handoff directly: an Account Director assigns a task to a named
 active employee, that employee finds it in My tasks under their own session, and both perspectives observe the same
-comments, workflow state, Definition of Done, sign-off, and completion history.
+comments, workflow state, sign-off, and completion history.
 
 ## Policies, calendar, and balances
 
@@ -189,8 +188,9 @@ audited where it changes business state.
 1. HR creates an employee and receives the generated Employee ID and random temporary password in a transient dialog.
 2. The employee signs in with those one-time credentials and is routed to `/change-password`.
 3. All directory, HR, leave, approval, reporting, notification, and audit endpoints remain forbidden until completion.
-4. The employee supplies the temporary password and a valid new password. The API replaces the hash, clears the forced
-   change flag, revokes earlier sessions, and issues a fresh unrestricted session.
+4. The employee supplies the temporary password and enters the new password twice. A mismatch is explained before the
+   request is sent. Password guidance uses ordinary language while the API safely enforces the storage limit. The API
+   replaces the hash, clears the forced-change flag, revokes earlier sessions, and issues a fresh unrestricted session.
 5. An authorized HR user can later reset the password with a reason. A new temporary password is shown once and the
    same forced-change flow repeats.
 
@@ -351,7 +351,7 @@ in order; created names should include a unique suffix so repeated retained-data
 | Flow                     | Role and prerequisites                    | Manual steps                                                                                                                    | Expected result                                                                                                   | Playwright coverage                                      |
 | ------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | Authentication           | Any seeded employee                       | Sign in, refresh the page, then sign out                                                                                        | Session survives refresh; sign-out returns to login and protected URLs reject access                              | `smoke.spec.ts`, session flow                            |
-| First login              | HR creates an employee                    | Copy the one-time credentials, sign out, sign in as the employee, change password                                               | Only password change is available until success; temporary password disappears after dismissal                    | onboarding flow                                          |
+| First login              | HR creates an employee                    | Sign in with the one-time credentials, enter mismatched new passwords, then correct them                                        | The mismatch is clear; only password change is available until both entries match                                 | onboarding flow                                          |
 | Directory                | Any employee; HR for private view         | Open People, search a full name, combine department/role/status filters                                                         | Results match all filters; ordinary users never see confidential fields or HR actions                             | HRIS navigation flow                                     |
 | Employee profile         | HR with employee permissions              | Open a person and visit Overview, Employment, Leave Policies, Access & Security                                                 | Each tab shows relevant facts and permitted actions; employment history and current permission grants are visible | HRIS navigation and management flows                     |
 | Departments              | HR with department permissions            | Create, edit, deactivate, reactivate, and assign a director; compare each people count with the active hierarchy                | Complete counts render; valid changes persist; staffed-team deactivation returns a safe conflict                  | demo, management and UI trust flows                      |
@@ -379,8 +379,10 @@ hover, and keyboard-focus states. Deactivation is presented as a clearly labelle
 Catalogue and workflow screens place their permitted actions in the same header as the records they affect. Search
 labels follow the selected tab, including regular versus Christmas policies and leave versus cancellation approvals.
 The dashboard greeting contains no duplicate navigation actions; users act from the authoritative destination screen.
+Authorization failures explain who can perform the action and how to recover. Internal phrases such as “HR scope,”
+token names, transport formats, and database identifiers are not shown in employee-facing alerts.
 Task boards keep the selected board's actions, contextual search, filters, milestones, and columns in one surface.
-Tickets support pointer drag-and-drop and labelled move arrows for keyboard and assistive-technology parity; the API
+Tickets use drag-and-drop on the board and retain the labelled status selector in task details for keyboard access; the API
 still enforces every workflow rule and announces success or rejection without relying on color.
 
 At phone widths, the complete role-aware navigation is available from a labelled menu and keyboard-dismissible drawer;
@@ -413,7 +415,28 @@ advanced observability, calendar integrations, and backup/restore drills.
 
 Task-domain improvements, including authenticated GitHub/GitLab automation for repository-driven board movement, are
 tracked in [task-management.md](task-management.md#future-improvements--production-hardening). Repository automation
-must continue to honor HRIS eligibility, Definition of Done, blocker, and management-sign-off rules.
+must continue to honor HRIS eligibility, blocker and management-sign-off rules.
+
+## Department and task-management relationship
+
+HRIS remains authoritative for department membership, active status, Account Director assignment, and the Senior
+Director’s organization-wide position. The operational **Department** page exposes only employee ID, name, role, task
+permissions, board participation, and workflow settings. It never includes birth dates, employment details, lifecycle
+reasons, leave reasons, private notes, or restricted audit content.
+
+Members and Account Directors use **Department** for their own team. Authorized HR and the Senior Director may open a
+department from **Organization**. Organization routes enforce the same responsibility rule on the API, so hiding the
+navigation is not the security boundary. Account Director candidates are filtered to eligible employees already in the
+target department, and the backend still validates the assignment.
+
+The Next.js portal checks the authenticated employee's effective role and permissions before mounting a route. It omits
+unauthorized navigation and redirects a direct restricted URL to Overview, preventing protected screens from issuing
+avoidable requests. NestJS independently returns `403` for the same unauthorized API operation.
+
+Task permissions are stored on the department workspace membership as **Create boards** and **Create tasks**. An Account
+Director may change these two operational permissions only for active members of their own department. These switches do
+not grant HR access, organization administration, or board collaboration. The Senior Director remains above departments;
+HR retains its existing capability-based access and cannot perform Senior-Director-only governance actions.
 
 Prisma 7.10’s PostgreSQL adapter currently emits a `client.query()` deprecation warning from its internal query call on
 some transactional writes. The verified operations complete correctly; reassess the upstream adapter fix before moving

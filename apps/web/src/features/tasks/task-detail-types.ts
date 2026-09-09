@@ -3,7 +3,7 @@ import type { CurrentEmployee, DirectoryEmployee, TaskColumnContract, TaskContra
 export interface TaskDetailProps {
   taskId: string;
   user: CurrentEmployee;
-  columns: TaskColumnContract[];
+  columns?: TaskColumnContract[];
   onClose: () => void;
   refresh: () => Promise<void>;
   people: DirectoryEmployee[];

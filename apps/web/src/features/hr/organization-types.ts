@@ -1,4 +1,4 @@
-import type { DirectoryEmployee } from '@tms/contracts';
+import type { DirectoryEmployee, TaskManagementType } from '@tms/contracts';
 
 export interface Department {
   id: string;
@@ -6,6 +6,26 @@ export interface Department {
   code: string;
   status: string;
   version: number;
+  kind: string;
+  taskManagementTypes: TaskManagementType[];
+  kanbanWipLimit: number;
+  _count?: { employee_department: number };
+  workspace_department?: { _count: { boards: number } } | null;
+}
+export interface DepartmentDetail extends Omit<Department, 'workspace_department'> {
+  employee_department: DirectoryEmployee[];
+  workspace_department: {
+    id: string;
+    memberships: { employeeId: string; canCreateTasks: boolean; canCreateBoards: boolean }[];
+    boards: {
+      id: string;
+      name: string;
+      kind: TaskManagementType;
+      creator: { firstName: string; lastName: string };
+      collaborators: { employeeId: string }[];
+      sprints: { id: string }[];
+    }[];
+  } | null;
 }
 export interface Policy {
   id: string;
@@ -41,4 +61,11 @@ export interface PermissionGrant {
 export interface OrganizationHierarchy {
   departments: Department[];
   employees: DirectoryEmployee[];
+  summary?: {
+    totalEmployees: number;
+    activeEmployees: number;
+    suspendedEmployees: number;
+    departments: number;
+    boards: number;
+  };
 }

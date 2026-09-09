@@ -46,7 +46,9 @@ export function Form({
         const data = new FormData(event.currentTarget);
         const values: Record<string, string | number> = {};
         for (const field of visibleFields) {
-          const value = String(data.get(field.name) ?? '');
+          const value = field.multiple
+            ? data.getAll(field.name).map(String).join(',')
+            : String(data.get(field.name) ?? '');
           if (value !== '' || !field.optional) values[field.name] = field.type === 'number' ? Number(value) : value;
         }
         const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
@@ -70,15 +72,26 @@ export function Form({
             name={f.name}
             label={f.label}
             type={f.type ?? 'text'}
-            defaultValue={f.value ?? ''}
-            onChange={(event) => setValues((current) => ({ ...current, [f.name]: event.target.value }))}
+            defaultValue={
+              f.multiple
+                ? String(f.value ?? '')
+                    .split(',')
+                    .filter(Boolean)
+                : (f.value ?? '')
+            }
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                [f.name]: Array.isArray(event.target.value) ? event.target.value.join(',') : event.target.value,
+              }))
+            }
             required={!f.optional}
             select={!!f.options}
             fullWidth
             slotProps={{
               inputLabel: { shrink: true },
               htmlInput: { 'aria-label': f.label },
-              select: { inputProps: { 'aria-label': f.label } },
+              select: { multiple: f.multiple, inputProps: { 'aria-label': f.label } },
             }}
           >
             {f.options?.map((o) => (

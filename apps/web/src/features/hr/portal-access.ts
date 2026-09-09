@@ -3,6 +3,7 @@ import type { CurrentEmployee } from '@tms/contracts';
 export const subtitles: Record<string, string> = {
   Overview: 'Your work and organization',
   Organization: 'Departments and reporting lines',
+  Department: 'Your team, boards, and task access',
   People: 'Employee directory',
   'My tasks': 'Assigned work',
   'Team boards': 'Department delivery',
@@ -23,6 +24,12 @@ export function subtitle(title: string, user: CurrentEmployee) {
 
 export function canOpen(path: string, user: CurrentEmployee) {
   return (
+    (!path.startsWith('/organization') ||
+      user.position === 'SENIOR_DIRECTOR' ||
+      user.permissions.includes('EMPLOYEE_READ')) &&
+    (!path.startsWith('/departments/') ||
+      user.position === 'SENIOR_DIRECTOR' ||
+      user.permissions.includes('EMPLOYEE_READ')) &&
     ((!path.startsWith('/task-reports') && !path.startsWith('/task-archive')) || user.position !== 'MEMBER') &&
     (!path.startsWith('/approvals') || user.position !== 'MEMBER' || user.permissions.includes('LEAVE_HR_APPROVE')) &&
     (!path.startsWith('/policies') ||

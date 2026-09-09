@@ -19,7 +19,7 @@ async function choose(page: Page, scope: Locator, label: string, option: string 
   await page.getByRole('option', { name: option, exact: typeof option === 'string' }).click();
 }
 
-test('complete CPPinSync HRIS demonstration', async ({ page }) => {
+test('complete CPSync HRIS demonstration', async ({ page }) => {
   test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 240_000 : 90_000);
   const suffix = Date.now().toString().slice(-6);
   const leavePolicy = `Demo leave ${suffix}`;
@@ -75,7 +75,7 @@ test('complete CPPinSync HRIS demonstration', async ({ page }) => {
     await dialog.getByLabel('Last name', { exact: true }).fill(`Employee ${suffix}`);
     await dialog.getByLabel('Birth date', { exact: true }).fill('1994-05-12');
     await choose(page, dialog, 'Department', department);
-    await choose(page, dialog, 'Employment type', 'FULL TIME');
+    await choose(page, dialog, 'Employment type', 'Permanent');
     await dialog.getByLabel('Employment start', { exact: true }).fill(`${year}-01-01`);
     await dialog.getByRole('combobox', { name: 'Leave policy', exact: true }).click();
     await page.getByRole('option').filter({ hasText: leavePolicy }).click();

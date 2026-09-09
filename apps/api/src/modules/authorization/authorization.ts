@@ -15,12 +15,12 @@ export const PasswordRestricted = () => SetMetadata('passwordRestricted', true);
 export const RequirePermissions = (...permissions: PermissionCode[]) => SetMetadata('permissions', permissions);
 export const RequireRoles = (...roles: Position[]) => SetMetadata('roles', roles);
 export function requirePermission(actor: Principal, permission: PermissionCode) {
-  if (!actor.permissions.includes(permission)) throw new ForbiddenException('Permission required');
+  if (!actor.permissions.includes(permission)) throw new ForbiddenException('You do not have access to do that');
 }
 export function requireHr(actor: Principal, permission: PermissionCode) {
   requirePermission(actor, permission);
   if (actor.employee.position !== 'SENIOR_DIRECTOR' && actor.employee.department?.kind !== 'HR') {
-    throw new ForbiddenException('HR scope required');
+    throw new ForbiddenException('This action is limited to authorized HR employees');
   }
 }
 @Injectable()
@@ -41,7 +41,7 @@ export class RolesGuard implements CanActivate {
   canActivate(context: ExecutionContext) {
     const roles = this.reflector.getAllAndOverride<Position[]>('roles', [context.getHandler(), context.getClass()]);
     if (roles && !roles.includes(context.switchToHttp().getRequest<AuthRequest>().principal.employee.position)) {
-      throw new ForbiddenException('Organizational role required');
+      throw new ForbiddenException('Your role does not include this action');
     }
     return true;
   }

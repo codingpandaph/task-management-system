@@ -28,6 +28,8 @@ export function CreateTask({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [selectedBoardId, setSelectedBoardId] = useState(workspace.boards[0]?.id ?? '');
+  const selectedBoard = workspace.boards.find((board) => board.id === selectedBoardId);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -42,12 +44,9 @@ export function CreateTask({
         priority: String(data.get('priority')),
         estimatedHours: Number(data.get('estimatedHours')),
         assigneeId: data.get('assigneeId') || undefined,
-        reporterId: data.get('reporterId') || undefined,
         milestoneId: data.get('milestoneId') || undefined,
-        definitionOfDone: String(data.get('definitionOfDone') ?? '')
-          .split('\n')
-          .map((item) => item.trim())
-          .filter(Boolean),
+        sprintId: data.get('sprintId') || undefined,
+        dueDate: data.get('dueDate') || undefined,
       });
       setOpen(false);
       await refresh();
@@ -69,7 +68,14 @@ export function CreateTask({
             <Stack spacing={2} sx={{ pt: 1 }}>
               <TextField name="title" label="Task title" required autoFocus />
               <TextField name="description" label="Description" multiline minRows={3} />
-              <TextField name="boardId" label="Board" select required defaultValue={workspace.boards[0]?.id}>
+              <TextField
+                name="boardId"
+                label="Board"
+                select
+                required
+                value={selectedBoardId}
+                onChange={(event) => setSelectedBoardId(event.target.value)}
+              >
                 {workspace.boards.map((board) => (
                   <MenuItem key={board.id} value={board.id}>
                     {board.name}
@@ -91,13 +97,6 @@ export function CreateTask({
               />
               <TextField name="assigneeId" label="Assignee" select defaultValue="">
                 <MenuItem value="">Unassigned</MenuItem>
-                {people.map((employee) => (
-                  <MenuItem key={employee.id} value={employee.id}>
-                    {employee.displayName}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField name="reporterId" label="Reporter" select defaultValue={user.id}>
                 {people
                   .filter((employee) => employee.department?.id === workspace.departmentId)
                   .map((employee) => (
@@ -106,6 +105,7 @@ export function CreateTask({
                     </MenuItem>
                   ))}
               </TextField>
+              <Alert severity="info">Reporter: {user.displayName}. The creator is recorded automatically.</Alert>
               <TextField name="milestoneId" label="Milestone" select defaultValue="">
                 <MenuItem value="">No milestone</MenuItem>
                 {workspace.milestones.map((milestone) => (
@@ -114,7 +114,19 @@ export function CreateTask({
                   </MenuItem>
                 ))}
               </TextField>
-              <TextField name="definitionOfDone" label="Definition of Done (one item per line)" multiline minRows={2} />
+              {selectedBoard?.kind === 'SCRUM' && !!selectedBoard.sprints.length && (
+                <TextField name="sprintId" label="Sprint" select defaultValue="">
+                  <MenuItem value="">No sprint</MenuItem>
+                  {selectedBoard.sprints
+                    .filter((sprint) => sprint.status !== 'COMPLETED')
+                    .map((sprint) => (
+                      <MenuItem key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </MenuItem>
+                    ))}
+                </TextField>
+              )}
+              <TextField name="dueDate" label="Due date" type="date" slotProps={{ inputLabel: { shrink: true } }} />
               {error && <Alert severity="error">{error}</Alert>}
             </Stack>
           </DialogContent>

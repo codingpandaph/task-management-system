@@ -1,13 +1,11 @@
 import 'reflect-metadata';
 import * as bcrypt from 'bcrypt';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { HR_DELEGABLE, PERMISSIONS } from '@tms/contracts';
 import { dateOnly, today } from './common/dates';
 import { DatabaseService } from './modules/database/database.module';
 import { LeaveBalanceService } from './modules/leave/balance.service';
-import { seedPeople } from './seed-data';
-
+import { seedHolidayEvents, seedPeople } from './seed-data';
+import { seedApprovalNotification } from './seed-notification';
 export async function seed(db: DatabaseService) {
   if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DEMO_SEED !== 'true')
     throw new Error('Seeding requires non-production mode and ALLOW_DEMO_SEED=true');
@@ -15,10 +13,7 @@ export async function seed(db: DatabaseService) {
   const limited = process.env.E2E_SEED === 'true',
     passwordHash = await bcrypt.hash('Demo only password 2026!', 12),
     year = Number(today().slice(0, 4));
-  const data = JSON.parse(
-    await readFile(resolve(process.cwd(), '../../prisma/fixtures/uk-bank-holidays.json'), 'utf8'),
-  ) as Record<string, { events: { date: string; title: string }[] }>;
-  const events = data['england-and-wales'].events;
+  const events = await seedHolidayEvents();
   const years = events.map((e) => Number(e.date.slice(0, 4)));
   await db.transaction(async (tx) => {
     const calendar = await tx.workingCalendar.create({
@@ -61,7 +56,15 @@ export async function seed(db: DatabaseService) {
       ['MKT', 'Marketing'],
       ['HR', 'Human Resources'],
     ]) {
-      const d = await tx.department.create({ data: { code, name, kind: code === 'HR' ? 'HR' : 'OPERATIONAL' } });
+      const d = await tx.department.create({
+        data: {
+          code,
+          name,
+          kind: code === 'HR' ? 'HR' : 'OPERATIONAL',
+          taskManagementTypes: code === 'HR' ? ['LIST'] : ['KANBAN', 'SCRUM'],
+          kanbanWipLimit: 2,
+        },
+      });
       departments.set(code, d.id);
     }
     const people = seedPeople(limited);
@@ -123,16 +126,17 @@ export async function seed(db: DatabaseService) {
       }
     }
     await tx.organizationSettings.create({
-      data: { name: 'CPPinSync', calendarId: calendar.id, hrApproverId: ids[4] },
+      data: { name: 'CPSync', calendarId: calendar.id, hrApproverId: ids[4] },
     });
     for (const [code, functionName, boardName] of [
       ['ACC', 'SALES_ACCOUNT_MANAGEMENT', 'Client delivery'],
       ['MKT', 'MARKETING_CREATIVE', 'Campaign delivery'],
+      ['HR', 'HR_OPERATIONS', 'People operations'],
     ] as const) {
       const workspace = await tx.workspace.create({
         data: {
           code,
-          name: `${code === 'ACC' ? 'Client Services' : 'Marketing'} workspace`,
+          name: `${code === 'ACC' ? 'Client Services' : code === 'MKT' ? 'Marketing' : 'Human Resources'} workspace`,
           function: functionName,
           departmentId: departments.get(code)!,
           nextTaskNumber: 3,
@@ -142,13 +146,18 @@ export async function seed(db: DatabaseService) {
         data: {
           workspaceId: workspace.id,
           name: boardName,
-          kind: 'KANBAN',
+          kind: code === 'HR' ? 'LIST' : 'KANBAN',
+          creatorId: code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3],
           columns: {
             create: [
-              { name: 'To do', position: 0, isInitial: true },
-              { name: 'In progress', position: 1 },
-              { name: 'Review', position: 2 },
-              { name: 'Done', position: 3, isDone: true, managementLocked: true },
+              ...(code === 'HR'
+                ? [{ name: 'Open', position: 0, isInitial: true }]
+                : [
+                    { name: 'To do', position: 0, isInitial: true },
+                    { name: 'In progress', position: 1 },
+                    { name: 'Review', position: 2 },
+                  ]),
+              { name: 'Done', position: code === 'HR' ? 1 : 3, isDone: true, managementLocked: code !== 'HR' },
             ],
           },
         },
@@ -162,7 +171,8 @@ export async function seed(db: DatabaseService) {
         data: departmentPeople.map(({ id }) => ({
           workspaceId: workspace.id,
           employeeId: id,
-          canCreateTasks: true,
+          canCreateTasks: id !== departmentPeople[departmentPeople.length - 1]?.id,
+          canCreateBoards: id === (code === 'ACC' ? ids[6] : code === 'MKT' ? ids[7] : ids[5]),
         })),
       });
       const milestone = await tx.milestone.create({
@@ -175,9 +185,9 @@ export async function seed(db: DatabaseService) {
         },
       });
       const initial = board.columns.find((column) => column.isInitial)!;
-      const progress = board.columns.find((column) => column.name === 'In progress')!;
-      const reporterId = code === 'ACC' ? ids[1] : ids[2];
-      const assigneeId = code === 'ACC' ? ids[6] : limited ? ids[2] : ids[7];
+      const progress = board.columns.find((column) => column.name === 'In progress') ?? initial;
+      const reporterId = code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3];
+      const assigneeId = code === 'ACC' ? ids[6] : code === 'MKT' ? (limited ? ids[2] : ids[7]) : ids[5];
       for (const [index, task] of (
         [
           ['Prepare weekly client update', 'HIGH', 8, progress.id],
@@ -198,7 +208,6 @@ export async function seed(db: DatabaseService) {
             estimatedHours: task[2],
             reporterId,
             assigneeId,
-            definitionOfDone: { create: [{ item: 'Work reviewed by the team', isChecked: index === 0 }] },
           },
         });
         await tx.taskActivityLog.create({
@@ -283,17 +292,7 @@ export async function seed(db: DatabaseService) {
           metadata: { status },
         },
       });
-      if (status === 'PENDING')
-        await tx.notification.create({
-          data: {
-            recipientId: ids[1],
-            type: 'APPROVAL_ASSIGNED',
-            title: 'Approval assigned',
-            resourceType: 'LeaveRequest',
-            resourceId: r.id,
-            dedupeKey: `assigned:${r.id}:1`,
-          },
-        });
+      await seedApprovalNotification(tx, status, ids[1], r.id);
     }
   });
 }

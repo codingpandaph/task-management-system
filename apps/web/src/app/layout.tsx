@@ -5,8 +5,8 @@ import './globals.css';
 import Providers from './providers';
 
 export const metadata: Metadata = {
-  title: 'CPPinSync — People & Organization',
-  description: 'CPPinSync employee, organization, and leave management.',
+  title: 'CPSync — People & Organization',
+  description: 'CPSync employee, organization, and leave management.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

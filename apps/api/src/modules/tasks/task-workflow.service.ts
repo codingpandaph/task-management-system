@@ -18,14 +18,15 @@ export abstract class TaskWorkflowService extends TaskRecordService {
     if (!column) throw new BadRequestException('Column is not on this board');
     if (column.managementLocked && !task.isManagementApproved && actor.employee.position !== 'SENIOR_DIRECTOR')
       throw new ForbiddenException('Management sign-off is required');
-    if (column.isDone && task.definitionOfDone.some((item) => !item.isChecked))
-      throw new BadRequestException('Complete every Definition of Done item first');
     const blockers = task.outgoingLinks.filter((link) => link.type === 'BLOCKED_BY' && !link.targetTask.column.isDone);
     if (!task.column.isInitial && blockers.length && actor.employee.position !== 'SENIOR_DIRECTOR')
       throw new BadRequestException('Resolve blocking tasks before advancing this task');
     if (task.column.isInitial && !column.isInitial && blockers.length && actor.employee.position !== 'SENIOR_DIRECTOR')
       throw new BadRequestException('Resolve blocking tasks before advancing this task');
     return this.db.transaction(async (tx) => {
+      if (task.board.kind === 'KANBAN' && column.name.toLowerCase() === 'in progress') {
+        await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
+      }
       const updated = await tx.task.update({ where: { id }, data: { columnId }, include: taskInclude });
       await this.activity(tx, id, actor.employee.id, 'COLUMN_CHANGE', 'columnId', task.columnId, columnId);
       return updated;
@@ -37,6 +38,10 @@ export abstract class TaskWorkflowService extends TaskRecordService {
     if (!this.manages(actor, task.workspace.departmentId))
       throw new ForbiddenException('Account Director or Senior Director required');
     return this.db.transaction(async (tx) => {
+      const destination = await tx.taskColumn.findUniqueOrThrow({ where: { id: task.lastColumnId ?? task.columnId } });
+      if (task.board.kind === 'KANBAN' && destination.name.toLowerCase() === 'in progress') {
+        await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
+      }
       const updated = await tx.task.update({
         where: { id },
         data: { isManagementApproved: approved },
@@ -99,29 +104,6 @@ export abstract class TaskWorkflowService extends TaskRecordService {
         include: taskInclude,
       });
       await this.activity(tx, id, actor.employee.id, 'RESTORATION', 'isDeleted', true, false);
-      return updated;
-    });
-  }
-
-  async addDod(actor: Principal, id: string, item: string) {
-    await this.detail(actor, id);
-    return this.db.transaction(async (tx) => {
-      const created = await tx.definitionOfDone.create({ data: { taskId: id, item } });
-      await this.activity(tx, id, actor.employee.id, 'UPDATE_FIELD', 'definitionOfDone', undefined, {
-        id: created.id,
-        item,
-      });
-      return created;
-    });
-  }
-
-  async checkDod(actor: Principal, taskId: string, itemId: string, isChecked: boolean) {
-    await this.detail(actor, taskId);
-    const item = await this.db.definitionOfDone.findFirst({ where: { id: itemId, taskId } });
-    if (!item) throw new NotFoundException('Definition of Done item not found');
-    return this.db.transaction(async (tx) => {
-      const updated = await tx.definitionOfDone.update({ where: { id: itemId }, data: { isChecked } });
-      await this.activity(tx, taskId, actor.employee.id, 'UPDATE_FIELD', 'definitionOfDone', item.isChecked, isChecked);
       return updated;
     });
   }

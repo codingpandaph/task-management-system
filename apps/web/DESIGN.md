@@ -1,5 +1,5 @@
 ---
-name: CPPinSync
+name: CPSync
 description: A calm operations desk for people, leave, and delivery.
 colors:
   evergreen: '#165c46'
@@ -68,13 +68,13 @@ components:
     rounded: '{rounded.pill}'
 ---
 
-# Design System: CPPinSync
+# Design System: CPSync
 
 ## Overview
 
 **Creative North Star: "The Calm Operations Desk"**
 
-CPPinSync should feel like a well-run workplace: composed, legible, and ready for consequential daily work. Dense
+CPSync should feel like a well-run workplace: composed, legible, and ready for consequential daily work. Dense
 information is organized into clear surfaces, while restrained green accents make primary actions and current context
 easy to recognize. The interface earns trust through consistency, explicit state, and fast scanning.
 

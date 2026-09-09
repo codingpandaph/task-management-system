@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { Prisma, TaskActivityType } from '../../generated/prisma/client';
 import type { Principal } from '../authorization/authorization';
 import { DatabaseService, type Transaction } from '../database/database.module';
@@ -6,12 +6,12 @@ import { DatabaseService, type Transaction } from '../database/database.module';
 export const person = { id: true, employeeId: true, firstName: true, lastName: true, position: true } as const;
 export const taskInclude = {
   column: true,
-  board: { select: { id: true, name: true, columns: { orderBy: { position: 'asc' as const } } } },
+  board: { select: { id: true, name: true, kind: true, columns: { orderBy: { position: 'asc' as const } } } },
   workspace: { select: { id: true, code: true, name: true, departmentId: true } },
   milestone: true,
+  sprint: true,
   reporter: { select: person },
   assignee: { select: person },
-  definitionOfDone: { orderBy: { createdAt: 'asc' as const } },
   outgoingLinks: { include: { targetTask: { select: { id: true, publicKey: true, title: true, column: true } } } },
   comments: { orderBy: { createdAt: 'desc' as const }, include: { author: { select: person } } },
   activity: { orderBy: { createdAt: 'desc' as const }, include: { actor: { select: person } }, take: 30 },
@@ -57,6 +57,30 @@ export abstract class TaskBaseService {
     const allowed = capability === 'tasks' ? membership?.canCreateTasks : membership?.canCreateBoards;
     if (!allowed) throw new ForbiddenException(`Workspace ${capability} permission required`);
     return workspace;
+  }
+
+  protected async enforceWip(
+    tx: Transaction,
+    departmentId: string,
+    assigneeId: string | null | undefined,
+    taskId?: string,
+  ) {
+    if (!assigneeId) return;
+    await tx.$queryRaw`SELECT id FROM "Employee" WHERE id = ${assigneeId}::uuid FOR UPDATE`;
+    const department = await tx.department.findUniqueOrThrow({ where: { id: departmentId } });
+    const used = await tx.task.count({
+      where: {
+        id: taskId ? { not: taskId } : undefined,
+        assigneeId,
+        isDeleted: false,
+        workspace: { departmentId },
+        board: { kind: 'KANBAN' },
+        column: { name: { equals: 'In progress', mode: 'insensitive' } },
+      },
+    });
+    if (used >= department.kanbanWipLimit) {
+      throw new ConflictException(`This person already has ${used} of ${department.kanbanWipLimit} tasks in progress`);
+    }
   }
 
   protected async activity(

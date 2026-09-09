@@ -11,9 +11,9 @@ import type { Principal } from '../authorization/authorization';
 
 export const digest = (secret: string) => createHash('sha256').update(secret).digest('hex');
 export function validatePassword(password: string) {
-  if ([...password].length < 15 || Buffer.byteLength(password, 'utf8') > 72) {
-    throw new UnprocessableEntityException('Password must contain at least 15 characters and at most 72 UTF-8 bytes');
-  }
+  if ([...password].length < 15) throw new UnprocessableEntityException('Use at least 15 characters');
+  if (Buffer.byteLength(password, 'utf8') > 72)
+    throw new UnprocessableEntityException('This password is too long. Choose a shorter password');
 }
 @Injectable()
 export class AuthService {
@@ -124,7 +124,7 @@ export class AuthService {
   async verifyCsrf(sessionId: string, csrf: string) {
     const session = await this.db.session.findUnique({ where: { id: sessionId } });
     if (!session || session.revokedAt || session.csrfHash !== digest(csrf))
-      throw new ForbiddenException('Invalid CSRF token');
+      throw new ForbiddenException('Your session could not be verified. Refresh the page and try again');
   }
   async refresh(secret: string, csrf: string) {
     const credential = await this.db.refreshCredential.findUnique({
@@ -146,7 +146,8 @@ export class AuthService {
         });
         return null;
       }
-      if (current.session.csrfHash !== digest(csrf)) throw new ForbiddenException('Invalid CSRF token');
+      if (current.session.csrfHash !== digest(csrf))
+        throw new ForbiddenException('Your session could not be verified. Refresh the page and try again');
       await tx.refreshCredential.update({ where: { id: current.id }, data: { consumedAt: new Date() } });
       const refresh = randomBytes(32).toString('base64url');
       await tx.refreshCredential.create({

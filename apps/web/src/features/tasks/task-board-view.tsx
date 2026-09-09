@@ -16,10 +16,11 @@ import { EmptyState, ModalForm } from '../hr/ui';
 import { CreateTask } from './task-create';
 import { TaskDetail } from './task-detail';
 import { KanbanBoard } from './kanban-board';
+import { ListBoard } from './list-board';
 import { MilestoneStrip } from './milestone-strip';
 import type { BoardResponse, DepartmentOption, Workspace } from './task-types';
 import { WorkspaceActions } from './workspace-actions';
-
+import { SprintPanel } from './sprint-panel';
 interface TaskBoardViewProps {
   assigneeFilter: string;
   board?: BoardResponse;
@@ -40,7 +41,6 @@ interface TaskBoardViewProps {
   workspaceId: string;
   workspaces: Workspace[];
 }
-
 export function TaskBoardView(props: TaskBoardViewProps) {
   const {
     assigneeFilter,
@@ -70,6 +70,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
   const canCreateTasks =
     workspaceManager ||
     !!workspace?.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateTasks);
+  const boardManager = workspaceManager || board?.board.creator.id === user.id;
   return (
     <Stack spacing={3}>
       <Paper variant="outlined" className="task-hero task-page-heading">
@@ -90,12 +91,19 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 {board?.board.name ?? 'Choose a board'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {workspace.name} · Drag tickets between columns or use the arrow controls.
+                {workspace.name} ·{' '}
+                {board?.board.kind === 'LIST' ? 'A focused task list.' : 'Drag tickets between workflow stages.'}
               </Typography>
             </Box>
             <Box className="workspace-actions">
               {canCreateTasks && <CreateTask workspace={workspace} people={people} user={user} refresh={refresh} />}
-              <WorkspaceActions workspace={workspace} user={user} people={people} refresh={refresh} />
+              <WorkspaceActions
+                workspace={workspace}
+                board={board?.board}
+                user={user}
+                people={people}
+                refresh={refresh}
+              />
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-navigation">
@@ -135,6 +143,15 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             </Tabs>
           </Stack>
           <MilestoneStrip workspace={workspace} user={user} refresh={refresh} />
+          {board?.board.kind === 'KANBAN' && (
+            <Typography variant="body2" color="text.secondary" sx={{ px: 0.5 }}>
+              In progress limit: {workspace.department.kanbanWipLimit} per person ·{' '}
+              {board.wip
+                .map((person) => `${person.firstName} ${person.lastName} ${person.used}/${person.limit}`)
+                .join(' · ')}
+            </Typography>
+          )}
+          {board && <SprintPanel board={board.board} canManage={boardManager} refresh={refresh} />}
           {board && (
             <Stack
               direction={{ xs: 'column', lg: 'row' }}
@@ -204,7 +221,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               )}
             </Stack>
           )}
-          {board && (
+          {board && board.board.kind !== 'LIST' && (
             <KanbanBoard
               board={board}
               search={search}
@@ -212,6 +229,21 @@ export function TaskBoardView(props: TaskBoardViewProps) {
               assigneeFilter={assigneeFilter}
               selectTask={setSelected}
               refresh={refresh}
+            />
+          )}
+          {board && board.board.kind === 'LIST' && (
+            <ListBoard
+              board={board}
+              tasks={board.board.columns
+                .flatMap((column) => column.tasks)
+                .filter(
+                  (task) =>
+                    `${task.publicKey} ${task.title}`.toLowerCase().includes(search.toLowerCase()) &&
+                    (priorityFilter === 'ALL' || task.priority === priorityFilter) &&
+                    (assigneeFilter === 'ALL' ||
+                      (assigneeFilter === 'UNASSIGNED' ? !task.assignee : task.assignee?.id === assigneeFilter)),
+                )}
+              selectTask={setSelected}
             />
           )}
         </Paper>
@@ -258,7 +290,6 @@ export function TaskBoardView(props: TaskBoardViewProps) {
         <TaskDetail
           taskId={selected}
           user={user}
-          columns={board.board.columns}
           people={people}
           onClose={() => setSelected(undefined)}
           refresh={refresh}

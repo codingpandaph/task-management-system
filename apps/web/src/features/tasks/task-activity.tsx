@@ -11,6 +11,17 @@ const labels: Record<string, string> = {
   DELETION: 'Deleted',
   RESTORATION: 'Restored',
 };
+const fieldLabels: Record<string, string> = {
+  title: 'Title',
+  description: 'Description',
+  priority: 'Priority',
+  estimatedHours: 'Time estimate',
+  assigneeId: 'Assigned employee',
+  reporterId: 'Reporter',
+  milestoneId: 'Milestone',
+  isEscalated: 'Escalation',
+  isManagementApproved: 'Director approval',
+};
 
 export function TaskActivity({ activity }: { activity: TaskDetailResponse['activity'] }) {
   return (
@@ -26,7 +37,7 @@ export function TaskActivity({ activity }: { activity: TaskDetailResponse['activ
               </Typography>
             </Stack>
             <Typography variant="caption" color="text.secondary">
-              {event.fieldChanged ? `${event.fieldChanged.replaceAll('_', ' ')} · ` : ''}
+              {event.fieldChanged ? `${fieldLabels[event.fieldChanged] ?? 'Task details'} · ` : ''}
               {event.oldValue && event.newValue ? `${event.oldValue} → ${event.newValue} · ` : ''}
               {new Date(event.createdAt).toLocaleString('en-GB')}
             </Typography>

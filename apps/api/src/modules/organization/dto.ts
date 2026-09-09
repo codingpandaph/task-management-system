@@ -1,6 +1,11 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
   IsEmail,
+  IsEnum,
   IsIn,
   IsInt,
   IsOptional,
@@ -13,6 +18,11 @@ import {
   MinLength,
 } from 'class-validator';
 import { PERMISSIONS, type PermissionCode } from '@tms/contracts';
+export enum TaskManagementTypeDto {
+  KANBAN = 'KANBAN',
+  SCRUM = 'SCRUM',
+  LIST = 'LIST',
+}
 export class PageDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
@@ -32,10 +42,36 @@ export class DepartmentDto {
   @IsString() @Matches(/^[A-Z0-9]{2,10}$/) code!: string;
   @IsString() @MinLength(2) @MaxLength(100) name!: string;
   @IsOptional() @IsString() @MaxLength(500) description?: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(3)
+  @ArrayUnique()
+  @IsEnum(TaskManagementTypeDto, { each: true })
+  taskManagementTypes?: TaskManagementTypeDto[];
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) kanbanWipLimit?: number;
 }
 export class EditDepartmentDto {
   @IsString() @MinLength(2) @MaxLength(100) name!: string;
   @IsOptional() @IsString() @MaxLength(500) description?: string;
+  @IsInt() @Min(1) version!: number;
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(3)
+  @ArrayUnique()
+  @IsEnum(TaskManagementTypeDto, { each: true })
+  taskManagementTypes?: TaskManagementTypeDto[];
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) kanbanWipLimit?: number;
+}
+export class DepartmentTaskSettingsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(3)
+  @ArrayUnique()
+  @IsEnum(TaskManagementTypeDto, { each: true })
+  taskManagementTypes!: TaskManagementTypeDto[];
+  @Type(() => Number) @IsInt() @Min(1) @Max(50) kanbanWipLimit!: number;
   @IsInt() @Min(1) version!: number;
 }
 export class EmployeeDto {
