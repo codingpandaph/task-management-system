@@ -81,8 +81,8 @@ test('department checkboxes, policy actions, and Scrum dates follow the current 
     .click();
   await expect(page.getByText('This sprint is complete. Its board is read-only.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create task', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Sprint history' }).click();
-  await expect(page.getByRole('dialog', { name: 'Completed sprints' }).getByText('UI Scrum')).toBeVisible();
+  await page.getByRole('button', { name: 'Past sprints' }).click();
+  await expect(page.getByRole('dialog', { name: 'Past sprints' }).getByText('UI Scrum')).toBeVisible();
 });
 
 test('My tasks and People sort real records with accessible column state', async ({ page }) => {

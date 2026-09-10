@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import EastOutlined from '@mui/icons-material/EastOutlined';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -78,7 +79,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 {board?.board.name ?? 'Choose a board'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {workspace.name} ·{' '}
+                {workspace.department.name} ·{' '}
                 {board?.board.kind === 'LIST' ? 'A focused task list.' : 'Drag tickets between workflow stages.'}
               </Typography>
             </Box>
@@ -94,13 +95,12 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 />
               )}
               <WorkspaceActions workspace={workspace} user={user} refresh={refresh} />
-              <SprintHistory boards={workspace.boards} select={setBoardId} />
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-navigation">
             <TextField
               select
-              label="Workspace"
+              label="Department"
               value={workspaceId}
               onChange={(event) => {
                 setWorkspaceId(event.target.value);
@@ -113,7 +113,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             >
               {workspaces.map((item) => (
                 <MenuItem key={item.id} value={item.id}>
-                  {item.name}
+                  {item.department.name}
                 </MenuItem>
               ))}
             </TextField>
@@ -140,6 +140,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 <MenuItem value={boardId}>Completed · {selectedBoard?.name ?? board?.board.name ?? 'Sprint'}</MenuItem>
               )}
             </TextField>
+            <SprintHistory boards={workspace.boards} select={setBoardId} />
           </Stack>
           {board?.board.status === 'INACTIVE' && (
             <Alert severity="info">This sprint is complete. Its board is read-only.</Alert>
@@ -154,12 +155,16 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             />
           )}
           {board?.board.kind === 'KANBAN' && (
-            <Typography variant="body2" color="text.secondary" sx={{ px: 0.5 }}>
-              In progress limit: {workspace.department.kanbanWipLimit} per person ·{' '}
-              {board.wip
-                .map((person) => `${person.firstName} ${person.lastName} ${person.used}/${person.limit}`)
-                .join(' · ')}
-            </Typography>
+            <Box className="wip-summary">
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                In progress · maximum {workspace.department.kanbanWipLimit} per person
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {board.wip
+                  .map((person) => `${person.firstName} ${person.lastName} ${person.used}/${person.limit}`)
+                  .join(' · ')}
+              </Typography>
+            </Box>
           )}
           {board && (
             <TaskBoardFilters
@@ -191,15 +196,20 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             </details>
           )}
           {board && board.board.kind !== 'LIST' && (
-            <KanbanBoard
-              board={board}
-              search={search}
-              priorityFilter={priorityFilter}
-              assigneeFilter={assigneeFilter}
-              selectTask={setSelected}
-              refresh={refresh}
-              readOnly={board.board.status === 'INACTIVE'}
-            />
+            <>
+              <Typography className="board-scroll-hint" variant="caption">
+                Swipe to see every stage <EastOutlined aria-hidden="true" />
+              </Typography>
+              <KanbanBoard
+                board={board}
+                search={search}
+                priorityFilter={priorityFilter}
+                assigneeFilter={assigneeFilter}
+                selectTask={setSelected}
+                refresh={refresh}
+                readOnly={board.board.status === 'INACTIVE'}
+              />
+            </>
           )}
           {board && board.board.kind === 'LIST' && (
             <ListBoard

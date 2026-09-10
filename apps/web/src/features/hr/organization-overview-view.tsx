@@ -113,28 +113,15 @@ export function OrganizationOverviewView({
         }
       >
         {summary && (
-          <Box className="organization-metrics" sx={{ mb: 3 }}>
-            {[
-              ['Active people', summary.activeEmployees],
-              ['Departments', summary.departments],
-              ['Team boards', summary.boards],
-            ].map(([label, value]) => (
-              <Box key={label}>
-                <Typography variant="h4" component="p">
-                  {value}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {label}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
+          <Typography className="organization-summary" variant="body2">
+            <strong>{summary.activeEmployees}</strong> active people across <strong>{summary.departments}</strong>{' '}
+            departments and <strong>{summary.boards}</strong> team boards
+          </Typography>
         )}
         {leadership.map((employee) => (
           <Box key={employee.id} className="leadership-banner">
             <Box className="leadership-avatar">{employee.displayName.slice(0, 1)}</Box>
             <Box>
-              <Typography variant="overline">Organization leadership</Typography>
               <Typography variant="h6" component="p">
                 {employee.displayName}
               </Typography>

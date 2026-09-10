@@ -80,8 +80,10 @@ adjacent numerals so the tag itself remains one word. The underlying complete va
 My tasks is a sortable list, filtered by text, workflow status, and priority. Column headings toggle ascending and
 descending order; absent due dates remain last. Team boards add assignee filtering, including an
 explicit Unassigned view, while Delivery reports can be searched by department name or code. Board search is named for
-the selected board and searches only that board. Actions, board navigation, search, filters, Scrum-only milestones, and columns sit
-inside one active workspace surface, so users do not hunt across detached action panels. Every filter group has a
+the selected board and searches only that board. Actions, department and board navigation, search, filters,
+Scrum-only milestones, and columns sit inside one active board surface, so users do not hunt across detached action
+panels. Past sprints sits beside board selection, Kanban WIP status is separate from filters, and touch layouts explicitly
+show that the board scrolls sideways. Every filter group has a
 single clear action and a useful no-results state. My Tasks and Delivery Reports follow the same pattern rather than
 placing search controls between unrelated panels. Changing workspace, board, or tab clears filters that no longer
 describe the visible data. Initial load failures show the safe API message with a Retry action.
@@ -118,7 +120,7 @@ is selected. The milestone defines a goal, date-only start and due dates, Open/C
 Scrum tasks use their board milestone automatically. A summary card shows its goal, dates, and capacity state;
 **View capacity** opens the member breakdown. **Complete sprint** first explains that completion makes the board
 read-only, then requires confirmation. Completion preserves every task's milestone history and moves the board into a
-searchable **Sprint history** view.
+searchable **Past sprints** view.
 
 ## Capacity and HRIS lifecycle integration
 
@@ -168,7 +170,7 @@ Each Scrum board represents one sprint and owns that sprint's milestone.
 - **Scrum** adds Backlog for a time-boxed sprint. Each sprint uses a separate Scrum board with one milestone. Creating
   the board requires one name, a sprint goal, date-only start date, and later date-only due date. The milestone inherits
   the board name, and tasks on that board inherit its milestone automatically. Completed sprint boards leave the
-  active selector and remain available through searchable Sprint history.
+  active selector and remain available through searchable Past sprints.
 - **List** renders a table with title, status, assignee, reporter, priority, and due date. It has no columns or sprint UI.
   The existing Human Resources department has List enabled and is not duplicated.
 
@@ -283,7 +285,7 @@ responsibility-based split as HRIS services and browser scenario files.
 | Leadership report    | Senior Director              | Open **Delivery reports** and compare portfolio and team workload cards       | Both teams show completion, blockers, risks, workflow, hours and load   | Playwright reporting/breakpoints             |
 | Activity timeline    | Any task participant         | Open a task after creating, editing, moving, or assigning it                  | Actor, action, changed field, prior/new value and time remain readable  | Playwright journey and immutable ledger      |
 | Capacity             | Director                     | Request capacity for milestone containing approved leave                      | Leave reduces available hours; planned work drives overcapacity         | PostgreSQL integration                       |
-| Milestone closure    | Account Director             | Review capacity, complete a Scrum sprint, confirm the read-only effect        | Board moves to searchable Sprint history and keeps task history         | Playwright and PostgreSQL integration        |
+| Milestone closure    | Account Director             | Review capacity, complete a Scrum sprint, confirm the read-only effect        | Board moves to searchable Past sprints and keeps task history           | Playwright and PostgreSQL integration        |
 | Soft delete/restore  | Reporter then manager        | Archive, verify hidden, restore                                               | Card returns to prior column; logs remain                               | PostgreSQL integration                       |
 | Termination cleanup  | HR                           | Terminate employee with active assigned work                                  | Assignment clears, lane resets, milestone flags, logs remain            | PostgreSQL integration                       |
 | Responsive board     | Any                          | Repeat task screens at 375, 599/600/601, 899/900/901, 1199/1200/1201, 1440 px | No page overflow; board scrolls by column; dialog remains usable        | Playwright breakpoint loop                   |
@@ -355,7 +357,7 @@ at least two assigned tasks. Use `tests/e2e/ui-feedback.spec.ts` with the affect
 - [ ] **Sprint capacity and history:** Open a Scrum board and confirm its milestone card shows the sprint goal, start
       and due dates, and capacity state. Select View capacity and review the member breakdown. Select Complete sprint;
       the confirmation must explain that the board will become read-only. Confirm, then verify task actions disappear,
-      the board leaves the active selector, and it can be found by name in searchable Sprint history.
+      the board leaves the active selector, and it can be found by name in searchable Past sprints.
 - [ ] **My tasks and tables:** Open My tasks as a member. Assigned work is a table, with text/status/priority filters
       and clear-filter behavior. Click each column twice to reverse sorting; priority follows High/Medium/Low and missing
       due dates remain last. Open a task using its title. List boards use the same sortable table. At narrow widths,

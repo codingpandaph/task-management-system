@@ -24,10 +24,10 @@ export function SprintHistory({ boards, select }: { boards: Board[]; select: (id
   return (
     <>
       <Button startIcon={<HistoryOutlined />} onClick={() => setOpen(true)}>
-        Sprint history
+        Past sprints
       </Button>
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Completed sprints</DialogTitle>
+        <DialogTitle>Past sprints</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <TextField
@@ -36,7 +36,7 @@ export function SprintHistory({ boards, select }: { boards: Board[]; select: (id
               onChange={(event) => setSearch(event.target.value)}
               autoFocus
             />
-            <List aria-label="Completed sprints" disablePadding>
+            <List aria-label="Past sprints" disablePadding>
               {completed.map((board) => (
                 <ListItemButton
                   key={board.id}

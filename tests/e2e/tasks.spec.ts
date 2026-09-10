@@ -60,6 +60,10 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
 
     const senior = await seniorContext.newPage();
     await signIn(senior, users.senior);
+    const navigation = senior.getByRole('navigation', { name: 'Main navigation' });
+    for (const group of ['Company', 'Work', 'Time off', 'Administration', 'Updates']) {
+      await expect(navigation.getByText(group, { exact: true })).toBeVisible();
+    }
     await senior.getByRole('link', { name: 'Organization', exact: true }).click();
     await expect(senior.getByRole('heading', { name: 'Departments and leadership' })).toBeVisible();
     await senior.locator('.department-actions > summary').first().click();
@@ -82,6 +86,7 @@ test('Account Director configures workflows, delegates access, and creates a typ
   await setMemberAccess(page, 'Create tasks', true);
 
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Department', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Board name').fill('Client sprint');

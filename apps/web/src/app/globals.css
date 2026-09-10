@@ -104,6 +104,10 @@ a:not(.MuiButton-root) {
   padding: 28px 16px;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
 }
 .brand {
   display: flex;
@@ -137,6 +141,15 @@ a:not(.MuiButton-root) {
     color 150ms ease,
     transform 150ms ease;
 }
+.nav-section {
+  display: block;
+  margin: 24px 16px 6px;
+  color: var(--color-leaf);
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
 .nav-link svg {
   width: 19px;
   height: 19px;
@@ -150,13 +163,6 @@ a:not(.MuiButton-root) {
   background: var(--color-leaf);
   color: var(--color-forest);
   font-weight: 600;
-}
-.sidebar-note {
-  margin-top: auto;
-  padding: 40px 16px 0;
-  color: var(--color-leaf);
-  line-height: 1.7;
-  font-size: var(--text-caption);
 }
 .workspace {
   min-width: 0;
@@ -297,6 +303,35 @@ a:not(.MuiButton-root) {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--color-line);
+}
+.task-board-navigation {
+  align-items: center;
+}
+.task-board-navigation > .MuiButton-root {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.wip-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+}
+.board-scroll-hint {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--color-evergreen-deep);
+  font-weight: 700;
+}
+.board-scroll-hint svg {
+  width: 16px;
+  height: 16px;
 }
 .task-board-filters {
   margin-bottom: 20px;
@@ -446,6 +481,17 @@ a:not(.MuiButton-root) {
   }
   .task-board-toolbar {
     align-items: stretch;
+  }
+  .task-board-navigation {
+    align-items: stretch;
+  }
+  .board-scroll-hint {
+    display: flex;
+  }
+  .wip-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
   }
 }
 @media (max-width: 599px) {
@@ -610,19 +656,11 @@ a:not(.MuiButton-root) {
 .MuiTableSortLabel-root {
   min-height: 44px;
 }
-.organization-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid var(--color-line);
-  border-radius: 14px;
-  background: var(--color-line);
-}
-
-.organization-metrics > div {
-  padding: 18px;
-  background: var(--color-paper);
+.organization-summary {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
 }
 
 .leadership-banner {
@@ -631,7 +669,7 @@ a:not(.MuiButton-root) {
   gap: 16px;
   padding: 20px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(20, 112, 95, 0.12), rgba(20, 112, 95, 0.03));
+  background: var(--color-success-soft);
 }
 
 .leadership-avatar {
@@ -649,6 +687,7 @@ a:not(.MuiButton-root) {
 .department-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 16px;
 }
 
@@ -657,16 +696,13 @@ a:not(.MuiButton-root) {
   border: 1px solid var(--color-line);
   border-radius: 16px;
   background: var(--color-paper);
-  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.04);
 }
 
 .milestone-summary {
   padding: 20px;
-  border-left: 4px solid var(--color-evergreen);
 }
 
 @media (max-width: 599px) {
-  .organization-metrics,
   .department-grid {
     grid-template-columns: 1fr;
   }

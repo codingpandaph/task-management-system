@@ -33,7 +33,7 @@ export function ListBoard({
         return personName(task.reporter);
       case 'Priority':
         return { HIGH: 0, MEDIUM: 1, LOW: 2 }[task.priority];
-      case 'Workspace':
+      case 'Department':
         return task.workspace.name;
       default:
         return task.dueDate;
@@ -44,7 +44,7 @@ export function ListBoard({
       <Table aria-label={board ? `${board.board.name} tasks` : 'My tasks'}>
         <TableHead>
           <TableRow>
-            {['Task', 'Status', ...(board ? [] : ['Workspace']), 'Assignee', 'Reporter', 'Priority', 'Due date'].map(
+            {['Task', 'Status', ...(board ? [] : ['Department']), 'Assignee', 'Reporter', 'Priority', 'Due date'].map(
               (label) => (
                 <SortHeader key={label} label={label} column={label} sort={sort} />
               ),

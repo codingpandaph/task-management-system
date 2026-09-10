@@ -384,13 +384,15 @@ hover, and keyboard-focus states. Deactivation is presented as a clearly labelle
 Catalogue and workflow screens place their permitted actions in the same header as the records they affect. Search
 labels follow the selected tab, including regular versus Christmas policies and leave versus cancellation approvals.
 The dashboard greeting contains no duplicate navigation actions; users act from the authoritative destination screen.
+The role-aware navigation groups Company, Work, Time off, Administration, and Updates while continuing to omit every
+destination the employee cannot access.
 Authorization failures explain who can perform the action and how to recover. Internal phrases such as “HR scope,”
 token names, transport formats, and database identifiers are not shown in employee-facing alerts.
 Task boards keep the selected board's actions, contextual search, filters, Scrum milestones, and columns in one surface.
 Each Scrum board represents one sprint and requires its single milestone in the same form. Start and due values are
 calendar dates without times, and new Scrum tasks use that board milestone automatically. The next sprint uses a new
 Scrum board. Its milestone summary shows the goal, dates, and capacity state. Completing the sprint requires a clear
-read-only confirmation, preserves task history, and moves the board into searchable Sprint history.
+read-only confirmation, preserves task history, and moves the board into searchable Past sprints.
 Tickets use drag-and-drop on the board and retain the labelled status selector in task details for keyboard access; the API
 still enforces every workflow rule and announces success or rejection without relying on color.
 

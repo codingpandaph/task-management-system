@@ -116,7 +116,7 @@ export function MilestoneStrip({
         <DialogContent dividers>
           <Alert severity="warning">
             Completing the sprint closes its milestone and makes this board read-only. Tasks and activity history remain
-            available under Completed sprints.
+            available under Past sprints.
           </Alert>
         </DialogContent>
         <DialogActions>

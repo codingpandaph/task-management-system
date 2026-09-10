@@ -20,6 +20,7 @@ import { NotificationIcon } from './notification-icon';
 export interface NavigationItem {
   href: string;
   label: string;
+  group: 'Company' | 'Work' | 'Time off' | 'Administration' | 'Updates';
   icon: ReactNode;
 }
 
@@ -27,28 +28,50 @@ export function portalNavigation(user: CurrentEmployee, unread: number): Navigat
   const organization = user.position === 'SENIOR_DIRECTOR' || user.permissions.includes('EMPLOYEE_READ');
   const manager = user.position !== 'MEMBER';
   return [
-    { href: '/', label: 'Overview', icon: <DashboardOutlined /> },
-    ...(organization ? [{ href: '/organization', label: 'Organization', icon: <AccountTreeOutlined /> }] : []),
-    ...(user.department ? [{ href: '/department', label: 'Department', icon: <BusinessOutlined /> }] : []),
-    ...(canViewPeople(user) ? [{ href: '/employees', label: 'People', icon: <GroupsOutlined /> }] : []),
-    { href: '/tasks', label: 'My tasks', icon: <WorkOutlineOutlined /> },
-    { href: '/workspaces', label: 'Team boards', icon: <ViewKanbanOutlined /> },
-    ...(manager ? [{ href: '/task-reports', label: 'Delivery reports', icon: <InsightsOutlined /> }] : []),
-    ...(manager ? [{ href: '/task-archive', label: 'Task archive', icon: <DeleteSweepOutlined /> }] : []),
-    { href: '/leave', label: 'My leave', icon: <BeachAccessOutlined /> },
-    ...(manager || user.permissions.includes('LEAVE_HR_APPROVE')
-      ? [{ href: '/approvals', label: 'Approvals', icon: <TaskAltOutlined /> }]
+    { href: '/', label: 'Overview', group: 'Company', icon: <DashboardOutlined /> },
+    ...(organization
+      ? [{ href: '/organization', label: 'Organization', group: 'Company' as const, icon: <AccountTreeOutlined /> }]
       : []),
-    { href: '/calendar', label: 'Leave calendar', icon: <CalendarMonthOutlined /> },
+    ...(user.department
+      ? [{ href: '/department', label: 'Department', group: 'Company' as const, icon: <BusinessOutlined /> }]
+      : []),
+    ...(canViewPeople(user)
+      ? [{ href: '/employees', label: 'People', group: 'Company' as const, icon: <GroupsOutlined /> }]
+      : []),
+    { href: '/tasks', label: 'My tasks', group: 'Work', icon: <WorkOutlineOutlined /> },
+    { href: '/workspaces', label: 'Team boards', group: 'Work', icon: <ViewKanbanOutlined /> },
+    ...(manager
+      ? [{ href: '/task-reports', label: 'Delivery reports', group: 'Work' as const, icon: <InsightsOutlined /> }]
+      : []),
+    ...(manager
+      ? [{ href: '/task-archive', label: 'Task archive', group: 'Work' as const, icon: <DeleteSweepOutlined /> }]
+      : []),
+    { href: '/leave', label: 'My leave', group: 'Time off', icon: <BeachAccessOutlined /> },
+    ...(manager || user.permissions.includes('LEAVE_HR_APPROVE')
+      ? [{ href: '/approvals', label: 'Approvals', group: 'Time off' as const, icon: <TaskAltOutlined /> }]
+      : []),
+    { href: '/calendar', label: 'Leave calendar', group: 'Time off', icon: <CalendarMonthOutlined /> },
     ...(user.permissions.includes('LEAVE_POLICY_MANAGE') || user.permissions.includes('CHRISTMAS_POLICY_MANAGE')
-      ? [{ href: '/policies', label: 'Policies', icon: <PolicyOutlined /> }]
+      ? [{ href: '/policies', label: 'Policies', group: 'Administration' as const, icon: <PolicyOutlined /> }]
       : []),
     ...(user.permissions.includes('LEAVE_ADMIN')
-      ? [{ href: '/hr', label: 'Leave administration', icon: <AdminPanelSettingsOutlined /> }]
+      ? [
+          {
+            href: '/hr',
+            label: 'Leave administration',
+            group: 'Administration' as const,
+            icon: <AdminPanelSettingsOutlined />,
+          },
+        ]
       : []),
     ...(user.permissions.includes('AUDIT_READ')
-      ? [{ href: '/audit', label: 'Audit log', icon: <FactCheckOutlined /> }]
+      ? [{ href: '/audit', label: 'Audit log', group: 'Administration' as const, icon: <FactCheckOutlined /> }]
       : []),
-    { href: '/notifications', label: 'Notifications', icon: <NotificationIcon unread={unread} /> },
+    {
+      href: '/notifications',
+      label: 'Notifications',
+      group: 'Updates',
+      icon: <NotificationIcon unread={unread} />,
+    },
   ];
 }

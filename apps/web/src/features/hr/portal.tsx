@@ -16,7 +16,7 @@ import LockOutlined from '@mui/icons-material/LockOutlined';
 import type { CurrentEmployee } from '@tms/contracts';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api, clearSession } from '@/lib/api';
 import { message } from './ui';
 import { ChangePasswordScreen, LoginScreen } from './auth-screens';
@@ -118,26 +118,20 @@ export default function Portal() {
             CPSync<small>PEOPLE & ORGANIZATION</small>
           </span>
         </Link>
-        <Typography variant="overline" sx={{ px: 2, mt: 4, color: 'var(--color-leaf)' }}>
-          WORKSPACE
-        </Typography>
         <nav aria-label="Main navigation">
-          {nav.map(({ href, label, icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={(href === '/' ? path === '/' : path.startsWith(href)) ? 'nav-link selected' : 'nav-link'}
-            >
-              {icon}
-              <span>{label}</span>
-            </Link>
+          {nav.map(({ href, label, group, icon }, index) => (
+            <Fragment key={href}>
+              {nav[index - 1]?.group !== group && <span className="nav-section">{group}</span>}
+              <Link
+                href={href}
+                className={(href === '/' ? path === '/' : path.startsWith(href)) ? 'nav-link selected' : 'nav-link'}
+              >
+                {icon}
+                <span>{label}</span>
+              </Link>
+            </Fragment>
           ))}
         </nav>
-        <div className="sidebar-note">
-          A little structure.
-          <br />
-          More room for people.
-        </div>
       </aside>
       <Drawer
         open={mobileNavigationOpen}
@@ -156,20 +150,19 @@ export default function Portal() {
               CPSync<small>PEOPLE & ORGANIZATION</small>
             </span>
           </Link>
-          <Typography variant="overline" sx={{ display: 'block', px: 2, mt: 3, color: 'var(--color-leaf)' }}>
-            WORKSPACE
-          </Typography>
           <nav aria-label="Mobile navigation">
-            {nav.map(({ href, label, icon }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileNavigationOpen(false)}
-                className={(href === '/' ? path === '/' : path.startsWith(href)) ? 'nav-link selected' : 'nav-link'}
-              >
-                {icon}
-                <span>{label}</span>
-              </Link>
+            {nav.map(({ href, label, group, icon }, index) => (
+              <Fragment key={href}>
+                {nav[index - 1]?.group !== group && <span className="nav-section">{group}</span>}
+                <Link
+                  href={href}
+                  onClick={() => setMobileNavigationOpen(false)}
+                  className={(href === '/' ? path === '/' : path.startsWith(href)) ? 'nav-link selected' : 'nav-link'}
+                >
+                  {icon}
+                  <span>{label}</span>
+                </Link>
+              </Fragment>
             ))}
           </nav>
         </Box>

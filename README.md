@@ -253,7 +253,10 @@ backup/restore procedures. This prototype does not claim legal certification.
   sprint and creates its single required milestone with date-only start and due dates; the next sprint uses a new
   board. Its milestone card summarizes the goal, dates, and capacity. **View capacity** opens the team breakdown, and
   **Complete sprint** explains that the board becomes read-only before confirmation. Completed Scrum boards move into
-  searchable **Sprint history**. Scrum tasks use the board milestone automatically.
+  searchable **Past sprints**. Scrum tasks use the board milestone automatically.
+- Navigation groups Company, Work, Time off, Administration, and Updates so each role can scan its permitted
+  destinations without a flat menu. Team boards uses employee-facing department language, keeps Past sprints beside
+  board selection, separates Kanban WIP status from filters, and shows a horizontal-board cue on touch layouts.
 - My tasks is a sortable table with search, status, and priority filters. Task and employment tables sort by clicking
   headers; People sorting applies on the API before pagination. Empty task due dates sort last in both directions.
 - Targeted browser regression: `yarn playwright test tests/e2e/ui-feedback.spec.ts --project=chromium` after preparing
