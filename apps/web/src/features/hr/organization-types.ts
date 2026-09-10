@@ -10,11 +10,19 @@ export interface Department {
   taskManagementTypes: TaskManagementType[];
   kanbanWipLimit: number;
   _count?: { employee_department: number };
-  workspace_department?: { _count: { boards: number } } | null;
+  teams?: Team[];
 }
-export interface DepartmentDetail extends Omit<Department, 'workspace_department'> {
-  employee_department: DirectoryEmployee[];
-  workspace_department: {
+export interface Team {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  version: number;
+  taskManagementTypes: TaskManagementType[];
+  kanbanWipLimit: number;
+  _count?: { employees: number };
+  employees?: DirectoryEmployee[];
+  workspace?: {
     id: string;
     memberships: { employeeId: string; canCreateTasks: boolean; canCreateBoards: boolean }[];
     boards: {
@@ -23,7 +31,12 @@ export interface DepartmentDetail extends Omit<Department, 'workspace_department
       kind: TaskManagementType;
       creator: { firstName: string; lastName: string };
     }[];
+    _count?: { boards: number };
   } | null;
+}
+export interface DepartmentDetail extends Department {
+  employee_department: DirectoryEmployee[];
+  teams: Team[];
 }
 export interface Policy {
   id: string;

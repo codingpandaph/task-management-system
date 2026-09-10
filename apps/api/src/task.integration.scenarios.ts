@@ -24,10 +24,30 @@ interface TaskIntegrationContext {
 }
 
 export async function registerTaskIntegrationScenarios(suite: TestContext, context: TaskIntegrationContext) {
-  const { actor, db, dep, find, hr, hrMember, leave, member, org, senior, tasks, year } = context;
+  const { actor, db, find, hr, hrMember, leave, member, org, senior, tasks, year } = context;
   await suite.test('delivery reporting is restricted to directors', async () => {
     await assert.rejects(tasks.reporting(member));
   });
+  await suite.test(
+    'team workspaces are private while department and organization leaders retain oversight',
+    async () => {
+      const otherTeamDirector = await actor('Bailey');
+      const managingDirector = await actor('Avery');
+      const otherWorkspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC-CLIENT-B' } });
+      await assert.rejects(tasks.board(member, otherWorkspace.id));
+      await assert.rejects(tasks.board(await actor('Jordan'), otherWorkspace.id));
+      assert.equal(
+        (await tasks.workspaces(otherTeamDirector)).map((workspace) => workspace.id).includes(otherWorkspace.id),
+        true,
+      );
+      assert.equal(
+        (await tasks.workspaces(senior)).filter((workspace) => workspace.departmentId === senior.employee.departmentId)
+          .length,
+        2,
+      );
+      assert.equal((await tasks.workspaces(managingDirector)).length >= 6, true);
+    },
+  );
   await suite.test('task numbers are workspace-scoped and concurrent creation is safe', async () => {
     const workspace = await db.workspace.findFirstOrThrow({ where: { code: 'ACC' }, include: { boards: true } });
     const dto = (title: string) => ({
@@ -99,7 +119,15 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     assert.equal(edited.reporterId, member.employee.id);
   });
   await suite.test('Senior Director provisions the correct adaptive workspace templates', async () => {
-    const workspace = await tasks.createWorkspace(senior, dep.id, 'ENGINEERING_PRODUCT');
+    const team = await db.team.create({
+      data: { code: 'DELIVERY', name: 'Delivery', departmentId: senior.employee.departmentId! },
+    });
+    const workspace = await tasks.createWorkspace(
+      senior,
+      senior.employee.departmentId!,
+      team.id,
+      'ENGINEERING_PRODUCT',
+    );
     const created = await db.workspace.findUniqueOrThrow({
       where: { id: workspace.id },
       include: { boards: { include: { columns: true } } },

@@ -1,44 +1,57 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { canRoleHoldPermission, HR_DELEGABLE } from '@tms/contracts';
-import type { Employee } from '../../generated/prisma/client';
 import { audit } from '../audit/audit';
 import { Principal, requireHr } from '../authorization/authorization';
-import { lockEmployee, type Transaction } from '../database/database.module';
+import { lockEmployee } from '../database/database.module';
 import { DepartmentDto, DepartmentTaskSettingsDto, EditDepartmentDto, PermissionDto } from './dto';
 import { directory } from './organization-base.service';
-import { OrganizationEmployeeService } from './organization-employee.service';
+import { OrganizationTeamService } from './organization-team.service';
 
-export abstract class OrganizationGovernanceService extends OrganizationEmployeeService {
+export abstract class OrganizationGovernanceService extends OrganizationTeamService {
+  private organizationWide(actor: Principal) {
+    return (
+      actor.employee.position === 'MANAGING_DIRECTOR' ||
+      (actor.employee.department?.kind === 'HR' && actor.permissions.includes('EMPLOYEE_READ'))
+    );
+  }
   async departments(actor: Principal) {
-    if (actor.employee.position !== 'SENIOR_DIRECTOR' && !actor.permissions.includes('EMPLOYEE_READ')) {
+    if (!this.organizationWide(actor)) {
       return this.db.department.findMany({ where: { id: actor.employee.departmentId! }, orderBy: { name: 'asc' } });
     }
     return this.db.department.findMany({
       include: {
         _count: { select: { employee_department: true } },
-        workspace_department: { select: { _count: { select: { boards: true } } } },
+        teams: { include: { workspace: { select: { _count: { select: { boards: true } } } } } },
       },
       orderBy: { name: 'asc' },
     });
   }
   async department(actor: Principal, id: string) {
-    const broad = actor.employee.position === 'SENIOR_DIRECTOR' || actor.permissions.includes('EMPLOYEE_READ');
+    const broad = this.organizationWide(actor);
     if (!broad && actor.employee.departmentId !== id) throw new ForbiddenException('You can only view your department');
     const department = await this.db.department.findUnique({
       where: { id },
       include: {
         employee_department: {
           where: { status: 'ACTIVE' },
-          include: { department: true },
+          include: { department: true, team: true },
           orderBy: [{ position: 'asc' }, { lastName: 'asc' }],
         },
-        workspace_department: {
+        teams: {
+          orderBy: { name: 'asc' },
           include: {
-            memberships: { where: { milestoneId: null } },
-            boards: {
-              where: { status: 'ACTIVE' },
+            employees: { where: { status: 'ACTIVE' }, include: { department: true, team: true } },
+            workspace: {
               include: {
-                creator: { select: { id: true, employeeId: true, firstName: true, lastName: true, position: true } },
+                memberships: { where: { milestoneId: null } },
+                boards: {
+                  where: { status: 'ACTIVE' },
+                  include: {
+                    creator: {
+                      select: { id: true, employeeId: true, firstName: true, lastName: true, position: true },
+                    },
+                  },
+                },
               },
             },
           },
@@ -49,6 +62,10 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     return {
       ...department,
       employee_department: department.employee_department.map(directory),
+      teams: department.teams.map((team) => ({
+        ...team,
+        employees: team.employees.map(directory),
+      })),
     };
   }
   async createDepartment(actor: Principal, dto: DepartmentDto) {
@@ -60,7 +77,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     });
   }
   async editDepartment(actor: Principal, id: string, dto: EditDepartmentDto) {
-    requireHr(actor, 'DEPARTMENT_UPDATE');
+    if (!this.canManageDepartment(actor, id)) requireHr(actor, 'DEPARTMENT_UPDATE');
     return this.db.transaction(async (tx) => {
       const r = await tx.department.updateMany({
         where: { id, version: dto.version },
@@ -78,7 +95,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     });
   }
   async configureTasks(actor: Principal, id: string, dto: DepartmentTaskSettingsDto) {
-    const managesOwn = actor.employee.position === 'ACCOUNT_DIRECTOR' && actor.employee.departmentId === id;
+    const managesOwn = this.canManageDepartment(actor, id);
     if (!managesOwn) requireHr(actor, 'DEPARTMENT_UPDATE');
     return this.db.transaction(async (tx) => {
       const updated = await tx.department.updateMany({
@@ -98,7 +115,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     });
   }
   async departmentStatus(actor: Principal, id: string, active: boolean) {
-    requireHr(actor, 'DEPARTMENT_UPDATE');
+    if (!this.canManageDepartment(actor, id)) requireHr(actor, 'DEPARTMENT_UPDATE');
     return this.db.transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Department" WHERE id=${id}::uuid FOR UPDATE`;
       const count = await tx.employee.count({ where: { departmentId: id, status: { in: ['ACTIVE', 'SUSPENDED'] } } });
@@ -118,22 +135,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       return result;
     });
   }
-  protected async history(tx: Transaction, employee: Employee, actor: Principal, reason: string) {
-    await tx.employeeOrganizationHistory.updateMany({
-      where: { employeeId: employee.id, effectiveTo: null },
-      data: { effectiveTo: new Date() },
-    });
-    await tx.employeeOrganizationHistory.create({
-      data: {
-        employeeId: employee.id,
-        departmentId: employee.departmentId,
-        position: employee.position,
-        actorId: actor.employee.id,
-        reason,
-      },
-    });
-  }
-  async transfer(actor: Principal, id: string, departmentId: string, reason: string) {
+  async transfer(actor: Principal, id: string, departmentId: string, teamId: string, reason: string) {
     requireHr(actor, 'DEPARTMENT_ASSIGN_MEMBER');
     if (id === actor.employee.id) throw new ForbiddenException('Self transfer is prohibited');
     return this.db.transaction(async (tx) => {
@@ -142,18 +144,24 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       if (e.position !== 'MEMBER') throw new ConflictException('Replace leadership assignment before transfer');
       const department = await tx.department.findUniqueOrThrow({ where: { id: departmentId } });
       if (department.status !== 'ACTIVE') throw new ConflictException('Active department required');
-      const updated = await tx.employee.update({ where: { id }, data: { departmentId, version: { increment: 1 } } });
+      const team = await tx.team.findFirst({ where: { id: teamId, departmentId, status: 'ACTIVE' } });
+      if (!team) throw new ConflictException('Active team in target department required');
+      const updated = await tx.employee.update({
+        where: { id },
+        data: { departmentId, teamId, version: { increment: 1 } },
+      });
       await this.history(tx, updated, actor, reason);
       await audit(tx, actor.employee.id, 'EMPLOYEE_TRANSFERRED', 'Employee', id, {
         from: e.departmentId,
         to: departmentId,
+        teamId,
       });
       return { ok: true };
     });
   }
   async director(actor: Principal, departmentId: string | null, employeeId: string, reason: string) {
     if (departmentId) requireHr(actor, 'DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR');
-    else if (actor.employee.position !== 'SENIOR_DIRECTOR') throw new ForbiddenException();
+    else if (actor.employee.position !== 'MANAGING_DIRECTOR') throw new ForbiddenException();
     if (employeeId === actor.employee.id) throw new ForbiddenException('Self assignment is prohibited');
     return this.db.transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "OrganizationSettings" FOR UPDATE`;
@@ -161,11 +169,11 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       if (
         !(await this.accounts.eligible(tx, e.id)) ||
         (departmentId && e.departmentId !== departmentId) ||
-        e.position === 'SENIOR_DIRECTOR' ||
+        e.position !== 'MEMBER' ||
         (!departmentId && (e.position !== 'MEMBER' || !e.departmentId))
       )
         throw new ConflictException('Eligible employee in target department required');
-      const position = departmentId ? 'ACCOUNT_DIRECTOR' : 'SENIOR_DIRECTOR';
+      const position = departmentId ? 'SENIOR_DIRECTOR' : 'MANAGING_DIRECTOR';
       const previous = await tx.employee.findMany({
         where: { position, ...(departmentId ? { departmentId } : {}), id: { not: employeeId } },
       });
@@ -175,6 +183,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
           data: {
             position: 'MEMBER',
             departmentId: departmentId ? old.departmentId : e.departmentId,
+            teamId: e.teamId,
             version: { increment: 1 },
           },
         });
@@ -182,7 +191,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
       }
       const updated = await tx.employee.update({
         where: { id: employeeId },
-        data: { position, departmentId: departmentId ?? null, version: { increment: 1 } },
+        data: { position, departmentId: departmentId ?? null, teamId: null, version: { increment: 1 } },
       });
       await this.history(tx, updated, actor, reason);
       await audit(tx, actor.employee.id, 'LEADERSHIP_ASSIGNED', 'Employee', employeeId, { position });
@@ -190,7 +199,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     });
   }
   async hrApprover(actor: Principal, employeeId: string) {
-    if (actor.employee.position !== 'SENIOR_DIRECTOR') throw new ForbiddenException();
+    if (actor.employee.position !== 'MANAGING_DIRECTOR') throw new ForbiddenException();
     return this.db.transaction(async (tx) => {
       const e = await tx.employee.findUniqueOrThrow({ where: { id: employeeId }, include: { department: true } });
       const grant = await tx.employeePermission.findFirst({
@@ -213,7 +222,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
   }
   async permission(actor: Principal, id: string, dto: PermissionDto, revoke = false) {
     if (id === actor.employee.id) throw new ForbiddenException('Self permission changes prohibited');
-    if (actor.employee.position !== 'SENIOR_DIRECTOR') {
+    if (actor.employee.position !== 'MANAGING_DIRECTOR') {
       requireHr(actor, revoke ? 'PERMISSION_REVOKE' : 'PERMISSION_ASSIGN');
       if (!HR_DELEGABLE.includes(dto.code) || !actor.permissions.includes(dto.code))
         throw new ForbiddenException('Permission is not delegable');
@@ -221,7 +230,7 @@ export abstract class OrganizationGovernanceService extends OrganizationEmployee
     return this.db.transaction(async (tx) => {
       await lockEmployee(tx, id);
       const target = await tx.employee.findUniqueOrThrow({ where: { id }, include: { department: true } });
-      if (target.position !== 'SENIOR_DIRECTOR' && target.department?.kind !== 'HR')
+      if (!['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(target.position) && target.department?.kind !== 'HR')
         throw new ForbiddenException('Administrative access can only be given to eligible HR employees');
       if (!revoke && !canRoleHoldPermission(target.position, target.department?.kind === 'HR', dto.code))
         throw new ForbiddenException('Permission exceeds the target role');

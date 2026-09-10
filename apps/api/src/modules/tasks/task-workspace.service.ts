@@ -42,11 +42,17 @@ function semantic(kind: TaskManagementType, name: string, isDone: boolean, posit
 
 export abstract class TaskWorkspaceService extends TaskBaseService {
   async workspaces(actor: Principal) {
-    const elevated = actor.employee.position === 'SENIOR_DIRECTOR';
+    const where =
+      actor.employee.position === 'MANAGING_DIRECTOR'
+        ? {}
+        : actor.employee.position === 'SENIOR_DIRECTOR'
+          ? { departmentId: actor.employee.departmentId! }
+          : { teamId: actor.employee.teamId ?? '00000000-0000-0000-0000-000000000000' };
     return this.db.workspace.findMany({
-      where: elevated ? {} : { departmentId: actor.employee.departmentId ?? '00000000-0000-0000-0000-000000000000' },
+      where,
       include: {
         department: true,
+        team: true,
         memberships: { where: { milestoneId: null }, include: { employee: { select: person } } },
         boards: {
           include: {
@@ -62,21 +68,32 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
     });
   }
 
-  async createWorkspace(actor: Principal, departmentId: string, fn: WorkspaceFunction) {
-    if (actor.employee.position !== 'SENIOR_DIRECTOR') throw new ForbiddenException('Senior Director required');
+  async createWorkspace(actor: Principal, departmentId: string, teamId: string, fn: WorkspaceFunction) {
+    if (!['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(actor.employee.position))
+      throw new ForbiddenException('Department leadership required');
     return this.db.transaction(async (tx) => {
       const department = await tx.department.findUnique({ where: { id: departmentId } });
       if (!department || department.status !== 'ACTIVE') throw new NotFoundException('Active department not found');
+      if (actor.employee.position === 'SENIOR_DIRECTOR' && actor.employee.departmentId !== departmentId)
+        throw new ForbiddenException('Senior Directors can provision workspaces only in their department');
+      const team = await tx.team.findFirst({ where: { id: teamId, departmentId, status: 'ACTIVE' } });
+      if (!team) throw new NotFoundException('Active team not found');
       const workspace = await tx.workspace.create({
-        data: { departmentId, code: department.code, name: `${department.name} workspace`, function: fn },
+        data: {
+          departmentId,
+          teamId,
+          code: `${department.code}-${team.code}`,
+          name: `${team.name} workspace`,
+          function: fn,
+        },
       });
       for (const template of workspaceTemplates[fn]) {
         const kind = template.kind;
-        if (department.taskManagementTypes.includes(kind)) {
+        if (team.taskManagementTypes.includes(kind)) {
           await this.createBoardRecord(tx, workspace.id, actor.employee.id, template.name, kind, template.columns);
         }
       }
-      const employees = await tx.employee.findMany({ where: { departmentId, status: 'ACTIVE' }, select: { id: true } });
+      const employees = await tx.employee.findMany({ where: { teamId, status: 'ACTIVE' }, select: { id: true } });
       await tx.workspaceMembership.createMany({
         data: employees.map(({ id }) => ({ workspaceId: workspace.id, employeeId: id })),
       });
@@ -116,10 +133,10 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
 
   async createBoard(actor: Principal, workspaceId: string, dto: BoardDto) {
     const workspace = await this.canCreate(actor, workspaceId, 'boards');
-    const department = await this.db.department.findUniqueOrThrow({ where: { id: workspace.departmentId } });
+    const team = await this.db.team.findUniqueOrThrow({ where: { id: workspace.teamId } });
     const kind = dto.kind ?? 'KANBAN';
-    if (!department.taskManagementTypes.includes(kind)) {
-      throw new BadRequestException(`${kind.toLowerCase()} boards are not enabled for this department`);
+    if (!team.taskManagementTypes.includes(kind)) {
+      throw new BadRequestException(`${kind.toLowerCase()} boards are not enabled for this team`);
     }
     const columns = dto.columns?.length
       ? dto.columns.map(
@@ -162,8 +179,8 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
   async addMembership(actor: Principal, workspaceId: string, dto: MembershipDto) {
     const workspace = await this.workspaceAccess(actor, workspaceId, true);
     const employee = await this.db.employee.findUnique({ where: { id: dto.employeeId } });
-    if (!employee || employee.status !== 'ACTIVE' || employee.departmentId !== workspace.departmentId) {
-      throw new BadRequestException('Choose an active member of this department');
+    if (!employee || employee.status !== 'ACTIVE' || employee.teamId !== workspace.teamId) {
+      throw new BadRequestException('Choose an active member of this team');
     }
     return this.db.transaction(async (tx) => {
       const existing = await tx.workspaceMembership.findFirst({
@@ -202,9 +219,9 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
     });
     if (!board) throw new NotFoundException('Board not found');
     await this.boardAccess(actor, board.id);
-    const department = await this.db.department.findUniqueOrThrow({ where: { id: workspace.departmentId } });
+    const team = await this.db.team.findUniqueOrThrow({ where: { id: workspace.teamId } });
     const people = await this.db.employee.findMany({
-      where: { departmentId: workspace.departmentId, status: 'ACTIVE' },
+      where: { teamId: workspace.teamId, status: 'ACTIVE' },
       select: {
         ...person,
         _count: {
@@ -227,7 +244,7 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
       wip: people.map(({ _count, ...employee }) => ({
         ...employee,
         used: _count.task_assignee,
-        limit: department.kanbanWipLimit,
+        limit: team.kanbanWipLimit,
       })),
     };
   }

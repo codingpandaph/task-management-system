@@ -20,8 +20,8 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
     if (board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (dto.assigneeId && (!assignee || assignee.status !== 'ACTIVE'))
       throw new BadRequestException('Assignee must be active');
-    if (assignee && assignee.departmentId !== workspace.departmentId)
-      throw new BadRequestException('Assignee must belong to this department');
+    if (assignee && assignee.teamId !== workspace.teamId)
+      throw new BadRequestException('Assignee must belong to this team');
     if (board.kind === 'SCRUM' && (!board.milestone || board.milestone.status !== 'OPEN'))
       throw new BadRequestException('This Scrum board requires an open milestone');
     if (dto.milestoneId && dto.milestoneId !== board.milestone?.id)
@@ -80,8 +80,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
     if (assigneeId) {
       employee = await this.db.employee.findUnique({ where: { id: assigneeId } });
       if (!employee || employee.status !== 'ACTIVE') throw new BadRequestException('Assignee must be active');
-      if (employee.departmentId !== task.workspace.departmentId)
-        throw new BadRequestException('Assignee must belong to this department');
+      if (employee.teamId !== task.workspace.teamId) throw new BadRequestException('Assignee must belong to this team');
     }
     const data = {
       title: dto.title,
@@ -94,7 +93,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
     };
     return this.db.transaction(async (tx) => {
       if (employee && task.board.kind === 'KANBAN' && task.column.semantic === 'IN_PROGRESS')
-        await this.enforceWip(tx, task.workspace.departmentId, employee.id, task.id);
+        await this.enforceWip(tx, task.workspace.teamId, employee.id, task.id);
       const updated = await tx.task.update({ where: { id }, data, include: taskInclude });
       await this.activity(
         tx,

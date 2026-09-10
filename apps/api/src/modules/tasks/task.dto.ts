@@ -49,6 +49,7 @@ export enum TaskLinkTypeDto {
 }
 export class WorkspaceDto {
   @IsUUID() departmentId!: string;
+  @IsUUID() teamId!: string;
   @IsEnum(WorkspaceFunctionDto) function!: keyof typeof WorkspaceFunctionDto;
 }
 export class ColumnDto {

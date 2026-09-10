@@ -26,6 +26,7 @@ export function OrganizationEmployeeView({
   setEmployeeTab,
   setSecret,
   user,
+  teamOptions,
 }: {
   can: (permission: CurrentEmployee['permissions'][number]) => boolean;
   christmasOptions: { value: string; label: string }[];
@@ -42,6 +43,7 @@ export function OrganizationEmployeeView({
   setEmployeeTab: (value: number) => void;
   setSecret: (value: string) => void;
   user: CurrentEmployee;
+  teamOptions: { value: string; label: string }[];
 }) {
   const reason: Field = { name: 'reason', label: 'Reason' };
   return (
@@ -73,10 +75,14 @@ export function OrganizationEmployeeView({
                 )}
                 {employeeTab === 0 && can('DEPARTMENT_ASSIGN_MEMBER') && (
                   <ModalForm
-                    buttonLabel="Transfer department"
+                    buttonLabel="Transfer team"
                     icon={<ManageAccountsOutlined />}
-                    title="Transfer department"
-                    fields={[{ name: 'departmentId', label: 'Department', options }, reason]}
+                    title="Transfer department and team"
+                    fields={[
+                      { name: 'departmentId', label: 'Department', options },
+                      { name: 'teamId', label: 'Team', options: teamOptions },
+                      reason,
+                    ]}
                     onSubmit={(v) => save(`employees/${id}/transfer`, v)}
                   />
                 )}

@@ -8,32 +8,39 @@ const widths = [375, 599, 600, 601, 768, 899, 900, 901, 1199, 1200, 1201, 1440, 
 registerAccessFeedbackScenarios();
 
 test('department checkboxes, policy actions, and Scrum dates follow the current context', async ({ page }) => {
-  await login(page.request, usernames.senior);
+  await login(page.request, usernames.managing);
   await page.goto('/organization');
   await page.getByRole('button', { name: 'Create department', exact: true }).click();
-  const department = page.getByRole('dialog');
-  await expect(department.getByRole('checkbox', { name: 'Kanban', exact: true })).toBeChecked();
-  await department.getByRole('checkbox', { name: 'Select all', exact: true }).check();
-  for (const label of ['Kanban', 'Scrum', 'List'])
-    await expect(department.getByRole('checkbox', { name: label, exact: true })).toBeChecked();
-  for (const width of widths) {
-    await page.setViewportSize({ width, height: 900 });
-    await expect(department.getByRole('checkbox', { name: 'Select all', exact: true })).toBeVisible();
-    expect(await department.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  }
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await department.getByRole('checkbox', { name: 'Kanban', exact: true }).uncheck();
-  await expect(department.getByLabel('Kanban: maximum in progress tasks per member')).toHaveCount(0);
-  await department.getByRole('checkbox', { name: 'Select all', exact: true }).check();
-  await department.getByRole('checkbox', { name: 'Select all', exact: true }).uncheck();
+  const department = page.getByRole('dialog', { name: 'Create a department' });
   await department.getByLabel('Department code').fill('UIFIX');
   await department.getByLabel('Department name').fill('UI feedback department');
   await department.getByRole('button', { name: 'Create department', exact: true }).click();
-  await expect(department.getByRole('alert')).toContainText('Select at least one');
-  await department.getByRole('checkbox', { name: 'List', exact: true }).check();
-  await department.getByRole('button', { name: 'Create department', exact: true }).click();
   await expect(department).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'UI feedback department' })).toBeVisible();
+  await page.getByRole('heading', { name: 'UI feedback department' }).click();
+  await page.getByRole('button', { name: 'Create team', exact: true }).click();
+  const team = page.getByRole('dialog', { name: 'Create a team in UI feedback department' });
+  await expect(team.getByRole('checkbox', { name: 'Kanban', exact: true })).toBeChecked();
+  await team.getByRole('checkbox', { name: 'Select all', exact: true }).check();
+  for (const label of ['Kanban', 'Scrum', 'List'])
+    await expect(team.getByRole('checkbox', { name: label, exact: true })).toBeChecked();
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(team.getByRole('checkbox', { name: 'Select all', exact: true })).toBeVisible();
+    expect(await team.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await team.getByRole('checkbox', { name: 'Kanban', exact: true }).uncheck();
+  await expect(team.getByLabel('Kanban: maximum in progress tasks per member')).toHaveCount(0);
+  await team.getByRole('checkbox', { name: 'Select all', exact: true }).check();
+  await team.getByRole('checkbox', { name: 'Select all', exact: true }).uncheck();
+  await team.getByLabel('Team code').fill('UI');
+  await team.getByLabel('Team name').fill('UI team');
+  await team.getByRole('button', { name: 'Create team', exact: true }).click();
+  await expect(team.getByRole('alert')).toContainText('Select at least one');
+  await team.getByRole('checkbox', { name: 'List', exact: true }).check();
+  await team.getByRole('button', { name: 'Create team', exact: true }).click();
+  await expect(team).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'UI team' })).toBeVisible();
   await page.goto('/policies');
   await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(1);
   await page.getByRole('button', { name: 'Create', exact: true }).click();

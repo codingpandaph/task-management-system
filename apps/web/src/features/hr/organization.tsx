@@ -54,7 +54,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
       api<PageResult<DirectoryEmployee>>(
         `${can('EMPLOYEE_READ') ? 'employees' : 'directory/employees'}?page=${page}&sortBy=${sort.key}&sortDirection=${sort.direction}&search=${encodeURIComponent(search)}${department ? `&departmentId=${department}` : ''}${position ? `&position=${position}` : ''}${status ? `&status=${status}` : ''}`,
       ),
-      user.position === 'SENIOR_DIRECTOR' || can('EMPLOYEE_READ')
+      ['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(user.position) || can('EMPLOYEE_READ')
         ? api<OrganizationHierarchy>('organization')
         : Promise.resolve({ departments: [], employees: [] }),
     ])
@@ -105,6 +105,11 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
     };
   }, [id, page, search, department, position, status, revision, user.permissions, sort.key, sort.direction]); // eslint-disable-line react-hooks/exhaustive-deps
   const options = departments.filter((d) => d.status === 'ACTIVE').map((d) => ({ value: d.id, label: d.name }));
+  const teamOptions = departments.flatMap((department) =>
+    (department.teams ?? [])
+      .filter((team) => team.status === 'ACTIVE')
+      .map((team) => ({ value: team.id, label: `${department.name} · ${team.name}` })),
+  );
   const employeeOptions = people.items.map((e) => ({ value: e.id, label: e.displayName }));
   const policyOptions = policies.leave.flatMap(
     (p) =>
@@ -148,6 +153,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         error={error}
         id={id}
         options={options}
+        teamOptions={teamOptions}
         permissionGrants={permissionGrants}
         policyOptions={policyOptions}
         save={save}
@@ -203,6 +209,7 @@ export function OrganizationScreens({ path, user }: { path: string; user: Curren
         setRevision((value) => value + 1);
       }}
       options={options}
+      teamOptions={teamOptions}
       page={page}
       people={people}
       policyOptions={policyOptions}

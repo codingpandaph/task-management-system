@@ -108,7 +108,7 @@ export async function registerTaskWorkflowScenarios(suite: TestContext, context:
       where: { code: 'ACC' },
       include: { department: true, boards: { include: { columns: true } } },
     });
-    await db.department.update({ where: { id: workspace.departmentId }, data: { kanbanWipLimit: 1 } });
+    await db.team.update({ where: { id: workspace.teamId }, data: { kanbanWipLimit: 1 } });
     const board = workspace.boards.find((item) => item.kind === 'KANBAN')!;
     const progress = board.columns.find((column) => column.semantic === 'IN_PROGRESS')!;
     const review = board.columns.find((column) => column.semantic === 'REVIEW')!;

@@ -24,15 +24,16 @@ export enum TaskManagementTypeDto {
   LIST = 'LIST',
 }
 export class PageDto {
-  @IsOptional() @IsIn(['name', 'employeeId', 'department', 'position']) sortBy?:
-    'name' | 'employeeId' | 'department' | 'position';
+  @IsOptional() @IsIn(['name', 'employeeId', 'department', 'team', 'position']) sortBy?:
+    'name' | 'employeeId' | 'department' | 'team' | 'position';
   @IsOptional() @IsIn(['asc', 'desc']) sortDirection: 'asc' | 'desc' = 'asc';
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
   @IsOptional() @IsString() @MaxLength(100) search?: string;
   @IsOptional() @IsUUID() departmentId?: string;
-  @IsOptional() @IsIn(['MEMBER', 'ACCOUNT_DIRECTOR', 'SENIOR_DIRECTOR']) position?:
-    'MEMBER' | 'ACCOUNT_DIRECTOR' | 'SENIOR_DIRECTOR';
+  @IsOptional() @IsUUID() teamId?: string;
+  @IsOptional() @IsIn(['MEMBER', 'ACCOUNT_DIRECTOR', 'SENIOR_DIRECTOR', 'MANAGING_DIRECTOR']) position?:
+    'MEMBER' | 'ACCOUNT_DIRECTOR' | 'SENIOR_DIRECTOR' | 'MANAGING_DIRECTOR';
   @IsOptional() @IsIn(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED']) status?:
     'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
   @IsOptional() @IsIn(['FULL_TIME', 'CONTRACTUAL', 'PROBATIONARY']) employmentType?:
@@ -77,6 +78,21 @@ export class DepartmentTaskSettingsDto {
   @Type(() => Number) @IsInt() @Min(1) @Max(50) kanbanWipLimit!: number;
   @IsInt() @Min(1) version!: number;
 }
+export class TeamDto {
+  @IsString() @Matches(/^[A-Z0-9]{2,10}$/) code!: string;
+  @IsString() @MinLength(2) @MaxLength(100) name!: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(3)
+  @ArrayUnique()
+  @IsEnum(TaskManagementTypeDto, { each: true })
+  taskManagementTypes?: TaskManagementTypeDto[];
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) kanbanWipLimit?: number;
+}
+export class EditTeamDto extends TeamDto {
+  @IsInt() @Min(1) version!: number;
+}
 export class EmployeeDto {
   @IsString() @MinLength(1) @MaxLength(80) firstName!: string;
   @IsOptional() @IsString() @MaxLength(80) middleName?: string;
@@ -84,6 +100,7 @@ export class EmployeeDto {
   @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) birthDate!: string;
   @IsOptional() @IsEmail() email?: string;
   @IsUUID() departmentId!: string;
+  @IsUUID() teamId!: string;
   @IsIn(['FULL_TIME', 'CONTRACTUAL', 'PROBATIONARY']) employmentType!: 'FULL_TIME' | 'CONTRACTUAL' | 'PROBATIONARY';
   @IsString() startDate!: string;
   @IsOptional() @IsString() endDate?: string;
@@ -109,6 +126,7 @@ export class AssignmentDto extends ReasonDto {
 }
 export class TransferDto extends ReasonDto {
   @IsUUID() departmentId!: string;
+  @IsUUID() teamId!: string;
 }
 export class SuspendDto extends ReasonDto {
   @IsString() suspendedUntil!: string;

@@ -9,7 +9,7 @@ import type { DirectoryEmployee } from '@tms/contracts';
 
 type Props = {
   boardName: string;
-  departmentId: string;
+  teamId: string;
   people: DirectoryEmployee[];
   search: string;
   priority: string;
@@ -19,7 +19,7 @@ type Props = {
   setAssignee: (value: string) => void;
 };
 export function TaskBoardFilters(props: Props) {
-  const { boardName, departmentId, people, search, priority, assignee, setSearch, setPriority, setAssignee } = props;
+  const { boardName, teamId, people, search, priority, assignee, setSearch, setPriority, setAssignee } = props;
   return (
     <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} useFlexGap className="task-board-filters">
       <TextField
@@ -48,7 +48,7 @@ export function TaskBoardFilters(props: Props) {
         <MenuItem value="ALL">All assignees</MenuItem>
         <MenuItem value="UNASSIGNED">Unassigned</MenuItem>
         {people
-          .filter((person) => person.department?.id === departmentId)
+          .filter((person) => person.team?.id === teamId)
           .map((person) => (
             <MenuItem key={person.id} value={person.id}>
               {person.displayName}

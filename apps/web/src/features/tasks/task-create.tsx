@@ -118,7 +118,7 @@ export function CreateTask({
               <TextField name="assigneeId" label="Assignee" select defaultValue="">
                 <MenuItem value="">Unassigned</MenuItem>
                 {people
-                  .filter((employee) => employee.department?.id === workspace.departmentId)
+                  .filter((employee) => employee.team?.id === workspace.teamId)
                   .map((employee) => (
                     <MenuItem key={employee.id} value={employee.id}>
                       {employee.displayName}

@@ -42,6 +42,7 @@ export function OrganizationDirectoryView({
   setSearch,
   setStatus,
   status,
+  teamOptions,
 }: {
   sort: { key: string; direction: 'asc' | 'desc'; toggle: (key: string) => void };
   can: (permission: CurrentEmployee['permissions'][number]) => boolean;
@@ -63,6 +64,7 @@ export function OrganizationDirectoryView({
   setSearch: (value: string) => void;
   setStatus: (value: string) => void;
   status: string;
+  teamOptions: { value: string; label: string }[];
 }) {
   return (
     <Stack spacing={3}>
@@ -84,6 +86,7 @@ export function OrganizationDirectoryView({
                 { name: 'birthDate', label: 'Birth date', type: 'date' },
                 { name: 'email', label: 'Email', type: 'email', optional: true },
                 { name: 'departmentId', label: 'Department', options },
+                { name: 'teamId', label: 'Team', options: teamOptions },
                 {
                   name: 'employmentType',
                   label: 'Employment type',
@@ -194,6 +197,7 @@ export function OrganizationDirectoryView({
                   ['name', 'Name'],
                   ['employeeId', 'Employee ID'],
                   ['department', 'Department'],
+                  ['team', 'Team'],
                   ['position', 'Position'],
                 ].map(([column, label]) => (
                   <SortHeader key={column} label={label} column={column} sort={sort} />
@@ -225,6 +229,7 @@ export function OrganizationDirectoryView({
                   </TableCell>
                   <TableCell>{e.employeeId}</TableCell>
                   <TableCell>{e.department?.name ?? 'Organization-wide'}</TableCell>
+                  <TableCell>{e.team?.name ?? '—'}</TableCell>
                   <TableCell>
                     <Tag value={e.position} />
                   </TableCell>

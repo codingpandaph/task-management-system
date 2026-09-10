@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { NestFactory } from '@nestjs/core';
-import { PERMISSIONS } from '@tms/contracts';
 import { AppModule } from './app.module';
 import { seed } from './seed';
 import { AuthService } from './modules/auth/auth.service';
@@ -43,27 +42,34 @@ test('HR foundation against PostgreSQL', async (suite) => {
       return auth.principal(session.access);
     };
     const hr = await actor('Taylor'),
-      senior = await actor('Avery'),
+      senior = await actor('Sidney'),
+      managing = await actor('Avery'),
       member = await actor('Alex'),
       hrMember = await actor('Riley'),
       accountDirector = await actor('Jordan');
     const policy = await db.leavePolicyVersion.findFirstOrThrow(),
       christmas = await db.christmasPolicyVersion.findFirstOrThrow();
-    await suite.test('full seed matches the two 15-member teams plus the additional HR department', async () => {
-      assert.equal(await db.department.count(), 3);
-      assert.equal(await db.employee.count({ where: { department: { code: 'ACC' }, position: 'MEMBER' } }), 15);
-      assert.equal(await db.employee.count({ where: { department: { code: 'MKT' }, position: 'MEMBER' } }), 15);
-      assert.equal(await db.employee.count({ where: { position: 'SENIOR_DIRECTOR' } }), 1);
-      assert.equal(await db.employee.count({ where: { position: 'SENIOR_DIRECTOR', departmentId: null } }), 1);
-      assert.equal(await db.employee.count({ where: { position: { not: 'SENIOR_DIRECTOR' }, departmentId: null } }), 0);
-      assert.equal(
-        await db.employee.count({
-          where: { department: { code: { in: ['ACC', 'MKT'] } }, position: 'ACCOUNT_DIRECTOR' },
-        }),
-        2,
-      );
-    });
-    await suite.test('role matrix grants bounded defaults and gives the Senior Director full access', () => {
+    await suite.test(
+      'full seed matches the Managing Director, department leaders, and four 15-member teams',
+      async () => {
+        assert.equal(await db.department.count(), 3);
+        for (const code of ['CLIENT-A', 'CLIENT-B', 'MKT-A', 'MKT-B'])
+          assert.equal(
+            await db.employee.count({ where: { team: { code }, position: 'MEMBER', status: 'ACTIVE' } }),
+            15,
+          );
+        assert.equal(await db.employee.count({ where: { position: 'SENIOR_DIRECTOR' } }), 3);
+        assert.equal(await db.employee.count({ where: { position: 'MANAGING_DIRECTOR', departmentId: null } }), 1);
+        assert.equal(await db.team.count({ where: { department: { code: 'ACC' } } }), 2);
+        assert.equal(
+          await db.employee.count({
+            where: { department: { code: { in: ['ACC', 'MKT'] } }, position: 'ACCOUNT_DIRECTOR' },
+          }),
+          4,
+        );
+      },
+    );
+    await suite.test('role matrix grants bounded defaults and gives the Managing Director full access', () => {
       assert.equal(auth.view(member).role, 'MEMBER');
       assert.deepEqual(member.permissions, []);
       assert.equal(auth.view(accountDirector).role, 'ACCOUNT_DIRECTOR');
@@ -75,16 +81,28 @@ test('HR foundation against PostgreSQL', async (suite) => {
       assert.equal(hr.permissions.includes('LEAVE_ADMIN'), true);
       assert.equal(hr.permissions.includes('PERMISSION_ASSIGN'), false);
       assert.equal(auth.view(senior).role, 'SENIOR_DIRECTOR');
-      assert.deepEqual(new Set(senior.permissions), new Set(PERMISSIONS));
+      assert.deepEqual(
+        new Set(senior.permissions),
+        new Set([
+          'EMPLOYEE_READ',
+          'DEPARTMENT_UPDATE',
+          'DEPARTMENT_ASSIGN_MEMBER',
+          'DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR',
+          'REPORTING_READ',
+        ]),
+      );
+      assert.equal(auth.view(managing).role, 'MANAGING_DIRECTOR');
     });
     const suffix = randomUUID().replaceAll('-', '').slice(0, 7).toUpperCase();
     const dep = await org.createDepartment(hr, { code: `T${suffix}`, name: `Integration ${suffix}` });
+    const integrationTeam = await org.createTeam(hr, dep.id, { code: 'CORE', name: 'Integration team' });
     const create = async (name: string) =>
       org.create(hr, {
         firstName: name,
         lastName: suffix,
         birthDate: '1991-02-03',
         departmentId: dep.id,
+        teamId: integrationTeam.id,
         employmentType: 'FULL_TIME',
         startDate: `${year}-01-01`,
         leavePolicyVersionId: policy.id,
@@ -96,7 +114,13 @@ test('HR foundation against PostgreSQL', async (suite) => {
       assert.equal(new Set(results.map((r) => r.employeeId)).size, 3);
       assert.match(newcomer.employeeId, new RegExp(`^${year}-T${suffix}-\\d{6}$`));
       await assert.rejects(db.employee.update({ where: { id: newcomer.id }, data: { employeeId: 'changed' } }));
-      await org.transfer(hr, newcomer.id, member.employee.departmentId!, 'Integration transfer');
+      await org.transfer(
+        hr,
+        newcomer.id,
+        member.employee.departmentId!,
+        member.employee.teamId!,
+        'Integration transfer',
+      );
       assert.equal(
         (await db.employee.findUniqueOrThrow({ where: { id: newcomer.id } })).employeeId,
         newcomer.employeeId,
@@ -144,13 +168,14 @@ test('HR foundation against PostgreSQL', async (suite) => {
       await assert.rejects(db.employee.update({ where: { id: newcomer.id }, data: { position: 'SENIOR_DIRECTOR' } }));
       await assert.rejects(db.employee.update({ where: { id: newcomer.id }, data: { position: 'ACCOUNT_DIRECTOR' } }));
     });
-    await suite.test('exact five approval chains are resolved', async () => {
+    await suite.test('exact seven approval chains are resolved', async () => {
       for (const [name, expected] of [
-        ['Alex', ['ACCOUNT_DIRECTOR', 'HR']],
+        ['Alex', ['ACCOUNT_DIRECTOR', 'SENIOR_DIRECTOR', 'HR']],
         ['Jordan', ['SENIOR_DIRECTOR', 'HR']],
         ['Avery', []],
-        ['Riley', ['ACCOUNT_DIRECTOR']],
+        ['Riley', ['ACCOUNT_DIRECTOR', 'SENIOR_DIRECTOR']],
         ['Taylor', ['SENIOR_DIRECTOR']],
+        ['Hayden', ['MANAGING_DIRECTOR']],
       ] as const) {
         const employee = await find(name);
         const steps = await db.transaction((tx) => resolver.resolve(tx, employee));
@@ -171,7 +196,7 @@ test('HR foundation against PostgreSQL', async (suite) => {
     });
     await suite.test('reservation, ordered approval, duplicate rejection and cancellation reversal', async () => {
       const e = await create('LeaveOwner');
-      await org.transfer(hr, e.id, member.employee.departmentId!, 'Test manager assignment');
+      await org.transfer(hr, e.id, member.employee.departmentId!, member.employee.teamId!, 'Test manager assignment');
       const login = await auth.login(e.employeeId, e.temporaryPassword);
       const p = await auth.principal(login.access);
       // Service tests use a fully authenticated employee after changing the temporary password.
@@ -184,9 +209,11 @@ test('HR foundation against PostgreSQL', async (suite) => {
       assert.equal(reserved.find((b) => b.type === 'VACATION')!.reserved, 2);
       await assert.rejects(leave.decide(hr, d.id, { decision: 'APPROVED' }));
       const director = await actor('Jordan'),
+        departmentDirector = await actor('Sidney'),
         approver = await actor('Morgan');
       await leave.decide(director, d.id, { decision: 'APPROVED' });
       await assert.rejects(leave.decide(director, d.id, { decision: 'APPROVED' }));
+      await leave.decide(departmentDirector, d.id, { decision: 'APPROVED' });
       await leave.decide(approver, d.id, { decision: 'APPROVED' });
       const used = await leave.balance(owner, year);
       assert.equal(used.find((b) => b.type === 'VACATION')!.used, 2);
@@ -194,12 +221,13 @@ test('HR foundation against PostgreSQL', async (suite) => {
       const c = await leave.cancel(owner, d.id, { reason: 'Plans changed', operationId: randomUUID() });
       assert.equal((await leave.balance(owner, year)).find((b) => b.type === 'VACATION')!.used, 2);
       await leave.decideCancellation(director, c.id, { decision: 'APPROVED' });
+      await leave.decideCancellation(departmentDirector, c.id, { decision: 'APPROVED' });
       await leave.decideCancellation(approver, c.id, { decision: 'APPROVED' });
       assert.deepEqual(await leave.balance(owner, year), before);
     });
     await suite.test('concurrent overlapping submissions cannot both reserve', async () => {
       const e = await create('RaceOwner');
-      await org.transfer(hr, e.id, member.employee.departmentId!, 'Test assignment');
+      await org.transfer(hr, e.id, member.employee.departmentId!, member.employee.teamId!, 'Test assignment');
       const login = await auth.login(e.employeeId, e.temporaryPassword);
       const changed = await auth.changePassword(
         await auth.principal(login.access),
@@ -259,17 +287,14 @@ test('HR foundation against PostgreSQL', async (suite) => {
       year,
     });
     await registerTaskWorkflowScenarios(suite, { actor, db, find, member, tasks, year });
-    await suite.test('Senior Director succession moves leadership above departments', async () => {
-      const successorDepartmentId = (await db.employee.findUniqueOrThrow({ where: { id: newcomer.id } })).departmentId!;
-      await org.director(senior, null, newcomer.id, 'Integration succession');
-      const [successor, outgoing] = await Promise.all([
-        db.employee.findUniqueOrThrow({ where: { id: newcomer.id } }),
-        db.employee.findUniqueOrThrow({ where: { id: senior.employee.id } }),
-      ]);
-      assert.equal(successor.position, 'SENIOR_DIRECTOR');
-      assert.equal(successor.departmentId, null);
-      assert.equal(outgoing.position, 'MEMBER');
-      assert.equal(outgoing.departmentId, successorDepartmentId);
+    await suite.test('database enforces one active leader at every hierarchy scope', async () => {
+      await assert.rejects(
+        db.employee.update({
+          where: { id: newcomer.id },
+          data: { position: 'MANAGING_DIRECTOR', departmentId: null, teamId: null },
+        }),
+      );
+      assert.equal(await db.employee.count({ where: { position: 'MANAGING_DIRECTOR', status: 'ACTIVE' } }), 1);
     });
   } finally {
     await app.close();

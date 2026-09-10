@@ -1,13 +1,13 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import type { DirectoryEmployee } from '@tms/contracts';
 import { dateOnly } from '../../common/dates';
-import type { Department, Employee } from '../../generated/prisma/client';
+import type { Department, Employee, Team } from '../../generated/prisma/client';
 import { AuthService } from '../auth/auth.service';
 import { DatabaseService } from '../database/database.module';
 import { AccountStatusService } from '../employment/account-status.service';
 import { EmploymentDto } from './dto';
 
-export function directory(e: Employee & { department: Department | null }): DirectoryEmployee {
+export function directory(e: Employee & { department: Department | null; team?: Team | null }): DirectoryEmployee {
   return {
     id: e.id,
     employeeId: e.employeeId,
@@ -16,6 +16,7 @@ export function directory(e: Employee & { department: Department | null }): Dire
     department: e.department
       ? { id: e.department.id, code: e.department.code, name: e.department.name, kind: e.department.kind }
       : null,
+    team: e.team ? { id: e.team.id, code: e.team.code, name: e.team.name } : null,
   };
 }
 

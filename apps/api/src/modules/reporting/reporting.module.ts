@@ -22,12 +22,16 @@ class ReportingController {
   constructor(private readonly db: DatabaseService) {}
   @Get('reporting/dashboard') async dashboard(@Req() r: AuthRequest) {
     const employee = r.principal.employee;
-    const broad =
-      employee.position === 'SENIOR_DIRECTOR' ||
+    const organizationWide =
+      employee.position === 'MANAGING_DIRECTOR' ||
       (employee.department?.kind === 'HR' && r.principal.permissions.includes('REPORTING_READ'));
-    if (!broad && employee.position !== 'ACCOUNT_DIRECTOR')
+    if (!organizationWide && !['SENIOR_DIRECTOR', 'ACCOUNT_DIRECTOR'].includes(employee.position))
       throw new ForbiddenException('Overview is available to directors and authorized HR employees');
-    const scope = broad ? {} : { departmentId: employee.departmentId, position: { not: 'SENIOR_DIRECTOR' as const } };
+    const scope = organizationWide
+      ? {}
+      : employee.position === 'SENIOR_DIRECTOR'
+        ? { departmentId: employee.departmentId }
+        : { teamId: employee.teamId };
     const day = dateOnly(today());
     const deadline = new Date(day.getTime() + 90 * 86400_000);
     const active = await this.db.employee.count({ where: { ...scope, status: 'ACTIVE' } });
@@ -97,7 +101,7 @@ class ReportingController {
     if (first > last || last.getTime() - first.getTime() > 93 * 86400_000)
       throw new UnprocessableEntityException('Choose a date range up to 93 days');
     const broad =
-      r.principal.employee.position === 'SENIOR_DIRECTOR' ||
+      r.principal.employee.position === 'MANAGING_DIRECTOR' ||
       (r.principal.employee.department?.kind === 'HR' && r.principal.permissions.includes('REPORTING_READ'));
     return this.db.leaveRequest.findMany({
       where: {
@@ -106,7 +110,7 @@ class ReportingController {
         endDate: { gte: first },
         employee: broad
           ? { departmentId }
-          : r.principal.employee.position === 'ACCOUNT_DIRECTOR'
+          : ['SENIOR_DIRECTOR', 'ACCOUNT_DIRECTOR'].includes(r.principal.employee.position)
             ? { departmentId: r.principal.employee.departmentId }
             : { id: r.principal.employee.id },
       },

@@ -47,9 +47,9 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
   const broad =
-    user.position === 'SENIOR_DIRECTOR' ||
+    user.position === 'MANAGING_DIRECTOR' ||
     (user.department?.kind === 'HR' && user.permissions.includes('REPORTING_READ'));
-  const overview = broad || user.position === 'ACCOUNT_DIRECTOR';
+  const overview = broad || ['SENIOR_DIRECTOR', 'ACCOUNT_DIRECTOR'].includes(user.position);
   const start = `${month}-01`,
     last = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate(),
     end = `${month}-${last}`;
@@ -107,7 +107,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
       title={
         broad
           ? 'Organization leave calendar'
-          : user.position === 'ACCOUNT_DIRECTOR'
+          : ['SENIOR_DIRECTOR', 'ACCOUNT_DIRECTOR'].includes(user.position)
             ? 'Department leave calendar'
             : 'My leave calendar'
       }
@@ -115,7 +115,7 @@ export function OverviewScreens({ path, user }: { path: string; user: CurrentEmp
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         {broad
           ? 'Approved leave across the organization.'
-          : user.position === 'ACCOUNT_DIRECTOR'
+          : ['SENIOR_DIRECTOR', 'ACCOUNT_DIRECTOR'].includes(user.position)
             ? `Approved leave in ${user.department?.name ?? 'your department'}.`
             : 'Your approved leave. Only your absences appear here.'}
       </Typography>

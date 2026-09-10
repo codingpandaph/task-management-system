@@ -17,7 +17,7 @@ import type { Workspace } from './task-types';
 
 export function BoardCreateDialog({ workspace, refresh }: { workspace: Workspace; refresh: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<TaskManagementType>(workspace.department.taskManagementTypes[0]);
+  const [kind, setKind] = useState<TaskManagementType>(workspace.team.taskManagementTypes[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const scrum = kind === 'SCRUM';
@@ -61,7 +61,7 @@ export function BoardCreateDialog({ workspace, refresh }: { workspace: Workspace
                 value={kind}
                 onChange={(event) => setKind(event.target.value as TaskManagementType)}
               >
-                {workspace.department.taskManagementTypes.map((type) => (
+                {workspace.team.taskManagementTypes.map((type) => (
                   <MenuItem key={type} value={type}>
                     {type[0] + type.slice(1).toLowerCase()}
                   </MenuItem>

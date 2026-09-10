@@ -117,7 +117,12 @@ export function registerManagementScenarios() {
     const employee = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
     try {
       const csrf = await login(hr, usernames.hr);
-      const departments = (await (await hr.get('/api/departments')).json()) as { id: string; code: string }[];
+      const departments = (await (await hr.get('/api/departments')).json()) as {
+        id: string;
+        code: string;
+        teams: { id: string }[];
+      }[];
+      const clientServices = departments.find((d) => d.code === 'ACC')!;
       const policies = (await (await hr.get('/api/policies')).json()) as {
         leave: { leavePolicyVersion_policy: { id: string }[] }[];
         christmas: { christmasPolicyVersion_policy: { id: string }[] }[];
@@ -126,7 +131,8 @@ export function registerManagementScenarios() {
         firstName: 'Security',
         lastName: `Fixture${Date.now()}`,
         birthDate: '1990-06-15',
-        departmentId: departments.find((d) => d.code === 'ACC')!.id,
+        departmentId: clientServices.id,
+        teamId: clientServices.teams[0].id,
         employmentType: 'FULL_TIME',
         startDate: `${year}-01-01`,
         leavePolicyVersionId: policies.leave[0].leavePolicyVersion_policy[0].id,
@@ -162,10 +168,10 @@ export function registerManagementScenarios() {
 
   test('remaining management, policy, lifecycle, reporting, and session flows complete', async ({ playwright }) => {
     const hr = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
-    const senior = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
+    const managing = await playwright.request.newContext({ baseURL: 'http://127.0.0.1:3100' });
     try {
       const hrCsrf = await login(hr, usernames.hr),
-        seniorCsrf = await login(senior, usernames.senior);
+        managingCsrf = await login(managing, usernames.managing);
       const suffix = Date.now().toString().slice(-6);
       const department = await post<{ id: string; version: number }>(hr, 'departments', hrCsrf, {
         code: `Z${suffix}`,
@@ -182,6 +188,10 @@ export function registerManagementScenarios() {
       expect(editDepartment.ok(), await editDepartment.text()).toBe(true);
       await post(hr, `departments/${department.id}/deactivate`, hrCsrf, {});
       await post(hr, `departments/${department.id}/activate`, hrCsrf, {});
+      const team = await post<{ id: string }>(hr, `departments/${department.id}/teams`, hrCsrf, {
+        code: 'CORE',
+        name: `Lifecycle delivery ${suffix}`,
+      });
 
       const policies = (await (await hr.get('/api/policies')).json()) as {
         leave: { leavePolicyVersion_policy: { id: string }[] }[];
@@ -192,6 +202,7 @@ export function registerManagementScenarios() {
         lastName: `Tester${suffix}`,
         birthDate: '1991-04-10',
         departmentId: department.id,
+        teamId: team.id,
         employmentType: 'FULL_TIME',
         startDate: `${year}-01-01`,
         leavePolicyVersionId: policies.leave[0].leavePolicyVersion_policy[0].id,
@@ -243,20 +254,28 @@ export function registerManagementScenarios() {
         items: { id: string; displayName: string; department: { code: string } }[];
       };
       const riley = people.items.find((person) => person.displayName === 'Riley Shaw')!;
-      await post(senior, `employees/${riley.id}/permissions`, seniorCsrf, {
+      await post(managing, `employees/${riley.id}/permissions`, managingCsrf, {
         code: 'EMPLOYEE_READ',
         reason: 'E2E grant',
       });
-      expect((await senior.get(`/api/employees/${riley.id}/permissions`)).ok()).toBe(true);
-      await post(senior, `employees/${riley.id}/permissions/revoke`, seniorCsrf, {
+      expect((await managing.get(`/api/employees/${riley.id}/permissions`)).ok()).toBe(true);
+      await post(managing, `employees/${riley.id}/permissions/revoke`, managingCsrf, {
         code: 'EMPLOYEE_READ',
         reason: 'E2E revoke',
       });
 
-      const acc = ((await (await hr.get('/api/departments')).json()) as { id: string; code: string }[]).find(
-        (d) => d.code === 'ACC',
-      )!;
-      await post(hr, `employees/${employee.id}/transfer`, hrCsrf, { departmentId: acc.id, reason: 'E2E transfer' });
+      const acc = (
+        (await (await hr.get('/api/departments')).json()) as {
+          id: string;
+          code: string;
+          teams: { id: string }[];
+        }[]
+      ).find((d) => d.code === 'ACC')!;
+      await post(hr, `employees/${employee.id}/transfer`, hrCsrf, {
+        departmentId: acc.id,
+        teamId: acc.teams[0].id,
+        reason: 'E2E transfer',
+      });
       await post(hr, `employees/${employee.id}/reset-password`, hrCsrf, { reason: 'E2E reset' });
       await post(hr, `employees/${employee.id}/suspend`, hrCsrf, {
         reason: 'E2E suspension',
@@ -274,17 +293,17 @@ export function registerManagementScenarios() {
         const response = await hr.get(`/api/${endpoint}`);
         expect(response.ok(), `${endpoint}: ${await response.text()}`).toBe(true);
       }
-      const refreshed = await senior.post('/api/auth/refresh', {
-        headers: { origin: 'http://127.0.0.1:3100', 'x-tms-client': 'web', 'x-csrf-token': seniorCsrf },
+      const refreshed = await managing.post('/api/auth/refresh', {
+        headers: { origin: 'http://127.0.0.1:3100', 'x-tms-client': 'web', 'x-csrf-token': managingCsrf },
         data: {},
       });
       expect(refreshed.ok(), await refreshed.text()).toBe(true);
       const refreshedCsrf = ((await refreshed.json()) as { csrf: string }).csrf;
-      await post(senior, 'auth/logout', refreshedCsrf, {});
-      expect((await senior.get('/api/auth/me')).status()).toBe(401);
+      await post(managing, 'auth/logout', refreshedCsrf, {});
+      expect((await managing.get('/api/auth/me')).status()).toBe(401);
     } finally {
       await hr.dispose();
-      await senior.dispose();
+      await managing.dispose();
     }
   });
 }

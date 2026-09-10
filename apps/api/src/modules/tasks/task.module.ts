@@ -25,7 +25,7 @@ class TaskController {
     return this.service.workspaces(request.principal);
   }
   @Post('task-workspaces') createWorkspace(@Req() request: AuthRequest, @Body() dto: WorkspaceDto) {
-    return this.service.createWorkspace(request.principal, dto.departmentId, dto.function);
+    return this.service.createWorkspace(request.principal, dto.departmentId, dto.teamId, dto.function);
   }
   @Post('task-workspaces/:id/boards') board(
     @Req() request: AuthRequest,

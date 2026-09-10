@@ -13,6 +13,8 @@ import {
   PermissionDto,
   ReasonDto,
   SuspendDto,
+  TeamDto,
+  EditTeamDto,
   TransferDto,
 } from './dto';
 import { OrganizationService } from './organization.service';
@@ -64,6 +66,29 @@ class OrganizationController {
   ) {
     return this.service.configureTasks(r.principal, id, d);
   }
+  @Post('departments/:id/teams') createTeam(
+    @Req() r: AuthRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() d: TeamDto,
+  ) {
+    return this.service.createTeam(r.principal, id, d);
+  }
+  @Patch('teams/:id') editTeam(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string, @Body() d: EditTeamDto) {
+    return this.service.editTeam(r.principal, id, d);
+  }
+  @Post('teams/:id/activate') activateTeam(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.teamStatus(r.principal, id, true);
+  }
+  @Post('teams/:id/deactivate') deactivateTeam(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.teamStatus(r.principal, id, false);
+  }
+  @Post('teams/:id/director') teamDirector(
+    @Req() r: AuthRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() d: AssignmentDto,
+  ) {
+    return this.service.teamDirector(r.principal, id, d.employeeId, d.reason);
+  }
   @Post('departments/:id/activate') activate(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.departmentStatus(r.principal, id, true);
   }
@@ -77,7 +102,7 @@ class OrganizationController {
   ) {
     return this.service.director(r.principal, id, d.employeeId, d.reason);
   }
-  @Post('organization/senior-director') senior(@Req() r: AuthRequest, @Body() d: AssignmentDto) {
+  @Post('organization/managing-director') managingDirector(@Req() r: AuthRequest, @Body() d: AssignmentDto) {
     return this.service.director(r.principal, null, d.employeeId, d.reason);
   }
   @Post('organization/hr-approver') hr(@Req() r: AuthRequest, @Body() d: AssignmentDto) {
@@ -88,7 +113,7 @@ class OrganizationController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() d: TransferDto,
   ) {
-    return this.service.transfer(r.principal, id, d.departmentId, d.reason);
+    return this.service.transfer(r.principal, id, d.departmentId, d.teamId, d.reason);
   }
   @Get('permissions') catalogue() {
     return PERMISSIONS;

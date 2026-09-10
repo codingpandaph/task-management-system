@@ -22,7 +22,7 @@ type Props = {
   search: string;
   priority: string;
   assignee: string;
-  people: { id: string; displayName: string; department: { id: string } | null }[];
+  people: { id: string; displayName: string; team: { id: string } | null }[];
   setSearch: (value: string) => void;
   setPriority: (value: string) => void;
   setAssignee: (value: string) => void;
@@ -40,7 +40,7 @@ export function TaskProductActions(props: Props) {
   );
   useEffect(() => void loadViews(), [loadViews]);
   const tasks = board.board.columns.flatMap((column) => column.tasks);
-  const departmentPeople = people.filter((person) => person.department?.id === board.workspace.departmentId);
+  const teamPeople = people.filter((person) => person.team?.id === board.workspace.teamId);
   return (
     <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} useFlexGap sx={{ alignItems: { md: 'center' } }}>
       <TextField
@@ -125,7 +125,7 @@ export function TaskProductActions(props: Props) {
             optional: true,
             options: [
               { value: '', label: 'Keep current' },
-              ...departmentPeople.map((person) => ({ value: person.id, label: person.displayName })),
+              ...teamPeople.map((person) => ({ value: person.id, label: person.displayName })),
             ],
           },
           {

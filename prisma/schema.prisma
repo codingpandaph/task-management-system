@@ -19,6 +19,7 @@ enum DepartmentKind {
 }
 
 enum Position {
+  MANAGING_DIRECTOR
   SENIOR_DIRECTOR
   ACCOUNT_DIRECTOR
   MEMBER
@@ -66,6 +67,7 @@ enum ApprovalStatus {
 enum ApprovalType {
   ACCOUNT_DIRECTOR
   SENIOR_DIRECTOR
+  MANAGING_DIRECTOR
   HR
 }
 
@@ -152,10 +154,34 @@ model Department {
   taskManagementTypes                      TaskManagementType[]            @default([KANBAN])
   kanbanWipLimit                           Int                             @default(3)
   employee_department                      Employee[]                      @relation("Employee_department")
+  teams                                    Team[]
   employeeOrganizationHistory_department   EmployeeOrganizationHistory[]   @relation("EmployeeOrganizationHistory_department")
   leaveApprovalStep_department             LeaveApprovalStep[]             @relation("LeaveApprovalStep_department")
   leaveCancellationApprovalStep_department LeaveCancellationApprovalStep[] @relation("LeaveCancellationApprovalStep_department")
-  workspace_department                     Workspace?                      @relation("Workspace_department")
+  workspace_department                     Workspace[]                     @relation("Workspace_department")
+}
+
+model Team {
+  id                  String                          @id @default(uuid()) @db.Uuid
+  createdAt           DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime                        @updatedAt @db.Timestamptz(3)
+  code                String
+  name                String
+  status              RecordStatus                    @default(ACTIVE)
+  version             Int                             @default(1)
+  taskManagementTypes TaskManagementType[]            @default([KANBAN])
+  kanbanWipLimit      Int                             @default(3)
+  departmentId        String                          @db.Uuid
+  department          Department                      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  employees           Employee[]                      @relation("Employee_team")
+  employeeHistory     EmployeeOrganizationHistory[]   @relation("EmployeeOrganizationHistory_team")
+  workspace           Workspace?                      @relation("Workspace_team")
+  leaveApprovalSteps  LeaveApprovalStep[]             @relation("LeaveApprovalStep_team")
+  cancellationSteps   LeaveCancellationApprovalStep[] @relation("LeaveCancellationApprovalStep_team")
+
+  @@unique([departmentId, code])
+  @@unique([departmentId, name])
+  @@index([departmentId, status])
 }
 
 model Employee {
@@ -175,6 +201,8 @@ model Employee {
   version                                    Int                                 @default(1)
   departmentId                               String?                             @db.Uuid
   department                                 Department?                         @relation("Employee_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  teamId                                     String?                             @db.Uuid
+  team                                       Team?                               @relation("Employee_team", fields: [teamId], references: [id], onDelete: Restrict)
   employeeOrganizationHistory_employee       EmployeeOrganizationHistory[]       @relation("EmployeeOrganizationHistory_employee")
   employmentRecord_employee                  EmploymentRecord[]                  @relation("EmploymentRecord_employee")
   employeeStatusChange_employee              EmployeeStatusChange[]              @relation("EmployeeStatusChange_employee")
@@ -213,6 +241,7 @@ model Employee {
   taskMention_employee                       TaskMention[]                       @relation("TaskMention_employee")
 
   @@index([departmentId, status, position])
+  @@index([teamId, status, position])
 }
 
 model EmployeeOrganizationHistory {
@@ -229,6 +258,8 @@ model EmployeeOrganizationHistory {
   actor         Employee?   @relation("EmployeeOrganizationHistory_actor", fields: [actorId], references: [id], onDelete: Restrict)
   departmentId  String?     @db.Uuid
   department    Department? @relation("EmployeeOrganizationHistory_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  teamId        String?     @db.Uuid
+  team          Team?       @relation("EmployeeOrganizationHistory_team", fields: [teamId], references: [id], onDelete: Restrict)
 }
 
 model EmploymentRecord {
@@ -504,6 +535,8 @@ model LeaveApprovalStep {
   approver     Employee       @relation("LeaveApprovalStep_approver", fields: [approverId], references: [id], onDelete: Restrict)
   departmentId String?        @db.Uuid
   department   Department?    @relation("LeaveApprovalStep_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  teamId       String?        @db.Uuid
+  team         Team?          @relation("LeaveApprovalStep_team", fields: [teamId], references: [id], onDelete: Restrict)
 
   @@unique([requestId, sequence])
   @@index([approverId, status])
@@ -539,6 +572,8 @@ model LeaveCancellationApprovalStep {
   approver       Employee                 @relation("LeaveCancellationApprovalStep_approver", fields: [approverId], references: [id], onDelete: Restrict)
   departmentId   String?                  @db.Uuid
   department     Department?              @relation("LeaveCancellationApprovalStep_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  teamId         String?                  @db.Uuid
+  team           Team?                    @relation("LeaveCancellationApprovalStep_team", fields: [teamId], references: [id], onDelete: Restrict)
 
   @@unique([cancellationId, sequence])
   @@index([approverId, status])
@@ -627,13 +662,17 @@ model Workspace {
   name           String
   function       WorkspaceFunction
   nextTaskNumber Int                   @default(1)
-  departmentId   String                @unique @db.Uuid
+  departmentId   String                @db.Uuid
   department     Department            @relation("Workspace_department", fields: [departmentId], references: [id], onDelete: Restrict)
+  teamId         String                @unique @db.Uuid
+  team           Team                  @relation("Workspace_team", fields: [teamId], references: [id], onDelete: Restrict)
   boards         TaskBoard[]
   milestones     Milestone[]
   memberships    WorkspaceMembership[]
   tasks          Task[]
   savedViews     SavedTaskView[]
+
+  @@index([departmentId])
 }
 
 model WorkspaceMembership {

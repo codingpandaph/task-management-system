@@ -1,10 +1,11 @@
 import 'reflect-metadata';
+/* eslint-disable max-lines -- the fictional seed remains in transaction order for auditability */
 import * as bcrypt from 'bcrypt';
 import { HR_DELEGABLE, PERMISSIONS } from '@tms/contracts';
 import { dateOnly, today } from './common/dates';
 import { DatabaseService } from './modules/database/database.module';
 import { LeaveBalanceService } from './modules/leave/balance.service';
-import { seedBoardColumns, seedHolidayEvents, seedPeople } from './seed-data';
+import { seedBoardColumns, seedHolidayEvents, seedPeople, seedTeams } from './seed-data';
 import { seedApprovalNotification } from './seed-notification';
 export async function seed(db: DatabaseService) {
   if (process.env.NODE_ENV === 'production' || process.env.ALLOW_DEMO_SEED !== 'true')
@@ -67,9 +68,24 @@ export async function seed(db: DatabaseService) {
       });
       departments.set(code, d.id);
     }
+    const teams = new Map<string, string>();
+    for (const definition of seedTeams) {
+      const code = definition.departmentCode;
+      const team = await tx.team.create({
+        data: {
+          code: definition.code,
+          name: definition.name,
+          departmentId: departments.get(code)!,
+          taskManagementTypes: code === 'HR' ? ['LIST'] : ['KANBAN', 'SCRUM'],
+          kanbanWipLimit: 2,
+        },
+      });
+      teams.set(`${code}:${definition.code}`, team.id);
+    }
     const people = seedPeople(limited);
     const ids: string[] = [];
-    for (const [i, [firstName, lastName, code, position]] of people.entries()) {
+    for (const [i, person] of people.entries()) {
+      const { firstName, lastName, departmentCode: code, teamCode, position } = person;
       const [sequence] = await tx.$queryRaw<{ value: bigint }[]>`SELECT nextval('employee_id_sequence') AS value`;
       const status = i === 8 ? 'SUSPENDED' : i === 9 ? 'INACTIVE' : 'ACTIVE';
       const employee = await tx.employee.create({
@@ -79,6 +95,7 @@ export async function seed(db: DatabaseService) {
           lastName,
           birthDate: dateOnly('1990-06-15'),
           departmentId: code ? departments.get(code)! : null,
+          teamId: code && teamCode ? teams.get(`${code}:${teamCode}`)! : null,
           position,
           status,
           passwordHash,
@@ -90,6 +107,7 @@ export async function seed(db: DatabaseService) {
         data: {
           employeeId: employee.id,
           departmentId: employee.departmentId,
+          teamId: employee.teamId,
           position,
           reason: 'Fictional development seed',
         },
@@ -128,46 +146,51 @@ export async function seed(db: DatabaseService) {
     await tx.organizationSettings.create({
       data: { name: 'CPSync', calendarId: calendar.id, hrApproverId: ids[4] },
     });
-    for (const [code, functionName, boardName] of [
-      ['ACC', 'SALES_ACCOUNT_MANAGEMENT', 'Client delivery'],
-      ['MKT', 'MARKETING_CREATIVE', 'Campaign delivery'],
-      ['HR', 'HR_OPERATIONS', 'People operations'],
-    ] as const) {
+    for (const definition of seedTeams) {
+      const code = definition.departmentCode;
+      const teamId = teams.get(`${code}:${definition.code}`)!;
+      const functionName =
+        code === 'ACC' ? 'SALES_ACCOUNT_MANAGEMENT' : code === 'MKT' ? 'MARKETING_CREATIVE' : 'HR_OPERATIONS';
+      const primaryTeam = seedTeams.find((team) => team.departmentCode === code)?.code === definition.code;
+      const workspaceCode = primaryTeam ? code : `${code}-${definition.code}`;
+      const teamPeople = await tx.employee.findMany({
+        where: { teamId, status: 'ACTIVE' },
+        orderBy: { createdAt: 'asc' },
+      });
+      const director = teamPeople.find((employee) => employee.position === 'ACCOUNT_DIRECTOR');
+      if (!director) throw new Error(`Seed team ${definition.code} requires an Account Director`);
       const workspace = await tx.workspace.create({
         data: {
-          code,
-          name: `${code === 'ACC' ? 'Client Services' : code === 'MKT' ? 'Marketing' : 'Human Resources'} workspace`,
+          code: workspaceCode,
+          name: `${definition.name} workspace`,
           function: functionName,
           departmentId: departments.get(code)!,
+          teamId,
           nextTaskNumber: 3,
         },
       });
       const board = await tx.taskBoard.create({
         data: {
           workspaceId: workspace.id,
-          name: boardName,
+          name: `${definition.name} delivery`,
           kind: code === 'HR' ? 'LIST' : 'KANBAN',
-          creatorId: code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3],
+          creatorId: director.id,
           columns: { create: seedBoardColumns(code) },
         },
         include: { columns: true },
       });
-      const departmentPeople = await tx.employee.findMany({
-        where: { departmentId: departments.get(code)!, status: 'ACTIVE' },
-        select: { id: true },
-      });
       await tx.workspaceMembership.createMany({
-        data: departmentPeople.map(({ id }) => ({
+        data: teamPeople.map(({ id, position }) => ({
           workspaceId: workspace.id,
           employeeId: id,
-          canCreateTasks: id !== departmentPeople[departmentPeople.length - 1]?.id,
-          canCreateBoards: id === (code === 'ACC' ? ids[6] : code === 'MKT' ? ids[7] : ids[5]),
+          canCreateTasks: position === 'ACCOUNT_DIRECTOR' || id === ids[6] || id === ids[7],
+          canCreateBoards: position === 'ACCOUNT_DIRECTOR' || id === ids[6] || id === ids[7],
         })),
       });
       const initial = board.columns.find((column) => column.isInitial)!;
       const progress = board.columns.find((column) => column.semantic === 'IN_PROGRESS') ?? initial;
-      const reporterId = code === 'ACC' ? ids[1] : code === 'MKT' ? ids[2] : ids[3];
-      const assigneeId = code === 'ACC' ? ids[6] : code === 'MKT' ? (limited ? ids[2] : ids[7]) : ids[5];
+      const reporterId = director.id;
+      const assigneeId = teamPeople.find((employee) => employee.position === 'MEMBER')?.id ?? director.id;
       for (const [index, task] of (
         [
           ['Prepare weekly client update', 'HIGH', 8, progress.id],
@@ -180,7 +203,7 @@ export async function seed(db: DatabaseService) {
             boardId: board.id,
             columnId: task[3],
             number: index + 1,
-            publicKey: `${code}-#${index + 1}`,
+            publicKey: `${workspaceCode}-#${index + 1}`,
             title: task[0],
             description: 'Fictional task-management demonstration item.',
             priority: task[1],
@@ -223,6 +246,7 @@ export async function seed(db: DatabaseService) {
             type: 'ACCOUNT_DIRECTOR',
             approverId: ids[1],
             departmentId: departments.get('ACC')!,
+            teamId: teams.get('ACC:CLIENT-A')!,
             status:
               status === 'PENDING'
                 ? 'PENDING'
@@ -236,6 +260,14 @@ export async function seed(db: DatabaseService) {
           {
             requestId: r.id,
             sequence: 2,
+            type: 'SENIOR_DIRECTOR',
+            approverId: ids[11],
+            departmentId: departments.get('ACC')!,
+            status: status === 'APPROVED' ? 'APPROVED' : status === 'PENDING' ? 'PENDING' : 'CANCELLED',
+          },
+          {
+            requestId: r.id,
+            sequence: 3,
             type: 'HR',
             approverId: ids[4],
             status: status === 'APPROVED' ? 'APPROVED' : status === 'PENDING' ? 'PENDING' : 'CANCELLED',

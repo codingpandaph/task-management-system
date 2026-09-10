@@ -43,7 +43,11 @@ export abstract class OrganizationLifecycleService extends OrganizationGovernanc
     return this.db.transaction(async (tx) => {
       await lockEmployee(tx, id);
       const e = await tx.employee.findUniqueOrThrow({ where: { id } });
-      if (e.position === 'SENIOR_DIRECTOR' || e.status === 'TERMINATED' || e.status === next)
+      if (
+        ['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(e.position) ||
+        e.status === 'TERMINATED' ||
+        e.status === next
+      )
         throw new ConflictException('This status change is not allowed');
       if (next === 'SUSPENDED' && e.status !== 'ACTIVE')
         throw new ConflictException('Only active employees may be suspended');
@@ -123,22 +127,38 @@ export abstract class OrganizationLifecycleService extends OrganizationGovernanc
     return { temporaryPassword: credentials.password };
   }
   async hierarchy(actor: Principal) {
-    if (actor.employee.position !== 'SENIOR_DIRECTOR' && !actor.permissions.includes('EMPLOYEE_READ')) {
+    const organizationWide =
+      actor.employee.position === 'MANAGING_DIRECTOR' ||
+      (actor.employee.department?.kind === 'HR' && actor.permissions.includes('EMPLOYEE_READ'));
+    if (!organizationWide && actor.employee.position !== 'SENIOR_DIRECTOR') {
       throw new ForbiddenException('Organization overview requires organization responsibility');
     }
+    const departmentWhere = organizationWide
+      ? { status: 'ACTIVE' as const }
+      : { status: 'ACTIVE' as const, id: actor.employee.departmentId! };
+    const employeeWhere = organizationWide ? {} : { departmentId: actor.employee.departmentId! };
     const departments = await this.db.department.findMany({
-      where: { status: 'ACTIVE' },
+      where: departmentWhere,
       include: {
         _count: { select: { employee_department: true } },
-        workspace_department: { select: { _count: { select: { boards: true } } } },
+        teams: {
+          include: {
+            _count: { select: { employees: true } },
+            workspace: { select: { _count: { select: { boards: true } } } },
+          },
+          orderBy: { name: 'asc' },
+        },
       },
       orderBy: { name: 'asc' },
     });
     const [employees, totalEmployees, suspendedEmployees, boards] = await Promise.all([
-      this.db.employee.findMany({ where: { status: 'ACTIVE' }, include: { department: true } }),
-      this.db.employee.count(),
-      this.db.employee.count({ where: { status: 'SUSPENDED' } }),
-      this.db.taskBoard.count({ where: { status: 'ACTIVE' } }),
+      this.db.employee.findMany({
+        where: { ...employeeWhere, status: 'ACTIVE' },
+        include: { department: true, team: true },
+      }),
+      this.db.employee.count({ where: employeeWhere }),
+      this.db.employee.count({ where: { ...employeeWhere, status: 'SUSPENDED' } }),
+      this.db.taskBoard.count({ where: { status: 'ACTIVE', workspace: employeeWhere } }),
     ]);
     return {
       departments,

@@ -15,7 +15,7 @@ export const taskInclude = {
       columns: { orderBy: { position: 'asc' as const } },
     },
   },
-  workspace: { select: { id: true, code: true, name: true, departmentId: true } },
+  workspace: { select: { id: true, code: true, name: true, departmentId: true, teamId: true } },
   milestone: true,
   reporter: { select: person },
   assignee: { select: person },
@@ -32,23 +32,19 @@ export function display(employee: { firstName: string; lastName: string }) {
 
 export abstract class TaskBaseService {
   constructor(protected readonly db: DatabaseService) {}
-  protected manages(actor: Principal, departmentId: string) {
+  protected manages(actor: Principal, workspace: { departmentId: string; teamId: string }) {
     return (
-      actor.employee.position === 'SENIOR_DIRECTOR' ||
-      (actor.employee.position === 'ACCOUNT_DIRECTOR' && actor.employee.departmentId === departmentId)
+      actor.employee.position === 'MANAGING_DIRECTOR' ||
+      (actor.employee.position === 'SENIOR_DIRECTOR' && actor.employee.departmentId === workspace.departmentId) ||
+      (actor.employee.position === 'ACCOUNT_DIRECTOR' && actor.employee.teamId === workspace.teamId)
     );
   }
 
   protected async workspaceAccess(actor: Principal, workspaceId: string, management = false) {
     const workspace = await this.db.workspace.findUnique({ where: { id: workspaceId } });
     if (!workspace) throw new NotFoundException('Workspace not found');
-    if (management && !this.manages(actor, workspace.departmentId))
-      throw new ForbiddenException('Workspace manager required');
-    if (
-      !management &&
-      !this.manages(actor, workspace.departmentId) &&
-      actor.employee.departmentId !== workspace.departmentId
-    ) {
+    if (management && !this.manages(actor, workspace)) throw new ForbiddenException('Workspace manager required');
+    if (!management && !this.manages(actor, workspace) && actor.employee.teamId !== workspace.teamId) {
       throw new NotFoundException('Workspace not found');
     }
     return workspace;
@@ -56,7 +52,7 @@ export abstract class TaskBaseService {
 
   protected async canCreate(actor: Principal, workspaceId: string, capability: 'tasks' | 'boards') {
     const workspace = await this.workspaceAccess(actor, workspaceId);
-    if (this.manages(actor, workspace.departmentId)) return workspace;
+    if (this.manages(actor, workspace)) return workspace;
     const membership = await this.db.workspaceMembership.findFirst({
       where: { workspaceId, employeeId: actor.employee.id, milestoneId: null },
     });
@@ -75,27 +71,22 @@ export abstract class TaskBaseService {
     return board;
   }
 
-  protected async enforceWip(
-    tx: Transaction,
-    departmentId: string,
-    assigneeId: string | null | undefined,
-    taskId?: string,
-  ) {
+  protected async enforceWip(tx: Transaction, teamId: string, assigneeId: string | null | undefined, taskId?: string) {
     if (!assigneeId) return;
     await tx.$queryRaw`SELECT id FROM "Employee" WHERE id = ${assigneeId}::uuid FOR UPDATE`;
-    const department = await tx.department.findUniqueOrThrow({ where: { id: departmentId } });
+    const team = await tx.team.findUniqueOrThrow({ where: { id: teamId } });
     const used = await tx.task.count({
       where: {
         id: taskId ? { not: taskId } : undefined,
         assigneeId,
         isDeleted: false,
-        workspace: { departmentId },
+        workspace: { teamId },
         board: { kind: 'KANBAN' },
         column: { semantic: 'IN_PROGRESS' },
       },
     });
-    if (used >= department.kanbanWipLimit) {
-      throw new ConflictException(`This person already has ${used} of ${department.kanbanWipLimit} tasks in progress`);
+    if (used >= team.kanbanWipLimit) {
+      throw new ConflictException(`This person already has ${used} of ${team.kanbanWipLimit} tasks in progress`);
     }
   }
 

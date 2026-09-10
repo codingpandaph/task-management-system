@@ -36,7 +36,7 @@ export function TaskReportsView({
       <Paper variant="outlined" className="task-hero">
         <Box>
           <Typography variant="h5" component="h2">
-            Department delivery
+            Delivery overview
           </Typography>
           <Typography color="text.secondary">
             Live workload, completion, ownership, and escalation across the teams you lead.
@@ -61,12 +61,12 @@ export function TaskReportsView({
         ))}
       </div>
       <Card
-        title="Department performance"
+        title="Team performance"
         actions={
           <TextField
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            label="Search departments"
+            label="Search teams"
             size="small"
             slotProps={{
               input: {
@@ -169,7 +169,7 @@ export function TaskReportsView({
             </Paper>
           ))}
         </div>
-        {!visible.length && <EmptyState title="No matching departments" detail="Try a department name or code." />}
+        {!visible.length && <EmptyState title="No matching teams" detail="Try a team name or code." />}
       </Card>
     </Stack>
   );

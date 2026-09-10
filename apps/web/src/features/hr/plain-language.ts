@@ -1,6 +1,7 @@
 import type { PermissionCode } from '@tms/contracts';
 
 const names: Record<string, string> = {
+  MANAGING_DIRECTOR: 'Managing Director',
   SENIOR_DIRECTOR: 'Senior Director',
   ACCOUNT_DIRECTOR: 'Account Director',
   MEMBER: 'Employee',
@@ -22,7 +23,7 @@ const permissionNames: Record<PermissionCode, string> = {
   DEPARTMENT_CREATE: 'Create departments',
   DEPARTMENT_UPDATE: 'Edit departments',
   DEPARTMENT_ASSIGN_MEMBER: 'Transfer employees',
-  DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR: 'Assign department directors',
+  DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR: 'Assign team Account Directors',
   ORGANIZATION_MANAGE: 'Manage organization leadership',
   EMPLOYMENT_MANAGE: 'Manage employment records',
   LEAVE_POLICY_MANAGE: 'Manage leave policies',

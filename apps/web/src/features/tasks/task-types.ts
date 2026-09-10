@@ -22,6 +22,7 @@ export type Workspace = {
   code: string;
   name: string;
   departmentId: string;
+  teamId: string;
   function: string;
   boards: Board[];
   milestones: Milestone[];
@@ -29,6 +30,13 @@ export type Workspace = {
   department: {
     id: string;
     name: string;
+    taskManagementTypes: TaskManagementType[];
+    kanbanWipLimit: number;
+  };
+  team: {
+    id: string;
+    name: string;
+    code: string;
     taskManagementTypes: TaskManagementType[];
     kanbanWipLimit: number;
   };

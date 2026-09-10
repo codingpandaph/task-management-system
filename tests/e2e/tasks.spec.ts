@@ -3,7 +3,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 test.use({ launchOptions: { slowMo: process.env.PLAYWRIGHT_DEMO ? Number(process.env.DEMO_SLOWMO_MS ?? 1200) : 0 } });
 const password = 'Demo only password 2026!';
 const users = {
-  senior: '2026-ORG-000001',
+  senior: '2026-ACC-000012',
+  managing: '2026-ORG-000001',
   director: '2026-ACC-000002',
   hrDirector: '2026-HR-000004',
   member: '2026-ACC-000007',
@@ -49,7 +50,7 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
   try {
     const member = await memberContext.newPage();
     await signIn(member, users.member);
-    await expect(member.getByRole('link', { name: 'Department', exact: true })).toBeVisible();
+    await expect(member.getByRole('link', { name: 'Department', exact: true })).toHaveCount(0);
     await expect(member.getByRole('link', { name: 'Organization', exact: true })).toHaveCount(0);
     const protectedResponse = await member.request.get('/organization', { maxRedirects: 0 });
     expect([307, 308]).toContain(protectedResponse.status());
@@ -61,7 +62,7 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
     const senior = await seniorContext.newPage();
     await signIn(senior, users.senior);
     const navigation = senior.getByRole('navigation', { name: 'Main navigation' });
-    for (const group of ['Company', 'Work', 'Time off', 'Administration', 'Updates']) {
+    for (const group of ['Company', 'Work', 'Time off', 'Updates']) {
       await expect(navigation.getByText(group, { exact: true })).toBeVisible();
     }
     await senior.getByRole('link', { name: 'Organization', exact: true }).click();
@@ -86,7 +87,7 @@ test('Account Director configures workflows, delegates access, and creates a typ
   await setMemberAccess(page, 'Create tasks', true);
 
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'Department', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Team', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create board', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Board name').fill('Client sprint');
@@ -132,7 +133,9 @@ test('each Scrum sprint uses its own board and milestone while HR renders a plai
     const director = await directorContext.newPage();
     await signIn(director, users.director);
     await director.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await expect(director.getByRole('combobox', { name: 'Board', exact: true })).toContainText('Client delivery');
+    await expect(director.getByRole('combobox', { name: 'Board', exact: true })).toContainText(
+      'Client Success delivery',
+    );
     await director.getByRole('combobox', { name: 'Board', exact: true }).click();
     const existingSprint = director.getByRole('option', { name: 'Sprint · Client sprint', exact: true });
     if (await existingSprint.count()) {
@@ -170,7 +173,7 @@ test('each Scrum sprint uses its own board and milestone while HR renders a plai
     const hr = await hrContext.newPage();
     await signIn(hr, users.hrDirector);
     await hr.getByRole('link', { name: 'Team boards', exact: true }).click();
-    await expect(hr.getByRole('table', { name: 'People operations tasks' })).toBeVisible();
+    await expect(hr.getByRole('table', { name: 'People Operations delivery tasks' })).toBeVisible();
     await expect(hr.locator('.kanban-column')).toHaveCount(0);
   } finally {
     await directorContext.close();
@@ -196,7 +199,7 @@ test('saved views, bulk triage, mentions, attachments, and delivery measures wor
   await signIn(page, users.director);
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
   await createTask(page, 'Operational evidence');
-  await page.getByLabel(/Search Client delivery/).fill('Operational');
+  await page.getByLabel(/Search Client Success delivery/).fill('Operational');
   await page.getByText('Saved views and bulk actions', { exact: true }).click();
   await page.getByRole('button', { name: 'Save view', exact: true }).click();
   const saveView = page.getByRole('dialog', { name: 'Save these filters' });

@@ -47,7 +47,8 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
     setWorkspaces(value);
     setWorkspaceId((current) => current || value[0]?.id || '');
     setPeople((await api<{ items: DirectoryEmployee[] }>('directory/employees?pageSize=100')).items);
-    if (user.position === 'SENIOR_DIRECTOR') setDepartments(await api<DepartmentOption[]>('departments'));
+    if (['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(user.position))
+      setDepartments(await api<DepartmentOption[]>('departments'));
   }, [user.position]);
   const loadBoard = useCallback(async () => {
     if (!workspaceId) return;
@@ -159,7 +160,7 @@ export function TaskScreens({ path, user }: { path: string; user: CurrentEmploye
     return (
       <Card title="Assigned to me" actions={<Tag value={`${mine.length} TASKS`} tone="blue" />}>
         <Typography color="text.secondary" sx={{ mb: 2 }}>
-          Every task assigned to you, across department workspaces.
+          Every task assigned to you, across your team workspaces.
         </Typography>
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} useFlexGap sx={{ alignItems: { lg: 'center' } }}>
           <TextField

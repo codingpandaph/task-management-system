@@ -7,8 +7,7 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { CurrentEmployee, DirectoryEmployee } from '@tms/contracts';
-import { api } from '@/lib/api';
-import { EmptyState, ModalForm } from '../hr/ui';
+import { EmptyState } from '../hr/ui';
 import { CreateTask } from './task-create';
 import { TaskDetail } from './task-detail';
 import { KanbanBoard } from './kanban-board';
@@ -44,7 +43,6 @@ export function TaskBoardView(props: TaskBoardViewProps) {
     assigneeFilter,
     board,
     boardId,
-    departments,
     people,
     priorityFilter,
     refresh,
@@ -64,8 +62,9 @@ export function TaskBoardView(props: TaskBoardViewProps) {
   const selectedBoard = workspace?.boards.find((item) => item.id === boardId);
   const workspaceManager =
     !!workspace &&
-    (user.position === 'SENIOR_DIRECTOR' ||
-      (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === workspace.departmentId));
+    (user.position === 'MANAGING_DIRECTOR' ||
+      (user.position === 'SENIOR_DIRECTOR' && user.department?.id === workspace.departmentId) ||
+      (user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId));
   const canCreateTasks =
     workspaceManager ||
     !!workspace?.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateTasks);
@@ -79,7 +78,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 {board?.board.name ?? 'Choose a board'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {workspace.department.name} ·{' '}
+                {workspace.department.name} · {workspace.team.name} ·{' '}
                 {board?.board.kind === 'LIST' ? 'A focused task list.' : 'Drag tickets between workflow stages.'}
               </Typography>
             </Box>
@@ -100,7 +99,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} className="task-board-navigation">
             <TextField
               select
-              label="Department"
+              label="Team"
               value={workspaceId}
               onChange={(event) => {
                 setWorkspaceId(event.target.value);
@@ -113,7 +112,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
             >
               {workspaces.map((item) => (
                 <MenuItem key={item.id} value={item.id}>
-                  {item.department.name}
+                  {item.department.name} · {item.team.name}
                 </MenuItem>
               ))}
             </TextField>
@@ -157,7 +156,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           {board?.board.kind === 'KANBAN' && (
             <Box className="wip-summary">
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                In progress · maximum {workspace.department.kanbanWipLimit} per person
+                In progress · maximum {workspace.team.kanbanWipLimit} per person
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 {board.wip
@@ -169,7 +168,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           {board && (
             <TaskBoardFilters
               boardName={board.board.name}
-              departmentId={workspace.departmentId}
+              teamId={workspace.teamId}
               people={people}
               search={search}
               priority={priorityFilter}
@@ -231,39 +230,8 @@ export function TaskBoardView(props: TaskBoardViewProps) {
         <Stack spacing={2}>
           <EmptyState
             title="No task workspace"
-            detail="The Senior Director can provision a workspace from an active department."
+            detail="Create a team from the department page to provision its private workspace."
           />
-          {user.position === 'SENIOR_DIRECTOR' &&
-            departments.some((department) => !workspaces.some((item) => item.departmentId === department.id)) && (
-              <ModalForm
-                buttonLabel="Provision workspace"
-                title="Provision a department workspace"
-                fields={[
-                  {
-                    name: 'departmentId',
-                    label: 'Department',
-                    options: departments
-                      .filter((department) => !workspaces.some((item) => item.departmentId === department.id))
-                      .map((department) => ({ value: department.id, label: department.name })),
-                  },
-                  {
-                    name: 'function',
-                    label: 'Operating model',
-                    options: [
-                      { value: 'ENGINEERING_PRODUCT', label: 'Engineering / Product' },
-                      { value: 'MARKETING_CREATIVE', label: 'Marketing / Creative' },
-                      { value: 'SALES_ACCOUNT_MANAGEMENT', label: 'Sales / Account Management' },
-                      { value: 'HR_OPERATIONS', label: 'HR / Operations' },
-                      { value: 'FINANCE_LEGAL', label: 'Finance / Legal' },
-                    ],
-                  },
-                ]}
-                onSubmit={async (values) => {
-                  await api('task-workspaces', values);
-                  await refresh();
-                }}
-              />
-            )}
         </Stack>
       )}
       {selected && board && (

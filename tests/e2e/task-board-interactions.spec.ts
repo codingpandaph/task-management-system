@@ -4,14 +4,14 @@ import { uiSignIn, usernames } from './hr.helpers';
 test('board search follows the active board and tickets move by keyboard or drag', async ({ page }) => {
   await uiSignIn(page, usernames.director);
   await page.getByRole('link', { name: 'Team boards', exact: true }).click();
-  await expect(page.getByLabel('Search Client delivery')).toBeVisible();
+  await expect(page.getByLabel('Search Client Success delivery')).toBeVisible();
 
   await page.getByRole('button', { name: 'Create task', exact: true }).click();
   const create = page.getByRole('dialog', { name: 'Create a task' });
   await create.getByLabel('Task title').fill('Verify movable board card');
   await create.getByRole('button', { name: 'Create task', exact: true }).click();
 
-  await page.getByLabel('Search Client delivery').fill('movable board');
+  await page.getByLabel('Search Client Success delivery').fill('movable board');
   const card = page.locator('article.task-card').filter({ hasText: 'Verify movable board card' });
   await expect(card).toBeVisible();
   const key = (await card.locator('.MuiTypography-caption').first().textContent()) ?? '';

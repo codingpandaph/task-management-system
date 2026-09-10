@@ -44,7 +44,7 @@ export function OrganizationOverviewView({
     .filter((department) => `${department.name} ${department.code}`.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => (order === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
   const reason: Field = { name: 'reason', label: 'Reason' };
-  const leadership = people.filter((employee) => employee.position === 'SENIOR_DIRECTOR');
+  const managingDirector = people.find((employee) => employee.position === 'MANAGING_DIRECTOR');
   return (
     <Stack spacing={3}>
       {error && <Alert severity="error">{error}</Alert>}
@@ -90,7 +90,7 @@ export function OrganizationOverviewView({
                 }
               />
             )}
-            {user.position === 'SENIOR_DIRECTOR' && (
+            {user.position === 'MANAGING_DIRECTOR' && (
               <ModalForm
                 buttonLabel="Governance"
                 title="Governance assignment"
@@ -100,7 +100,7 @@ export function OrganizationOverviewView({
                     label: 'Assignment',
                     options: [
                       { value: 'hr-approver', label: 'Final HR approver' },
-                      { value: 'senior-director', label: 'Senior Director successor' },
+                      { value: 'managing-director', label: 'Managing Director successor' },
                     ],
                   },
                   { name: 'employeeId', label: 'Employee', options: employeeOptions },
@@ -118,20 +118,20 @@ export function OrganizationOverviewView({
             departments and <strong>{summary.boards}</strong> team boards
           </Typography>
         )}
-        {leadership.map((employee) => (
-          <Box key={employee.id} className="leadership-banner">
-            <Box className="leadership-avatar">{employee.displayName.slice(0, 1)}</Box>
+        {managingDirector && (
+          <Box className="leadership-banner">
+            <Box className="leadership-avatar">{managingDirector.displayName.slice(0, 1)}</Box>
             <Box>
               <Typography variant="h6" component="p">
-                {employee.displayName}
+                {managingDirector.displayName}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Senior Director · Organization-wide oversight
+                Managing Director · Organization-wide oversight
               </Typography>
             </Box>
           </Box>
-        ))}
-        {!leadership.length && <Alert severity="warning">A Senior Director must be assigned.</Alert>}
+        )}
+        {!managingDirector && <Alert severity="warning">A Managing Director must be assigned.</Alert>}
       </Card>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
         <TextField
@@ -164,14 +164,15 @@ export function OrganizationOverviewView({
             <Stack direction="row" spacing={1} useFlexGap sx={{ my: 1, flexWrap: 'wrap' }}>
               <StatusTag value={d.status} />
               <Typography variant="body2">{people.filter((e) => e.department?.id === d.id).length} people</Typography>
-              {d.taskManagementTypes?.map((type) => (
-                <Tag key={type} value={type} tone="teal" />
-              ))}
-              <Tag value={`${d.workspace_department?._count.boards ?? 0} boards`} tone="blue" />
+              <Tag value={`${d.teams?.length ?? 0} teams`} tone="teal" />
+              <Tag
+                value={`${d.teams?.reduce((count, team) => count + (team.workspace?._count?.boards ?? 0), 0) ?? 0} boards`}
+                tone="blue"
+              />
             </Stack>
             <Typography variant="body2" sx={{ my: 1 }}>
-              Account Director:{' '}
-              {people.find((person) => person.department?.id === d.id && person.position === 'ACCOUNT_DIRECTOR')
+              Senior Director:{' '}
+              {people.find((person) => person.department?.id === d.id && person.position === 'SENIOR_DIRECTOR')
                 ?.displayName ?? 'Not assigned'}
             </Typography>
             <details className="department-actions">
@@ -184,31 +185,12 @@ export function OrganizationOverviewView({
                     fields={[
                       { name: 'name', label: 'Department name', value: d.name },
                       { name: 'description', label: 'Description', optional: true },
-                      {
-                        name: 'taskManagementTypes',
-                        label: 'Task management types',
-                        value: d.taskManagementTypes.join(','),
-                        multiple: true,
-                        checkboxes: true,
-                        options: ['KANBAN', 'SCRUM', 'LIST'].map((value) => ({
-                          value,
-                          label: value[0] + value.slice(1).toLowerCase(),
-                        })),
-                      },
-                      {
-                        name: 'kanbanWipLimit',
-                        label: 'Kanban: maximum in progress tasks per member',
-                        showWhen: { field: 'taskManagementTypes', values: ['KANBAN'] },
-                        type: 'number',
-                        value: d.kanbanWipLimit,
-                      },
                     ]}
                     onSubmit={(values) =>
                       save(
                         `departments/${d.id}`,
                         {
                           ...values,
-                          taskManagementTypes: String(values.taskManagementTypes).split(','),
                           version: d.version,
                         },
                         'PATCH',
@@ -237,19 +219,20 @@ export function OrganizationOverviewView({
                 </Button>
                 {can('DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR') && (
                   <ModalForm
-                    buttonLabel="Assign director"
+                    buttonLabel="Assign Senior Director"
                     icon={<BadgeOutlined />}
-                    title={`Assign Account Director to ${d.name}`}
+                    title={`Assign Senior Director to ${d.name}`}
                     fields={[
                       {
                         name: 'employeeId',
                         label: 'Eligible department member',
                         options: people
-                          .filter((person) => person.department?.id === d.id && person.position !== 'SENIOR_DIRECTOR')
+                          .filter((person) => person.department?.id === d.id && person.position === 'MEMBER')
                           .map((person) => ({ value: person.id, label: person.displayName })),
                       },
                       reason,
                     ]}
+                    submitLabel="Assign Senior Director"
                     onSubmit={(values) => save(`departments/${d.id}/director`, values)}
                   />
                 )}

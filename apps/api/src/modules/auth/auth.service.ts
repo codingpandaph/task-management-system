@@ -89,7 +89,7 @@ export class AuthService {
     if (!eligible || !session) throw new UnauthorizedException('Session unavailable');
     const employee = await this.db.employee.findUniqueOrThrow({
       where: { id: claims.sub },
-      include: { department: true },
+      include: { department: true, team: true },
     });
     const grants = await this.db.employeePermission.findMany({
       where: { employeeId: employee.id, revokedAt: null },
@@ -194,6 +194,7 @@ export class AuthService {
       department: e.department
         ? { id: e.department.id, code: e.department.code, name: e.department.name, kind: e.department.kind }
         : null,
+      team: e.team ? { id: e.team.id, code: e.team.code, name: e.team.name } : null,
       position: e.position,
       role: resolveAccessRole(e.position, e.department?.kind === 'HR'),
       mustChangePassword: e.mustChangePassword,

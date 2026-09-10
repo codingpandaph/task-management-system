@@ -32,6 +32,12 @@ export function registerCoreScenarios() {
     await form.getByLabel('Department name').fill(department);
     await form.getByRole('button', { name: 'Create department', exact: true }).click();
     await expect(page.getByRole('heading', { name: department, exact: true })).toBeVisible();
+    await page.getByRole('link', { name: department, exact: true }).click();
+    await page.getByRole('button', { name: 'Create team', exact: true }).click();
+    const teamForm = page.getByRole('dialog', { name: `Create a team in ${department}` }).locator('form');
+    await teamForm.getByLabel('Team code').fill('TEAMA');
+    await teamForm.getByLabel('Team name').fill('Team A');
+    await teamForm.getByRole('button', { name: 'Create team', exact: true }).click();
     await page.getByRole('link', { name: 'People', exact: true }).click();
     await page.getByRole('button', { name: 'Add employee', exact: true }).click();
     const employeeForm = page.getByRole('dialog', { name: 'Add a new employee' }).locator('form');
@@ -39,6 +45,7 @@ export function registerCoreScenarios() {
     await employeeForm.getByLabel('Last name', { exact: true }).fill(suffix);
     await employeeForm.getByLabel('Birth date', { exact: true }).fill('1992-03-04');
     await select(page, 'Department', department);
+    await select(page, 'Team', `${department} · Team A`);
     await select(page, 'Employment type', 'Permanent');
     await employeeForm.getByLabel('Employment start', { exact: true }).fill(`${year}-01-01`);
     await page.getByRole('combobox', { name: 'Leave policy', exact: true }).click();
@@ -68,7 +75,7 @@ export function registerCoreScenarios() {
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
   });
 
-  test('all five leave approval chains and approved cancellation complete', async ({ playwright }) => {
+  test('all seven leave approval chains and approved cancellation complete', async ({ playwright }) => {
     const people = new Map<string, { request: APIRequestContext; csrf: string }>();
     try {
       for (const [name, id] of Object.entries(usernames)) {
@@ -76,15 +83,18 @@ export function registerCoreScenarios() {
         people.set(name, { request, csrf: await login(request, id) });
       }
       const matrix: [string, string[]][] = [
-        ['member', ['director', 'hrApprover']],
+        ['member', ['director', 'senior', 'hrApprover']],
         ['director', ['senior', 'hrApprover']],
-        ['senior', []],
-        ['hrMember', ['hr']],
-        ['hr', ['senior']],
+        ['senior', ['hrApprover']],
+        ['hrMember', ['hr', 'hrSenior']],
+        ['hr', ['hrSenior']],
+        ['hrSenior', ['managing']],
+        ['managing', []],
       ];
+      const workingDays = [14, 15, 16, 17, 18, 21, 22];
       for (const [index, [name, chain]] of matrix.entries()) {
         const owner = people.get(name)!;
-        const day = `${year}-12-${String(14 + index).padStart(2, '0')}`;
+        const day = `${year}-12-${workingDays[index]}`;
         const draft = await post<{ id: string }>(owner.request, 'leave/requests', owner.csrf, {
           type: 'VACATION',
           startDate: day,
@@ -116,7 +126,7 @@ export function registerCoreScenarios() {
     }
   });
 
-  test('all five roles file leave and complete their approval chains through the UI', async ({ browser }) => {
+  test('all seven roles file leave and complete their approval chains through the UI', async ({ browser }) => {
     test.setTimeout(process.env.PLAYWRIGHT_DEMO ? 300_000 : 180_000);
     const contexts: BrowserContext[] = [];
     const pages = new Map<string, Page>();
@@ -130,11 +140,13 @@ export function registerCoreScenarios() {
         pages.set(role, page);
       }
       const matrix: { requester: string; day: string; approvers: string[] }[] = [
-        { requester: 'member', day: `${year}-12-07`, approvers: ['director', 'hrApprover'] },
+        { requester: 'member', day: `${year}-12-07`, approvers: ['director', 'senior', 'hrApprover'] },
         { requester: 'director', day: `${year}-12-08`, approvers: ['senior', 'hrApprover'] },
-        { requester: 'hrMember', day: `${year}-12-09`, approvers: ['hr'] },
-        { requester: 'hr', day: `${year}-12-10`, approvers: ['senior'] },
-        { requester: 'senior', day: `${year}-12-11`, approvers: [] },
+        { requester: 'hrMember', day: `${year}-12-09`, approvers: ['hr', 'hrSenior'] },
+        { requester: 'hr', day: `${year}-12-10`, approvers: ['hrSenior'] },
+        { requester: 'senior', day: `${year}-12-11`, approvers: ['hrApprover'] },
+        { requester: 'hrSenior', day: `${year}-12-14`, approvers: ['managing'] },
+        { requester: 'managing', day: `${year}-12-15`, approvers: [] },
       ];
       for (const flow of matrix) {
         const requester = pages.get(flow.requester)!;
@@ -153,6 +165,7 @@ export function registerCoreScenarios() {
       await cancellationDialog.getByLabel('Cancellation reason', { exact: true }).fill('Plans changed');
       await cancellationDialog.getByRole('button', { name: 'Request cancellation', exact: true }).click();
       await uiApproveCancellation(pages.get('director')!, `${year}-12-07`);
+      await uiApproveCancellation(pages.get('senior')!, `${year}-12-07`);
       await uiApproveCancellation(pages.get('hrApprover')!, `${year}-12-07`);
       await member.goto(requestUrls.get('member')!);
       await expect(member.getByText('Cancelled', { exact: true }).first()).toBeVisible();
@@ -178,7 +191,7 @@ export function registerCoreScenarios() {
     }
   });
 
-  test('five-role navigation mirrors backend RBAC capabilities', async ({ browser }) => {
+  test('role navigation mirrors backend RBAC capabilities', async ({ browser }) => {
     const cases = [
       {
         user: usernames.member,
@@ -208,7 +221,13 @@ export function registerCoreScenarios() {
       {
         user: usernames.senior,
         role: 'SENIOR_DIRECTOR',
-        visible: ['Delivery reports', 'Leave administration', 'Audit log'],
+        visible: ['People', 'Delivery reports'],
+        hidden: ['Leave administration', 'Audit log'],
+      },
+      {
+        user: usernames.managing,
+        role: 'MANAGING_DIRECTOR',
+        visible: ['People', 'Delivery reports', 'Leave administration', 'Audit log'],
         hidden: [],
       },
     ] as const;
@@ -218,7 +237,7 @@ export function registerCoreScenarios() {
       await uiSignIn(page, current.user);
       const me = (await (await page.request.get('/api/auth/me')).json()) as { role: string; permissions: string[] };
       expect(me.role).toBe(current.role);
-      if (current.role === 'SENIOR_DIRECTOR') expect(new Set(me.permissions)).toEqual(new Set(PERMISSIONS));
+      if (current.role === 'MANAGING_DIRECTOR') expect(new Set(me.permissions)).toEqual(new Set(PERMISSIONS));
       for (const label of current.visible)
         await expect(page.getByRole('link', { name: label, exact: true })).toBeVisible();
       for (const label of current.hidden)
@@ -226,8 +245,9 @@ export function registerCoreScenarios() {
       if (['HR_MEMBER', 'HR_DIRECTOR', 'SENIOR_DIRECTOR'].includes(current.role)) {
         await page.getByRole('link', { name: 'People', exact: true }).click();
         const addEmployee = page.getByRole('button', { name: 'Add employee', exact: true });
-        if (current.role === 'HR_MEMBER') await expect(addEmployee).toHaveCount(0);
-        else await expect(addEmployee).toBeVisible();
+        if (current.role === 'HR_DIRECTOR' || current.role === 'MANAGING_DIRECTOR')
+          await expect(addEmployee).toBeVisible();
+        else await expect(addEmployee).toHaveCount(0);
       }
       await context.close();
     }

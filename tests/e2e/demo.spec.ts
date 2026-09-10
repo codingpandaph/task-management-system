@@ -15,26 +15,27 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
   const leavePolicy = `Demo leave ${suffix}`;
   const christmasPolicy = `Demo Christmas ${suffix}`;
   const department = `Demo Operations ${suffix}`;
+  const team = `Delivery Team ${suffix}`;
 
   await test.step('run starts with Simon’s two complete 15-member teams', async () => {
-    await signIn(page, `${year}-ORG-000001`);
+    await signIn(page, usernames.managing);
     await page.getByRole('link', { name: 'Organization', exact: true }).click();
     await announce(
       page,
       'Simon’s department structure',
-      'One Senior Director leads two Account Directors, each with 15 team members.',
+      'A Managing Director oversees departments. Client Services has one Senior Director and two teams, each led by an Account Director with 15 members.',
     );
     const employees = (await (await page.request.get('/api/employees?pageSize=100')).json()) as { total: number };
     const policies = (await (await page.request.get('/api/policies')).json()) as {
       leave: unknown[];
       christmas: unknown[];
     };
-    expect(employees.total).toBe(36);
-    for (const department of ['Client Services', 'Marketing']) {
+    expect(employees.total).toBe(73);
+    await page.getByRole('link', { name: 'Client Services', exact: true }).click();
+    for (const teamName of ['Client Success', 'Account Growth'])
       await expect(
-        page.getByRole('region', { name: department }).getByText('15 people', { exact: true }),
+        page.getByRole('region', { name: teamName }).getByText('15 members', { exact: false }),
       ).toBeVisible();
-    }
     expect(policies.leave.length).toBeGreaterThanOrEqual(1);
     expect(policies.christmas.length).toBeGreaterThanOrEqual(1);
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(3_000);
@@ -70,6 +71,12 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
     await dialog.getByLabel('Department name', { exact: true }).fill(department);
     await dialog.getByRole('button', { name: 'Create department', exact: true }).click();
     await expect(page.getByRole('heading', { name: department, exact: true })).toBeVisible();
+    await page.getByRole('link', { name: department, exact: true }).click();
+    await page.getByRole('button', { name: 'Create team', exact: true }).click();
+    dialog = page.getByRole('dialog', { name: `Create a team in ${department}` });
+    await dialog.getByLabel('Team code', { exact: true }).fill(`T${suffix}`);
+    await dialog.getByLabel('Team name', { exact: true }).fill(team);
+    await dialog.getByRole('button', { name: 'Create team', exact: true }).click();
 
     await page.getByRole('link', { name: 'People', exact: true }).click();
     await page.getByRole('button', { name: 'Add employee', exact: true }).click();
@@ -78,6 +85,7 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
     await dialog.getByLabel('Last name', { exact: true }).fill(`Employee ${suffix}`);
     await dialog.getByLabel('Birth date', { exact: true }).fill('1994-05-12');
     await choose(page, dialog, 'Department', department);
+    await choose(page, dialog, 'Team', `${department} · ${team}`);
     await choose(page, dialog, 'Employment type', 'Permanent');
     await dialog.getByLabel('Employment start', { exact: true }).fill(`${year}-01-01`);
     await dialog.getByRole('combobox', { name: 'Leave policy', exact: true }).click();
@@ -91,11 +99,11 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
     if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
   });
 
-  await test.step('Senior Director files and cancels auto-approved leave', async () => {
-    await signIn(page, `${year}-ORG-000001`);
+  await test.step('Managing Director files and cancels auto-approved leave', async () => {
+    await signIn(page, usernames.managing);
     await announce(
       page,
-      'Senior Director leave',
+      'Managing Director leave',
       'This request auto-approves, then cancels without an approval chain.',
     );
     await page.getByRole('link', { name: 'My leave', exact: true }).click();
@@ -198,7 +206,7 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
         label: 'Employee',
         requester: usernames.member,
         day: `${year}-12-07`,
-        approvers: [usernames.director, usernames.hrApprover],
+        approvers: [usernames.director, usernames.senior, usernames.hrApprover],
       },
       {
         label: 'Account Director',
@@ -206,8 +214,13 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
         day: `${year}-12-08`,
         approvers: [usernames.senior, usernames.hrApprover],
       },
-      { label: 'HR employee', requester: usernames.hrMember, day: `${year}-12-09`, approvers: [usernames.hr] },
-      { label: 'HR Director', requester: usernames.hr, day: `${year}-12-10`, approvers: [usernames.senior] },
+      {
+        label: 'HR employee',
+        requester: usernames.hrMember,
+        day: `${year}-12-09`,
+        approvers: [usernames.hr, usernames.hrSenior],
+      },
+      { label: 'HR Account Director', requester: usernames.hr, day: `${year}-12-10`, approvers: [usernames.hrSenior] },
     ];
     let memberRequest = '';
     for (const flow of matrix) {
@@ -236,7 +249,7 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
     const cancellation = page.getByRole('dialog', { name: 'Request leave cancellation' });
     await cancellation.getByLabel('Cancellation reason', { exact: true }).fill('Plans changed');
     await cancellation.getByRole('button', { name: 'Request cancellation', exact: true }).click();
-    for (const approver of [usernames.director, usernames.hrApprover]) {
+    for (const approver of [usernames.director, usernames.senior, usernames.hrApprover]) {
       await signIn(page, approver);
       await uiApproveCancellation(page, `${year}-12-07`);
     }

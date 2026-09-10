@@ -16,6 +16,7 @@ export { Form } from './ui-form';
 export type { Field, FormResult, SubmitAction } from './ui-types';
 export { Card } from './ui-card';
 const tagLabels: Record<string, string> = {
+  MANAGING_DIRECTOR: 'Managing Director',
   ACCOUNT_DIRECTOR: 'Director',
   SENIOR_DIRECTOR: 'Senior',
   CHRISTMAS_VACATION: 'Christmas',
@@ -60,6 +61,7 @@ const tagTones: Record<string, keyof typeof tagPalette> = {
   VACATION: 'blue',
   SICK: 'red',
   CHRISTMAS_VACATION: 'teal',
+  MANAGING_DIRECTOR: 'purple',
   SENIOR_DIRECTOR: 'purple',
   ACCOUNT_DIRECTOR: 'purple',
   MEMBER: 'grey',

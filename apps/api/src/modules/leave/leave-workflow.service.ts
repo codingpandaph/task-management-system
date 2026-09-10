@@ -145,6 +145,7 @@ export class LeaveWorkflowService extends LeaveRequestService {
             type: s.type,
             approverId: s.approverId,
             departmentId: s.departmentId,
+            teamId: s.teamId,
           })),
         });
         await notify(tx, chain[0].approverId, 'CANCELLATION_ASSIGNED', 'LeaveRequest', id, `cancel-assigned:${c.id}:1`);

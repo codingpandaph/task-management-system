@@ -33,7 +33,8 @@ export type TaskDetailResponse = TaskContract & {
 
 export function canManageTask(user: CurrentEmployee, task: TaskDetailResponse) {
   return (
-    user.position === 'SENIOR_DIRECTOR' ||
-    (user.position === 'ACCOUNT_DIRECTOR' && user.department?.id === task.workspace.departmentId)
+    user.position === 'MANAGING_DIRECTOR' ||
+    (user.position === 'SENIOR_DIRECTOR' && user.department?.id === task.workspace.departmentId) ||
+    (user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === task.workspace.teamId)
   );
 }

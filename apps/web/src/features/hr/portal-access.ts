@@ -6,7 +6,7 @@ export const subtitles: Record<string, string> = {
   Department: 'Your team, boards, and task access',
   People: 'Employee directory',
   'My tasks': 'Assigned work',
-  'Team boards': 'Department delivery',
+  'Team boards': 'Team-only delivery',
   'Delivery reports': 'Portfolio overview',
   'Task archive': 'Deleted work',
   'My leave': 'Balances and requests',
@@ -23,7 +23,7 @@ export function subtitle(title: string, user: CurrentEmployee) {
 }
 
 export function canViewPeople(user: CurrentEmployee) {
-  return user.position === 'SENIOR_DIRECTOR' || user.department?.kind === 'HR';
+  return ['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(user.position) || user.department?.kind === 'HR';
 }
 
 export function canOpen(path: string, user: CurrentEmployee) {
@@ -31,10 +31,11 @@ export function canOpen(path: string, user: CurrentEmployee) {
   return (
     (!path.startsWith('/employees') || canViewPeople(user)) &&
     (!path.startsWith('/organization') ||
-      user.position === 'SENIOR_DIRECTOR' ||
+      ['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(user.position) ||
       user.permissions.includes('EMPLOYEE_READ')) &&
     (!path.startsWith('/departments/') ||
-      user.position === 'SENIOR_DIRECTOR' ||
+      user.position === 'MANAGING_DIRECTOR' ||
+      (user.position === 'SENIOR_DIRECTOR' && departmentRouteId === user.department?.id) ||
       (user.position === 'ACCOUNT_DIRECTOR' && departmentRouteId === user.department?.id) ||
       user.permissions.includes('EMPLOYEE_READ')) &&
     ((!path.startsWith('/task-reports') && !path.startsWith('/task-archive')) || user.position !== 'MEMBER') &&

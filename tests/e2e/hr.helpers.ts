@@ -8,7 +8,10 @@ export const usernames = {
   hrMember: `${year}-HR-000006`,
   member: `${year}-ACC-000007`,
   director: `${year}-ACC-000002`,
-  senior: `${year}-ORG-000001`,
+  marketingDirector: `${year}-MKT-000003`,
+  senior: `${year}-ACC-000012`,
+  managing: `${year}-ORG-000001`,
+  hrSenior: `${year}-HR-000014`,
 };
 
 export async function login(request: APIRequestContext, employeeId: string) {

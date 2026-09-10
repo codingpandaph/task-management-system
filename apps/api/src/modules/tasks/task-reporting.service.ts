@@ -18,9 +18,11 @@ export abstract class TaskReportingService extends TaskWorkflowService {
     return this.db.task.findMany({
       where: {
         isDeleted: true,
-        ...(actor.employee.position === 'SENIOR_DIRECTOR'
+        ...(actor.employee.position === 'MANAGING_DIRECTOR'
           ? {}
-          : { workspace: { departmentId: actor.employee.departmentId! } }),
+          : actor.employee.position === 'SENIOR_DIRECTOR'
+            ? { workspace: { departmentId: actor.employee.departmentId! } }
+            : { workspace: { teamId: actor.employee.teamId! } }),
       },
       include: taskInclude,
       orderBy: { deletedAt: 'desc' },
@@ -30,11 +32,11 @@ export abstract class TaskReportingService extends TaskWorkflowService {
   async reporting(actor: Principal) {
     if (actor.employee.position === 'MEMBER') throw new ForbiddenException('Director access required');
     const workspaceWhere =
-      actor.employee.position === 'SENIOR_DIRECTOR'
+      actor.employee.position === 'MANAGING_DIRECTOR'
         ? {}
-        : actor.employee.position === 'ACCOUNT_DIRECTOR'
+        : actor.employee.position === 'SENIOR_DIRECTOR'
           ? { departmentId: actor.employee.departmentId! }
-          : { departmentId: actor.employee.departmentId! };
+          : { teamId: actor.employee.teamId! };
     const workspaces = await this.db.workspace.findMany({
       where: workspaceWhere,
       include: {
@@ -106,7 +108,7 @@ export abstract class TaskReportingService extends TaskWorkflowService {
       start = new Date(milestone.startDate);
     const [base, borrowed, holidays] = await Promise.all([
       this.db.employee.findMany({
-        where: { departmentId: milestone.workspace.departmentId, status: 'ACTIVE' },
+        where: { teamId: milestone.workspace.teamId, status: 'ACTIVE' },
         select: { id: true, firstName: true, lastName: true },
       }),
       this.db.workspaceMembership.findMany({

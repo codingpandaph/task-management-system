@@ -21,7 +21,8 @@ export const PERMISSIONS = [
   'REPORTING_READ',
 ] as const;
 export type PermissionCode = (typeof PERMISSIONS)[number];
-export type AccessRole = 'MEMBER' | 'ACCOUNT_DIRECTOR' | 'HR_MEMBER' | 'HR_DIRECTOR' | 'SENIOR_DIRECTOR';
+export type AccessRole =
+  'MEMBER' | 'ACCOUNT_DIRECTOR' | 'HR_MEMBER' | 'HR_DIRECTOR' | 'SENIOR_DIRECTOR' | 'MANAGING_DIRECTOR';
 export const ROLE_PERMISSIONS: Record<AccessRole, readonly PermissionCode[]> = {
   MEMBER: [],
   ACCOUNT_DIRECTOR: ['REPORTING_READ'],
@@ -44,17 +45,26 @@ export const ROLE_PERMISSIONS: Record<AccessRole, readonly PermissionCode[]> = {
     'AUDIT_READ',
     'REPORTING_READ',
   ],
-  SENIOR_DIRECTOR: PERMISSIONS,
+  SENIOR_DIRECTOR: [
+    'EMPLOYEE_READ',
+    'DEPARTMENT_UPDATE',
+    'DEPARTMENT_ASSIGN_MEMBER',
+    'DEPARTMENT_ASSIGN_ACCOUNT_DIRECTOR',
+    'REPORTING_READ',
+  ],
+  MANAGING_DIRECTOR: PERMISSIONS,
 };
 const ROLE_PERMISSION_CEILINGS: Record<AccessRole, readonly PermissionCode[]> = {
   MEMBER: ROLE_PERMISSIONS.MEMBER,
   ACCOUNT_DIRECTOR: ROLE_PERMISSIONS.ACCOUNT_DIRECTOR,
   HR_MEMBER: [...ROLE_PERMISSIONS.HR_MEMBER, 'LEAVE_HR_APPROVE'],
   HR_DIRECTOR: ROLE_PERMISSIONS.HR_DIRECTOR,
-  SENIOR_DIRECTOR: PERMISSIONS,
+  SENIOR_DIRECTOR: ROLE_PERMISSIONS.SENIOR_DIRECTOR,
+  MANAGING_DIRECTOR: PERMISSIONS,
 };
 export function resolveAccessRole(position: Position, isHr: boolean): AccessRole {
-  if (position === 'SENIOR_DIRECTOR') return 'SENIOR_DIRECTOR';
+  if (position === 'MANAGING_DIRECTOR') return 'MANAGING_DIRECTOR';
+  if (position === 'SENIOR_DIRECTOR') return isHr ? 'HR_DIRECTOR' : 'SENIOR_DIRECTOR';
   if (isHr) return position === 'ACCOUNT_DIRECTOR' ? 'HR_DIRECTOR' : 'HR_MEMBER';
   return position === 'ACCOUNT_DIRECTOR' ? 'ACCOUNT_DIRECTOR' : 'MEMBER';
 }
@@ -82,7 +92,7 @@ export const HR_DELEGABLE: readonly PermissionCode[] = [
   'DEPARTMENT_ASSIGN_MEMBER',
   'REPORTING_READ',
 ];
-export type Position = 'SENIOR_DIRECTOR' | 'ACCOUNT_DIRECTOR' | 'MEMBER';
+export type Position = 'MANAGING_DIRECTOR' | 'SENIOR_DIRECTOR' | 'ACCOUNT_DIRECTOR' | 'MEMBER';
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'INACTIVE' | 'TERMINATED';
 export type DepartmentKind = 'OPERATIONAL' | 'HR';
 export type LeaveType = 'VACATION' | 'SICK' | 'CHRISTMAS_VACATION';
@@ -91,6 +101,7 @@ export interface DirectoryEmployee {
   employeeId: string;
   displayName: string;
   department: { id: string; name: string; code: string; kind: DepartmentKind } | null;
+  team: { id: string; name: string; code: string } | null;
   position: Position;
 }
 export interface CurrentEmployee extends DirectoryEmployee {
@@ -153,7 +164,7 @@ export interface TaskContract {
   boardId: string;
   dueDate: string | null;
   workspaceId: string;
-  workspace: { id: string; code: string; name: string; departmentId: string };
+  workspace: { id: string; code: string; name: string; departmentId: string; teamId: string };
   reporter: TaskPerson;
   assignee: TaskPerson | null;
   milestone: { id: string; name: string; dueDate: string; isOvercapacity: boolean } | null;

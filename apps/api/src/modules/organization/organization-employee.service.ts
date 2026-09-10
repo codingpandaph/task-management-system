@@ -8,10 +8,20 @@ import { directory, OrganizationBaseService } from './organization-base.service'
 
 export abstract class OrganizationEmployeeService extends OrganizationBaseService {
   async employees(actor: Principal, q: PageDto, hr = false) {
-    if (hr) requireHr(actor, 'EMPLOYEE_READ');
+    if (hr && actor.employee.position !== 'SENIOR_DIRECTOR') requireHr(actor, 'EMPLOYEE_READ');
+    const organizationWide =
+      actor.employee.position === 'MANAGING_DIRECTOR' ||
+      (actor.employee.department?.kind === 'HR' && actor.permissions.includes('EMPLOYEE_READ'));
+    const visibility: Prisma.EmployeeWhereInput = organizationWide
+      ? {}
+      : actor.employee.position === 'SENIOR_DIRECTOR'
+        ? { departmentId: actor.employee.departmentId }
+        : { teamId: actor.employee.teamId ?? '00000000-0000-0000-0000-000000000000' };
     const where: Prisma.EmployeeWhereInput = {
+      ...visibility,
       ...(hr ? { status: q.status } : { status: 'ACTIVE' }),
-      departmentId: q.departmentId,
+      ...(organizationWide && q.departmentId ? { departmentId: q.departmentId } : {}),
+      ...(q.teamId ? { teamId: q.teamId } : {}),
       position: q.position,
       ...(q.employmentType && hr
         ? { employmentRecord_employee: { some: { type: q.employmentType, effectiveTo: null } } }
@@ -34,16 +44,18 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
     const order: Prisma.EmployeeOrderByWithRelationInput[] =
       q.sortBy === 'department'
         ? [{ department: { name: direction } }]
-        : q.sortBy === 'position'
-          ? [{ position: direction }]
-          : q.sortBy === 'employeeId'
-            ? [{ employeeId: direction }]
-            : q.sortBy === 'name'
-              ? [{ firstName: direction }, { middleName: direction }, { lastName: direction }]
-              : [{ lastName: 'asc' }];
+        : q.sortBy === 'team'
+          ? [{ team: { name: direction } }]
+          : q.sortBy === 'position'
+            ? [{ position: direction }]
+            : q.sortBy === 'employeeId'
+              ? [{ employeeId: direction }]
+              : q.sortBy === 'name'
+                ? [{ firstName: direction }, { middleName: direction }, { lastName: direction }]
+                : [{ lastName: 'asc' }];
     const rows = await this.db.employee.findMany({
       where,
-      include: { department: true },
+      include: { department: true, team: true },
       skip: (q.page - 1) * q.pageSize,
       take: q.pageSize,
       orderBy: [...order, { id: 'asc' }],
@@ -57,9 +69,17 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
     };
   }
   async detail(actor: Principal, id: string) {
-    requireHr(actor, 'EMPLOYEE_READ');
-    const e = await this.db.employee.findUnique({ where: { id }, include: { department: true } });
+    if (actor.employee.position !== 'SENIOR_DIRECTOR') requireHr(actor, 'EMPLOYEE_READ');
+    const e = await this.db.employee.findUnique({ where: { id }, include: { department: true, team: true } });
     if (!e) throw new NotFoundException();
+    const organizationWide =
+      actor.employee.position === 'MANAGING_DIRECTOR' ||
+      (actor.employee.department?.kind === 'HR' && actor.permissions.includes('EMPLOYEE_READ'));
+    if (
+      !organizationWide &&
+      (actor.employee.position !== 'SENIOR_DIRECTOR' || actor.employee.departmentId !== e.departmentId)
+    )
+      throw new NotFoundException();
     return {
       ...directory(e),
       firstName: e.firstName,
@@ -82,6 +102,10 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
       const department = await tx.department.findUnique({ where: { id: dto.departmentId } });
       if (!department || department.status !== 'ACTIVE')
         throw new UnprocessableEntityException('Active department required');
+      const team = await tx.team.findFirst({
+        where: { id: dto.teamId, departmentId: department.id, status: 'ACTIVE' },
+      });
+      if (!team) throw new UnprocessableEntityException('Active team in the selected department required');
       const policy = await tx.leavePolicyVersion.findUnique({
         where: { id: dto.leavePolicyVersionId },
         include: { policy: true },
@@ -104,9 +128,10 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
           birthDate: birth,
           email: dto.email,
           departmentId: department.id,
+          teamId: team.id,
           passwordHash: credentials.hash,
         },
-        include: { department: true },
+        include: { department: true, team: true },
       });
       await tx.employmentRecord.create({
         data: { ...employment, employeeId: e.id, actorId: actor.employee.id, reason: 'Employee created' },
@@ -115,6 +140,7 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
         data: {
           employeeId: e.id,
           departmentId: department.id,
+          teamId: team.id,
           position: 'MEMBER',
           actorId: actor.employee.id,
           reason: 'Employee created',
@@ -126,7 +152,10 @@ export abstract class OrganizationEmployeeService extends OrganizationBaseServic
       await tx.employeeChristmasPolicyAssignment.create({
         data: { employeeId: e.id, year, policyVersionId: christmas.id, actorId: actor.employee.id },
       });
-      await audit(tx, actor.employee.id, 'EMPLOYEE_CREATED', 'Employee', e.id, { departmentId: department.id });
+      await audit(tx, actor.employee.id, 'EMPLOYEE_CREATED', 'Employee', e.id, {
+        departmentId: department.id,
+        teamId: team.id,
+      });
       return directory(e);
     });
     return { ...result, temporaryPassword: credentials.password };

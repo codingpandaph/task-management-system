@@ -18,16 +18,16 @@ export abstract class TaskWorkflowService extends TaskRecordService {
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     const column = await this.db.taskColumn.findFirst({ where: { id: columnId, boardId: task.boardId } });
     if (!column) throw new BadRequestException('Column is not on this board');
-    if (column.managementLocked && !task.isManagementApproved && actor.employee.position !== 'SENIOR_DIRECTOR')
+    if (column.managementLocked && !task.isManagementApproved)
       throw new ForbiddenException('Management sign-off is required');
     const blockers = task.outgoingLinks.filter((link) => link.type === 'BLOCKED_BY' && !link.targetTask.column.isDone);
-    if (!task.column.isInitial && blockers.length && actor.employee.position !== 'SENIOR_DIRECTOR')
+    if (!task.column.isInitial && blockers.length && !this.manages(actor, task.workspace))
       throw new BadRequestException('Resolve blocking tasks before advancing this task');
-    if (task.column.isInitial && !column.isInitial && blockers.length && actor.employee.position !== 'SENIOR_DIRECTOR')
+    if (task.column.isInitial && !column.isInitial && blockers.length && !this.manages(actor, task.workspace))
       throw new BadRequestException('Resolve blocking tasks before advancing this task');
     return this.db.transaction(async (tx) => {
       if (task.board.kind === 'KANBAN' && column.semantic === 'IN_PROGRESS') {
-        await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
+        await this.enforceWip(tx, task.workspace.teamId, task.assigneeId, task.id);
       }
       const updated = await tx.task.update({
         where: { id },
@@ -42,12 +42,12 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   async approve(actor: Principal, id: string, approved: boolean) {
     const task = await this.detail(actor, id);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
-    if (!this.manages(actor, task.workspace.departmentId))
+    if (!this.manages(actor, task.workspace))
       throw new ForbiddenException('Account Director or Senior Director required');
     return this.db.transaction(async (tx) => {
       const destination = await tx.taskColumn.findUniqueOrThrow({ where: { id: task.lastColumnId ?? task.columnId } });
       if (task.board.kind === 'KANBAN' && destination.semantic === 'IN_PROGRESS') {
-        await this.enforceWip(tx, task.workspace.departmentId, task.assigneeId, task.id);
+        await this.enforceWip(tx, task.workspace.teamId, task.assigneeId, task.id);
       }
       const updated = await tx.task.update({
         where: { id },
@@ -70,18 +70,24 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   async escalate(actor: Principal, id: string, escalated: boolean) {
     const task = await this.detail(actor, id);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
-    if (!this.manages(actor, task.workspace.departmentId) || actor.employee.position === 'MEMBER')
+    if (!this.manages(actor, task.workspace) || actor.employee.position === 'MEMBER')
       throw new ForbiddenException('Director required');
     return this.db.transaction(async (tx) => {
       const updated = await tx.task.update({ where: { id }, data: { isEscalated: escalated }, include: taskInclude });
       await this.activity(tx, id, actor.employee.id, 'UPDATE_FIELD', 'isEscalated', task.isEscalated, escalated);
       if (escalated) {
         const directors = await tx.employee.findMany({
-          where: { position: 'SENIOR_DIRECTOR', status: 'ACTIVE' },
+          where: {
+            status: 'ACTIVE',
+            OR: [
+              { position: 'SENIOR_DIRECTOR', departmentId: task.workspace.departmentId },
+              { position: 'MANAGING_DIRECTOR' },
+            ],
+          },
           select: { id: true },
         });
         for (const director of directors)
-          await notify(tx, director.id, 'TASK_ESCALATED', 'Task', id, `task-escalated:${id}`);
+          await notify(tx, director.id, 'TASK_ESCALATED', 'Task', id, `task-escalated:${id}:${director.id}`);
       }
       return updated;
     });
@@ -90,7 +96,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   async remove(actor: Principal, id: string) {
     const task = await this.detail(actor, id);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
-    if (task.reporterId !== actor.employee.id && !this.manages(actor, task.workspace.departmentId))
+    if (task.reporterId !== actor.employee.id && !this.manages(actor, task.workspace))
       throw new ForbiddenException('Reporter or manager required');
     return this.db.transaction(async (tx) => {
       await tx.task.update({
@@ -105,7 +111,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   async restore(actor: Principal, id: string) {
     const task = await this.detail(actor, id, true);
     if (!task.isDeleted) throw new ConflictException('Task is already active');
-    if (!this.manages(actor, task.workspace.departmentId)) throw new ForbiddenException('Workspace manager required');
+    if (!this.manages(actor, task.workspace)) throw new ForbiddenException('Workspace manager required');
     return this.db.transaction(async (tx) => {
       const updated = await tx.task.update({
         where: { id },
@@ -165,7 +171,11 @@ export abstract class TaskWorkflowService extends TaskRecordService {
         where: {
           employeeId: { in: employeeIds },
           status: 'ACTIVE',
-          OR: [{ departmentId: task.workspace.departmentId }, { position: 'SENIOR_DIRECTOR' }],
+          OR: [
+            { teamId: task.workspace.teamId },
+            { position: 'SENIOR_DIRECTOR', departmentId: task.workspace.departmentId },
+            { position: 'MANAGING_DIRECTOR' },
+          ],
         },
         select: { id: true },
       });

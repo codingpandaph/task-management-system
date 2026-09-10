@@ -25,14 +25,15 @@ export interface NavigationItem {
 }
 
 export function portalNavigation(user: CurrentEmployee, unread: number): NavigationItem[] {
-  const organization = user.position === 'SENIOR_DIRECTOR' || user.permissions.includes('EMPLOYEE_READ');
+  const organization =
+    ['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(user.position) || user.permissions.includes('EMPLOYEE_READ');
   const manager = user.position !== 'MEMBER';
   return [
     { href: '/', label: 'Overview', group: 'Company', icon: <DashboardOutlined /> },
     ...(organization
       ? [{ href: '/organization', label: 'Organization', group: 'Company' as const, icon: <AccountTreeOutlined /> }]
       : []),
-    ...(user.department
+    ...(user.department && user.position !== 'MEMBER'
       ? [{ href: '/department', label: 'Department', group: 'Company' as const, icon: <BusinessOutlined /> }]
       : []),
     ...(canViewPeople(user)

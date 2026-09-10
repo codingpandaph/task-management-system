@@ -2,60 +2,131 @@ import type { Position } from './generated/prisma/client';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-type SeedPerson = [string, string, string | null, Position];
+export interface SeedTeam {
+  departmentCode: 'ACC' | 'MKT' | 'HR';
+  code: string;
+  name: string;
+}
 
-const corePeople: SeedPerson[] = [
-  ['Avery', 'Morgan', null, 'SENIOR_DIRECTOR'],
-  ['Jordan', 'Ellis', 'ACC', 'ACCOUNT_DIRECTOR'],
-  ['Casey', 'Rowan', 'MKT', 'ACCOUNT_DIRECTOR'],
-  ['Taylor', 'Quinn', 'HR', 'ACCOUNT_DIRECTOR'],
-  ['Morgan', 'Reed', 'HR', 'MEMBER'],
-  ['Riley', 'Shaw', 'HR', 'MEMBER'],
-  ['Alex', 'Finch', 'ACC', 'MEMBER'],
-  ['Sam', 'River', 'MKT', 'MEMBER'],
-  ['Jamie', 'Brook', 'ACC', 'MEMBER'],
-  ['Robin', 'Vale', 'MKT', 'MEMBER'],
-  ['Drew', 'Lane', 'ACC', 'MEMBER'],
+export interface SeedPerson {
+  firstName: string;
+  lastName: string;
+  departmentCode: 'ACC' | 'MKT' | 'HR' | null;
+  teamCode: string | null;
+  position: Position;
+}
+
+export const seedTeams: SeedTeam[] = [
+  { departmentCode: 'ACC', code: 'CLIENT-A', name: 'Client Success' },
+  { departmentCode: 'ACC', code: 'CLIENT-B', name: 'Account Growth' },
+  { departmentCode: 'MKT', code: 'MKT-A', name: 'Brand & Content' },
+  { departmentCode: 'MKT', code: 'MKT-B', name: 'Growth Marketing' },
+  { departmentCode: 'HR', code: 'HR-A', name: 'People Operations' },
 ];
 
-const clientMembers = [
-  ['Cameron', 'Blake'],
-  ['Emery', 'Stone'],
-  ['Frankie', 'Hart'],
-  ['Harper', 'Cole'],
-  ['Jules', 'Wells'],
-  ['Kai', 'Reeves'],
-  ['Logan', 'Price'],
-  ['Micah', 'Ford'],
-  ['Noel', 'Hayes'],
-  ['Parker', 'Dean'],
-  ['Quinn', 'Frost'],
-  ['Rowan', 'Bell'],
-] as const;
+const person = (
+  firstName: string,
+  lastName: string,
+  departmentCode: SeedPerson['departmentCode'],
+  teamCode: string | null,
+  position: Position,
+): SeedPerson => ({ firstName, lastName, departmentCode, teamCode, position });
 
-const marketingMembers = [
-  ['Ari', 'West'],
-  ['Billie', 'Cross'],
-  ['Charlie', 'North'],
-  ['Devon', 'Lake'],
-  ['Elliot', 'Green'],
-  ['Finley', 'Moore'],
-  ['Gray', 'Young'],
-  ['Hayden', 'Scott'],
-  ['Indigo', 'King'],
-  ['Justice', 'Wood'],
-  ['Kit', 'Ward'],
-  ['Lennon', 'Fox'],
-  ['Marley', 'Rose'],
-] as const;
+// Keep the first eleven records stable: browser fixtures use their deterministic employee IDs.
+const corePeople: SeedPerson[] = [
+  person('Avery', 'Morgan', null, null, 'MANAGING_DIRECTOR'),
+  person('Jordan', 'Ellis', 'ACC', 'CLIENT-A', 'ACCOUNT_DIRECTOR'),
+  person('Casey', 'Rowan', 'MKT', 'MKT-A', 'ACCOUNT_DIRECTOR'),
+  person('Taylor', 'Quinn', 'HR', 'HR-A', 'ACCOUNT_DIRECTOR'),
+  person('Morgan', 'Reed', 'HR', 'HR-A', 'MEMBER'),
+  person('Riley', 'Shaw', 'HR', 'HR-A', 'MEMBER'),
+  person('Alex', 'Finch', 'ACC', 'CLIENT-A', 'MEMBER'),
+  person('Sam', 'River', 'MKT', 'MKT-A', 'MEMBER'),
+  person('Jamie', 'Brook', 'ACC', 'CLIENT-A', 'MEMBER'),
+  person('Robin', 'Vale', 'MKT', 'MKT-A', 'MEMBER'),
+  person('Drew', 'Lane', 'ACC', 'CLIENT-A', 'MEMBER'),
+  person('Sidney', 'Clarke', 'ACC', null, 'SENIOR_DIRECTOR'),
+  person('Reese', 'Palmer', 'MKT', null, 'SENIOR_DIRECTOR'),
+  person('Hayden', 'Brooks', 'HR', null, 'SENIOR_DIRECTOR'),
+  person('Bailey', 'Grant', 'ACC', 'CLIENT-B', 'ACCOUNT_DIRECTOR'),
+  person('Dakota', 'Flynn', 'MKT', 'MKT-B', 'ACCOUNT_DIRECTOR'),
+];
+
+const deliveryMembers: Record<string, readonly (readonly [string, string])[]> = {
+  'CLIENT-A': [
+    ['Cameron', 'Blake'],
+    ['Emery', 'Stone'],
+    ['Frankie', 'Hart'],
+    ['Harper', 'Cole'],
+    ['Jules', 'Wells'],
+    ['Kai', 'Reeves'],
+    ['Logan', 'Price'],
+    ['Micah', 'Ford'],
+    ['Noel', 'Hayes'],
+    ['Parker', 'Dean'],
+    ['Quinn', 'Frost'],
+    ['Rowan', 'Bell'],
+    ['Skyler', 'Grant'],
+  ],
+  'CLIENT-B': [
+    ['Adrian', 'Bishop'],
+    ['Blair', 'Carson'],
+    ['Cleo', 'Dawson'],
+    ['Dylan', 'Evans'],
+    ['Ellis', 'Fisher'],
+    ['Fallon', 'Gibbs'],
+    ['Gale', 'Hughes'],
+    ['Hollis', 'Irwin'],
+    ['Jody', 'James'],
+    ['Kendall', 'Knight'],
+    ['Lane', 'Lewis'],
+    ['Milan', 'Miles'],
+    ['Nico', 'Nash'],
+    ['Oakley', 'Owens'],
+    ['Payton', 'Pierce'],
+  ],
+  'MKT-A': [
+    ['Ari', 'West'],
+    ['Billie', 'Cross'],
+    ['Charlie', 'North'],
+    ['Devon', 'Lake'],
+    ['Elliot', 'Green'],
+    ['Finley', 'Moore'],
+    ['Gray', 'Young'],
+    ['Indigo', 'King'],
+    ['Justice', 'Wood'],
+    ['Kit', 'Ward'],
+    ['Lennon', 'Fox'],
+    ['Marley', 'Rose'],
+    ['Phoenix', 'Snow'],
+    ['River', 'Scott'],
+  ],
+  'MKT-B': [
+    ['Remy', 'Adams'],
+    ['Sage', 'Baker'],
+    ['Tatum', 'Carter'],
+    ['Val', 'Diaz'],
+    ['Winter', 'Edwards'],
+    ['Yael', 'Flores'],
+    ['Zion', 'Garcia'],
+    ['Ainsley', 'Hill'],
+    ['Briar', 'Ingram'],
+    ['Cory', 'Jones'],
+    ['Darcy', 'Kelly'],
+    ['Eden', 'Long'],
+    ['Flynn', 'Martin'],
+    ['Greer', 'Nelson'],
+    ['Hero', 'Ortiz'],
+  ],
+};
 
 export function seedPeople(limited: boolean): SeedPerson[] {
-  if (limited) return corePeople.slice(0, 7);
-  return [
-    ...corePeople,
-    ...clientMembers.map(([first, last]) => [first, last, 'ACC', 'MEMBER'] as SeedPerson),
-    ...marketingMembers.map(([first, last]) => [first, last, 'MKT', 'MEMBER'] as SeedPerson),
-  ];
+  if (limited) return corePeople;
+  const generated = Object.entries(deliveryMembers).flatMap(([teamCode, names]) => {
+    const departmentCode = teamCode.startsWith('CLIENT') ? 'ACC' : 'MKT';
+    return names.map(([first, last]) => person(first, last, departmentCode, teamCode, 'MEMBER'));
+  });
+  return [...corePeople, ...generated];
 }
 
 export function seedBoardColumns(code: string) {

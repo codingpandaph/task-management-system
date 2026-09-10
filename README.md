@@ -1,7 +1,7 @@
 # CPSync — HRIS & Task Management
 
 A TypeScript monorepo for employee identity, organization administration, employment lifecycle, leave accounting,
-department task boards, personal work, milestones, capacity, approvals, reporting, notifications, and audit. The
+team-exclusive task boards, personal work, milestones, capacity, approvals, reporting, notifications, and audit. The
 browser app uses Next.js 16, React 19, MUI, and Tailwind. The REST API uses NestJS 12, Prisma 7, and PostgreSQL. Public
 cross-application types live in `@tms/contracts`.
 
@@ -48,29 +48,35 @@ running `yarn dev:fresh` or `ALLOW_DEMO_SEED=true yarn db:seed`. Every account s
 
 ## Demo credentials
 
-| Employee ID       | Name         | Perspective                | Useful manual flows                                       |
-| ----------------- | ------------ | -------------------------- | --------------------------------------------------------- |
-| `2026-ORG-000001` | Avery Morgan | Senior Director            | Organization overview, governance, reports, approvals     |
-| `2026-ACC-000002` | Jordan Ellis | Client Account Director    | Team settings, boards, tasks, leave approval              |
-| `2026-MKT-000003` | Casey Rowan  | Marketing Account Director | Second-team scope and reporting                           |
-| `2026-HR-000004`  | Taylor Quinn | HR Director                | Employees, policies, lifecycle, leave administration      |
-| `2026-HR-000005`  | Morgan Reed  | Final HR approver          | Final leave approval and ordinary HR visibility           |
-| `2026-HR-000006`  | Riley Shaw   | HR employee                | Employee leave flow without HR administration privileges  |
-| `2026-ACC-000007` | Alex Finch   | Client Services employee   | Personal tasks, team boards, filing and cancelling leave  |
-| `2026-MKT-000008` | Sam River    | Marketing employee         | Probationary employee and second-team member perspective  |
-| `2026-ACC-000009` | Jamie Brook  | Suspended employee         | Authentication denial and suspended-account demonstration |
-| `2026-MKT-000010` | Robin Vale   | Inactive employee          | Inactive/expired-contract authentication denial           |
-| `2026-ACC-000011` | Drew Lane    | New starter                | Mandatory first-login password change                     |
+| Employee ID       | Name          | Perspective                     | Useful manual flows                                             |
+| ----------------- | ------------- | ------------------------------- | --------------------------------------------------------------- |
+| `2026-ORG-000001` | Avery Morgan  | Managing Director               | Organization overview, governance, reports, auto-approved leave |
+| `2026-ACC-000002` | Jordan Ellis  | Client Account Director         | Team settings, boards, tasks, leave approval                    |
+| `2026-MKT-000003` | Casey Rowan   | Marketing Account Director      | Second-team scope and reporting                                 |
+| `2026-HR-000004`  | Taylor Quinn  | HR Director                     | Employees, policies, lifecycle, leave administration            |
+| `2026-HR-000005`  | Morgan Reed   | Final HR approver               | Final leave approval and ordinary HR visibility                 |
+| `2026-HR-000006`  | Riley Shaw    | HR employee                     | Employee leave flow without HR administration privileges        |
+| `2026-ACC-000007` | Alex Finch    | Client Services employee        | Personal tasks, team boards, filing and cancelling leave        |
+| `2026-MKT-000008` | Sam River     | Marketing employee              | Probationary employee and second-team member perspective        |
+| `2026-ACC-000009` | Jamie Brook   | Suspended employee              | Authentication denial and suspended-account demonstration       |
+| `2026-MKT-000010` | Robin Vale    | Inactive employee               | Inactive/expired-contract authentication denial                 |
+| `2026-ACC-000011` | Drew Lane     | New starter                     | Mandatory first-login password change                           |
+| `2026-ACC-000012` | Sidney Clarke | Client Services Senior Director | Department-wide oversight and leave approval                    |
+| `2026-MKT-000013` | Reese Palmer  | Marketing Senior Director       | Department-wide oversight and leave approval                    |
+| `2026-HR-000014`  | Hayden Brooks | HR Senior Director              | HR leadership; leave routes to Managing Director                |
+| `2026-ACC-000015` | Bailey Grant  | Account Growth Director         | Second Client Services team boundary                            |
+| `2026-MKT-000016` | Dakota Flynn  | Growth Marketing Director       | Second Marketing team boundary                                  |
 
 Employee IDs use the current London creation year. Replace `2026` with the current year if the seed is run in a later
-year. The limited Playwright seed contains accounts `000001` through `000007`; the full development seed contains all
-accounts above. Drew's listed password is temporary and the application requires a new password immediately after
+year. The limited Playwright seed contains the named accounts `000001` through `000016`; the full development seed also
+contains the complete 15-member delivery teams. Drew's listed password is temporary and the application requires a new password immediately after
 login.
 
-The full seed creates three departments. Client Services and Marketing each contain one Account Director and 15
-members. Human Resources contains its director and two HR employees, while the Senior Director is organization-wide
-and belongs to no department. Simon's core hierarchy is 33 people; the additional HR department adds three people,
-giving the full demonstration 36 people. E2E keeps a seven-user subset.
+The full seed creates one Managing Director and three departments, each with one Senior Director. Client Services and
+Marketing each have two independent teams; every team has one Account Director and exactly 15 members. Human Resources
+starts with one editable People Operations team. Team creation is dynamic, and every team owns one private task
+workspace. The limited Playwright seed keeps all 16 named hierarchy and security fixtures; the full demo adds the 57
+members needed to make all four delivery teams complete.
 
 ## Database and migrations
 
@@ -87,7 +93,7 @@ yarn db:migrate:deploy
 ```
 
 Integration tests require a dedicated test database. Every Playwright command requires exactly `tms_test` and applies
-committed migrations before starting the app. Automated acceptance runs use a limited deterministic seven-person seed;
+committed migrations before starting the app. Automated acceptance runs use a limited deterministic 16-person seed;
 the headed product demo uses the full fictional organization:
 
 ```bash
@@ -125,14 +131,14 @@ state and remain ignored in `test-results/` and `playwright-report/`.
 `yarn test:e2e` resets `tms_test` and covers authentication/session rotation, employee onboarding, password confirmation,
 plain-language password guidance, and forced password
 change, directory scope, departments, employee edits/transfers/employment records, permissions, lifecycle transitions,
-regular and Christmas policy creation/versioning/status/assignment, balances, all five approval chains, cancellation,
+regular and Christmas policy creation/versioning/status/assignment, balances, all seven approval chains, cancellation,
 editable leave drafts, HR corrections and adjustments, notification read state, searchable audit history, reporting,
-responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the five-path
+responsive UI, direct authorization denial, and browser-driven filing plus approval for every role in the seven-path
 matrix. It also covers personal tasks, team boards, task creation, comments, management sign-off,
 and drag-and-drop movement, contextual per-board search, delegated board/ticket creation, self/department
 assignment, authenticated creator reporting, delivery reporting, and
 every defined breakpoint. `yarn demo:e2e` resets once, opens one Chromium browser with one page, and first shows the
-Senior Director plus both Account Directors with 15 members per delivery team. It then runs the HR setup, five leave
+Managing Director, department Senior Directors, and Account Directors with 15 active members per delivery team. It then runs the HR setup, seven leave
 perspectives, cancellation, director-to-employee task handoff, and reporting in sequence. A visible guide
 names each role and explains the expected result while the journey pauses between meaningful actions. Manual
 checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
@@ -162,8 +168,7 @@ On phones, a labelled menu opens the complete role-aware navigation drawer, keep
 administration destinations discoverable without relying on a long horizontal strip.
 Run `yarn design-check` to detect design-system drift against `apps/web/DESIGN.md` and `apps/web/PRODUCT.md`.
 
-RBAC assigns bounded defaults to Member, Account Director, HR Member, and HR Director roles. The Senior Director has
-every system capability. Backend permission and resource checks remain authoritative; the UI uses the same effective
+RBAC assigns bounded defaults to Member, Account Director, HR Member, and HR Director roles. The Managing Director has organization-wide capabilities. Senior Directors have bounded people and delivery oversight for their own department. Backend permission and resource checks remain authoritative; the UI uses the same effective
 permissions to hide unavailable navigation and actions.
 Employee access details show the effective role, and permission forms only offer grants inside that role’s ceiling.
 Restricted direct URLs redirect to the employee's Overview before the protected screen mounts. The Nest API still
@@ -218,23 +223,18 @@ postings with unique operation keys. Policy assignments and chargeable leave dat
 Business time and contractual expiry use `Europe/London`; bank holidays come from the checked-in attributed GOV.UK
 snapshot under `prisma/fixtures`.
 
-Task workspaces reuse HRIS positions and membership. Serializable workspace counters produce human task keys. Task
-completion enforces blockers and management-locked columns. Departments select Kanban, Scrum, and List workflows and
-set one Kanban limit that is enforced separately for each assignee under a row lock. All active department members
-access their department boards automatically and can comment and move tickets, subject to workflow checks. Creating
-tickets and boards requires independent grants (directors have these abilities automatically). Cross-department board
-access is limited to the Senior Director. Reporters are always derived from the authenticated creator. Capacity uses
-active employees, business days, and approved HRIS leave; termination transactionally unassigns incomplete tasks and
-returns them to the initial lane. Task deletion is reversible and its activity ledger is append-only.
-The Senior Director is an organization-level employee with no department assignment; a PostgreSQL constraint requires
-every Member and Account Director to remain attached to exactly one department. Delivery reports compare portfolio
-completion, open and blocked work, escalations, capacity risks, workflow distribution, and named workload concentration
-across both teams. Task detail exposes the immutable activity timeline in plain language.
-The multi-user task journey proves the handoff itself: an Account Director creates and assigns work, the named employee
-finds it in My tasks, comments and advances it, and the director verifies progress, signs it off, and reviews reporting.
-Personal work and team boards include searchable status, priority, and assignee filters with one-action reset. Delivery
-reports can be narrowed by department, notifications support individual or bulk read actions, and failed task loading
-shows a recoverable retry state instead of leaving the workspace indefinitely busy.
+Task workspaces reuse the HRIS hierarchy. Every team owns its own workspace, and all active team members can view,
+comment on, and move its tickets. Creating tickets and boards remains independently permissioned. Account Directors
+manage their team only; Senior Directors can view and manage every team in their department; the Managing Director can
+view every department. Assignment, mentions, WIP limits, capacity, archives, and reporting all enforce the same team
+boundary. Scrum uses one board and one milestone per sprint, with date-only start and due dates. Completion makes that
+sprint board read-only and preserves it in Past sprints.
+
+Leave routing snapshots the hierarchy when a request is submitted. Non-HR members route through team Account Director,
+department Senior Director, and the default HR approver. Non-HR Account Directors route through Senior Director and HR;
+non-HR Senior Directors route to HR. HR members route through HR Account Director and HR Senior Director; the HR Account
+Director routes to HR Senior Director; the HR Senior Director routes to the Managing Director. Managing Director leave
+auto-approves without an approver.
 Next.js protects page requests in its server proxy before a restricted screen renders; NestJS repeats authorization for
 every API request. Task descriptions render a deliberately limited Markdown subset as React elements without raw HTML.
 
@@ -244,10 +244,10 @@ backup/restore procedures. This prototype does not claim legal certification.
 
 ### UI access and workflow acceptance
 
-- Overview and Leave calendar use API-enforced scope: organization-wide for the Senior Director and authorized HR
-  reporting users, own department for Account Directors, and own approved leave only for members. People navigation
+- Overview and Leave calendar use API-enforced scope: organization-wide for the Managing Director and authorized HR
+  reporting users, own department for Senior and Account Directors, and own approved leave only for members. People navigation
   and `/employees` pages are limited to HR and the Senior Director; employee detail still requires its capability.
-- Create/edit department uses Kanban, Scrum, and List checkboxes plus Select all. The Kanban WIP field appears only
+- Create team uses Kanban, Scrum, and List checkboxes plus Select all. Team settings show the Kanban WIP field only
   while Kanban is selected. At least one type is required.
 - Policies has one **Create** button for the selected Regular leave or Christmas tab and its permission.
 - Team boards omits the duplicate introduction panel. Board creation uses **Board name** and **Create board** for

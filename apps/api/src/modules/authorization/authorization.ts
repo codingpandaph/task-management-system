@@ -2,10 +2,10 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetad
 import { Reflector } from '@nestjs/core';
 import type { PermissionCode, Position } from '@tms/contracts';
 import type { Request } from 'express';
-import type { Department, Employee } from '../../generated/prisma/client';
+import type { Department, Employee, Team } from '../../generated/prisma/client';
 
 export interface Principal {
-  employee: Employee & { department: Department | null };
+  employee: Employee & { department: Department | null; team: Team | null };
   permissions: PermissionCode[];
   sessionId: string;
 }
@@ -19,7 +19,7 @@ export function requirePermission(actor: Principal, permission: PermissionCode) 
 }
 export function requireHr(actor: Principal, permission: PermissionCode) {
   requirePermission(actor, permission);
-  if (actor.employee.position !== 'SENIOR_DIRECTOR' && actor.employee.department?.kind !== 'HR') {
+  if (actor.employee.position !== 'MANAGING_DIRECTOR' && actor.employee.department?.kind !== 'HR') {
     throw new ForbiddenException('This action is limited to authorized HR employees');
   }
 }

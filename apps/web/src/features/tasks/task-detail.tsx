@@ -168,7 +168,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                     options: [
                       { value: '', label: 'Unassigned' },
                       ...people
-                        .filter((employee) => employee.department?.id === task.workspace.departmentId)
+                        .filter((employee) => employee.team?.id === task.workspace.teamId)
                         .map((employee) => ({ value: employee.id, label: employee.displayName })),
                     ],
                   },

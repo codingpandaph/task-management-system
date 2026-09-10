@@ -8,10 +8,10 @@ web
 
 ## Users
 
-CPSync serves employees, Account Directors, HR staff, and one Senior Director in a department-scale organization.
-Employees manage their own leave and assigned work. Account Directors coordinate department delivery and approvals. HR
-staff manage people operations and leave administration according to explicit capabilities. The Senior Director
-governs organization-wide access and reviews delivery across teams.
+CPSync serves employees, Account Directors, department Senior Directors, HR staff, and one Managing Director.
+Employees manage their own leave and assigned work. Account Directors coordinate their team's delivery and approvals.
+Senior Directors oversee every team in their department. HR staff manage people operations and leave administration
+according to explicit capabilities. The Managing Director reviews the organization and leads the Senior Directors.
 
 ## Product Purpose
 
@@ -29,17 +29,16 @@ separate, drifting directory.
 
 The product is a responsive browser application used for everyday employee self-service, HR administration, leave
 filing and approval, Kanban delivery planning, milestone capacity review, audit review, and technical demonstrations.
-The full demonstration organization has three departments: two 15-member delivery teams led by Account Directors and
-an additional HR department, while the Senior Director sits at organization level above all departments. Automated
-demos begin from a guarded, limited fictional
-database seed.
+The full demonstration organization has one Managing Director and three departments, each led by a Senior Director.
+Client Services and Marketing each have two teams led by Account Directors, with exactly 15 members per team. Human
+Resources currently has one team and supports adding more. Automated demos begin from a guarded, full fictional seed.
 
 ## Capabilities and Constraints
 
 - Employee identity, departments, employment lifecycle, permission grants, sessions, notifications, and audit.
-- Versioned leave and Christmas policies, annual balances, filing, five exact approval paths, cancellation, correction,
+- Versioned leave and Christmas policies, annual balances, filing, seven exact approval paths, cancellation, correction,
   and department-scoped absence calendars.
-- Personal tasks, department workspaces, boards, milestones, capacity, dependencies, Definition of Done, sign-off,
+- Personal tasks, team-exclusive workspaces, boards, sprint milestones, capacity, dependencies, Definition of Done, sign-off,
   escalation, delegated creation, editable reporters, soft deletion, and leadership reporting.
 - PostgreSQL is authoritative. Sensitive mutations use scoped authorization and append-oriented business history.
 - Responsive behavior is tested below, at, and above every shared breakpoint in Chromium, Firefox, and WebKit.

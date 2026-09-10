@@ -17,7 +17,9 @@ export function registerPolishScenarios() {
     const surface = (name: string) => page.getByRole('region', { name, exact: true });
     const leadership = page.getByRole('heading', { name: 'Departments and leadership' }).locator('..').locator('..');
     await expect(leadership.getByText('Avery Morgan', { exact: true })).toBeVisible();
-    await expect(leadership.getByText('Senior Director · Organization-wide', { exact: true })).toBeVisible();
+    await expect(
+      leadership.getByText('Managing Director · Organization-wide oversight', { exact: true }),
+    ).toBeVisible();
     await expect(surface('Human Resources')).not.toContainText('Avery Morgan');
     const departmentNames = hierarchy.employees.flatMap((employee) =>
       employee.department ? [employee.department.name] : [],

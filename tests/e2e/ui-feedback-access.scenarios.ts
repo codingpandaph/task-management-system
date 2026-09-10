@@ -22,9 +22,9 @@ export function registerAccessFeedbackScenarios() {
         sessions.set(role, { request, csrf, me });
       }
       for (const [role, chain] of [
-        ['member', ['director', 'hrApprover']],
+        ['member', ['director', 'senior', 'hrApprover']],
         ['director', ['senior', 'hrApprover']],
-        ['hrMember', ['hr']],
+        ['hrMember', ['hr', 'hrSenior']],
       ] as const) {
         const owner = sessions.get(role)!;
         const draft = await post<{ id: string }>(owner.request, 'leave/requests', owner.csrf, {
@@ -40,7 +40,7 @@ export function registerAccessFeedbackScenarios() {
           await post(approver.request, `leave/requests/${draft.id}/decision`, approver.csrf, { decision: 'APPROVED' });
         }
       }
-      for (const role of ['member', 'director', 'hr', 'senior']) {
+      for (const role of ['member', 'director', 'hr', 'senior', 'managing']) {
         const session = sessions.get(role)!;
         const url = `/api/reporting/calendar?start=${year}-11-01&end=${year}-11-30`;
         const events = await (await session.request.get(url)).json();
@@ -56,7 +56,16 @@ export function registerAccessFeedbackScenarios() {
             ),
           ).toBe(true);
         }
-        if (role === 'hr' || role === 'senior') expect(events.length).toBeGreaterThanOrEqual(3);
+        if (role === 'hr' || role === 'managing') expect(events.length).toBeGreaterThanOrEqual(3);
+        if (role === 'senior') {
+          expect(events.length).toBeGreaterThanOrEqual(2);
+          expect(
+            events.every(
+              (event: { employee: { department: { id: string } } }) =>
+                event.employee.department.id === session.me.department?.id,
+            ),
+          ).toBe(true);
+        }
         const tampered = await (
           await session.request.get(`${url}&departmentId=${sessions.get('hr')!.me.department!.id}`)
         ).json();
@@ -80,7 +89,7 @@ export function registerAccessFeedbackScenarios() {
         await expect(page.getByRole('heading', { name: /leave calendar$/ })).toBeVisible();
         await expect(page.locator('main .MuiAlert-root')).toHaveCount(0);
         await expect(page.getByRole('link', { name: 'People', exact: true })).toHaveCount(
-          role === 'hr' || role === 'senior' ? 1 : 0,
+          role === 'hr' || role === 'senior' || role === 'managing' ? 1 : 0,
         );
         if (role === 'member' || role === 'director') {
           expect((await session.request.get('/api/employees')).status()).toBe(403);
