@@ -46,26 +46,40 @@ The development-only seed is non-destructive and refuses production execution. U
 running `yarn dev:fresh` or `ALLOW_DEMO_SEED=true yarn db:seed`. Every account starts with the password
 `Demo only password 2026!`.
 
-## Demo credentials
+## Sample accounts
 
-| Employee ID       | Name          | Perspective                     | Useful manual flows                                             |
-| ----------------- | ------------- | ------------------------------- | --------------------------------------------------------------- |
-| `2026-ORG-000001` | Avery Morgan  | Managing Director               | Organization overview, governance, reports, auto-approved leave |
-| `2026-ACC-000002` | Jordan Ellis  | Client Account Director         | Team settings, boards, tasks, leave approval                    |
-| `2026-MKT-000003` | Casey Rowan   | Marketing Account Director      | Second-team scope and reporting                                 |
-| `2026-HR-000004`  | Taylor Quinn  | HR Director                     | Employees, policies, lifecycle, leave administration            |
-| `2026-HR-000005`  | Morgan Reed   | Final HR approver               | Final leave approval and ordinary HR visibility                 |
-| `2026-HR-000006`  | Riley Shaw    | HR employee                     | Employee leave flow without HR administration privileges        |
-| `2026-ACC-000007` | Alex Finch    | Client Services employee        | Personal tasks, team boards, filing and cancelling leave        |
-| `2026-MKT-000008` | Sam River     | Marketing employee              | Probationary employee and second-team member perspective        |
-| `2026-ACC-000009` | Jamie Brook   | Suspended employee              | Authentication denial and suspended-account demonstration       |
-| `2026-MKT-000010` | Robin Vale    | Inactive employee               | Inactive/expired-contract authentication denial                 |
-| `2026-ACC-000011` | Drew Lane     | New starter                     | Mandatory first-login password change                           |
-| `2026-ACC-000012` | Sidney Clarke | Client Services Senior Director | Department-wide oversight and leave approval                    |
-| `2026-MKT-000013` | Reese Palmer  | Marketing Senior Director       | Department-wide oversight and leave approval                    |
-| `2026-HR-000014`  | Hayden Brooks | HR Senior Director              | HR leadership; leave routes to Managing Director                |
-| `2026-ACC-000015` | Bailey Grant  | Account Growth Director         | Second Client Services team boundary                            |
-| `2026-MKT-000016` | Dakota Flynn  | Growth Marketing Director       | Second Marketing team boundary                                  |
+| Name          | Role                              | Username          | Password                   |
+| ------------- | --------------------------------- | ----------------- | -------------------------- |
+| Avery Morgan  | Managing Director                 | `2026-ORG-000001` | `Demo only password 2026!` |
+| Jordan Ellis  | Client Success Account Director   | `2026-ACC-000002` | `Demo only password 2026!` |
+| Casey Rowan   | Brand & Content Account Director  | `2026-MKT-000003` | `Demo only password 2026!` |
+| Taylor Quinn  | HR Account Director               | `2026-HR-000004`  | `Demo only password 2026!` |
+| Morgan Reed   | HR member and default HR approver | `2026-HR-000005`  | `Demo only password 2026!` |
+| Riley Shaw    | HR member                         | `2026-HR-000006`  | `Demo only password 2026!` |
+| Alex Finch    | Client Success member             | `2026-ACC-000007` | `Demo only password 2026!` |
+| Sam River     | Brand & Content member            | `2026-MKT-000008` | `Demo only password 2026!` |
+| Jamie Brook   | Suspended Client Success member   | `2026-ACC-000009` | `Demo only password 2026!` |
+| Robin Vale    | Inactive Brand & Content member   | `2026-MKT-000010` | `Demo only password 2026!` |
+| Drew Lane     | New Client Success member         | `2026-ACC-000011` | `Demo only password 2026!` |
+| Sidney Clarke | Client Services Senior Director   | `2026-ACC-000012` | `Demo only password 2026!` |
+| Reese Palmer  | Marketing Senior Director         | `2026-MKT-000013` | `Demo only password 2026!` |
+| Hayden Brooks | HR Senior Director                | `2026-HR-000014`  | `Demo only password 2026!` |
+| Bailey Grant  | Account Growth Account Director   | `2026-ACC-000015` | `Demo only password 2026!` |
+| Dakota Flynn  | Growth Marketing Account Director | `2026-MKT-000016` | `Demo only password 2026!` |
+
+### What each role can do
+
+| Role                           | What they can do in the app                                                                                                                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Managing Director              | Manage the organization hierarchy and HR administration; view all people, calendars, audit records, and reports; inspect every team board read-only; leave is automatically approved.               |
+| Senior Director                | Manage teams and Account Director assignments in their department; view department people and leave; approve department leave; inspect every department team board and report read-only.            |
+| Account Director               | Manage their team settings and task-creation permissions; create and operate team boards, tasks, sprints, capacity, sign-off, and archives; view team reports; approve member leave.                |
+| Member                         | Manage their own leave; view their personal calendar and My Tasks; view, comment on, edit, and move tickets in their team; create tasks or boards only when the Account Director grants access.     |
+| HR Senior Director             | Perform HR administration, policy, employment, audit, and organization workflows; oversee the HR department; approve HR leave; inspect HR team boards read-only; leave routes to Managing Director. |
+| HR Account Director            | Perform HR administration, employee lifecycle, policy, audit, and leave workflows; operate the HR team board; approve HR member leave before the HR Senior Director.                                |
+| HR member                      | View and update permitted employee information, assign department members, use reports, manage their own leave, and participate in the HR team board.                                               |
+| Default HR approver            | Has the HR member capabilities and performs the final HR approval step for non-HR leave requests.                                                                                                   |
+| Suspended or inactive employee | Cannot sign in.                                                                                                                                                                                     |
 
 Employee IDs use the current London creation year. Replace `2026` with the current year if the seed is run in a later
 year. The limited Playwright seed contains the named accounts `000001` through `000016`; the full development seed also
