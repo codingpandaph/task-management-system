@@ -1,12 +1,11 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import type { TaskColumnSemantic, TaskManagementType, WorkspaceFunction } from '../../generated/prisma/client';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { TaskColumnSemantic, TaskManagementType } from '../../generated/prisma/client';
 import { dateOnly } from '../../common/dates';
 import { audit } from '../audit/audit';
 import type { Principal } from '../authorization/authorization';
 import type { Transaction } from '../database/database.module';
 import type { BoardDto, MembershipDto } from './task.dto';
 import { TaskBaseService, person, taskInclude } from './task-base.service';
-import { workspaceTemplates } from './task-templates';
 
 type ColumnDefinition = [string, boolean, boolean, TaskColumnSemantic?];
 
@@ -65,40 +64,6 @@ export abstract class TaskWorkspaceService extends TaskBaseService {
         milestones: { where: { status: 'OPEN' }, orderBy: { dueDate: 'asc' } },
       },
       orderBy: { name: 'asc' },
-    });
-  }
-
-  async createWorkspace(actor: Principal, departmentId: string, teamId: string, fn: WorkspaceFunction) {
-    if (!['MANAGING_DIRECTOR', 'SENIOR_DIRECTOR'].includes(actor.employee.position))
-      throw new ForbiddenException('Department leadership required');
-    return this.db.transaction(async (tx) => {
-      const department = await tx.department.findUnique({ where: { id: departmentId } });
-      if (!department || department.status !== 'ACTIVE') throw new NotFoundException('Active department not found');
-      if (actor.employee.position === 'SENIOR_DIRECTOR' && actor.employee.departmentId !== departmentId)
-        throw new ForbiddenException('Senior Directors can provision workspaces only in their department');
-      const team = await tx.team.findFirst({ where: { id: teamId, departmentId, status: 'ACTIVE' } });
-      if (!team) throw new NotFoundException('Active team not found');
-      const workspace = await tx.workspace.create({
-        data: {
-          departmentId,
-          teamId,
-          code: `${department.code}-${team.code}`,
-          name: `${team.name} workspace`,
-          function: fn,
-        },
-      });
-      for (const template of workspaceTemplates[fn]) {
-        const kind = template.kind;
-        if (team.taskManagementTypes.includes(kind)) {
-          await this.createBoardRecord(tx, workspace.id, actor.employee.id, template.name, kind, template.columns);
-        }
-      }
-      const employees = await tx.employee.findMany({ where: { teamId, status: 'ACTIVE' }, select: { id: true } });
-      await tx.workspaceMembership.createMany({
-        data: employees.map(({ id }) => ({ workspaceId: workspace.id, employeeId: id })),
-      });
-      await audit(tx, actor.employee.id, 'TASK_WORKSPACE_CREATED', 'Workspace', workspace.id, { function: fn });
-      return workspace;
     });
   }
 

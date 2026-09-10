@@ -11,10 +11,7 @@ export function WorkspaceActions({
   user: CurrentEmployee;
   refresh: () => Promise<void>;
 }) {
-  const manager =
-    user.position === 'MANAGING_DIRECTOR' ||
-    (user.position === 'SENIOR_DIRECTOR' && user.department?.id === workspace.departmentId) ||
-    (user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId);
+  const manager = user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId;
   const canCreateBoards =
     manager ||
     workspace.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateBoards);

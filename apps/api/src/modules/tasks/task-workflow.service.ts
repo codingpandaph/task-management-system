@@ -15,6 +15,7 @@ import { TaskRecordService } from './task-record.service';
 export abstract class TaskWorkflowService extends TaskRecordService {
   async move(actor: Principal, id: string, columnId: string) {
     const task = await this.detail(actor, id);
+    this.requireParticipant(actor, task.workspace);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     const column = await this.db.taskColumn.findFirst({ where: { id: columnId, boardId: task.boardId } });
     if (!column) throw new BadRequestException('Column is not on this board');
@@ -42,8 +43,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
   async approve(actor: Principal, id: string, approved: boolean) {
     const task = await this.detail(actor, id);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
-    if (!this.manages(actor, task.workspace))
-      throw new ForbiddenException('Account Director or Senior Director required');
+    if (!this.manages(actor, task.workspace)) throw new ForbiddenException('Account Director required');
     return this.db.transaction(async (tx) => {
       const destination = await tx.taskColumn.findUniqueOrThrow({ where: { id: task.lastColumnId ?? task.columnId } });
       if (task.board.kind === 'KANBAN' && destination.semantic === 'IN_PROGRESS') {
@@ -142,6 +142,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async link(actor: Principal, sourceTaskId: string, targetTaskId: string, type: TaskLinkType) {
     const [source, target] = await Promise.all([this.detail(actor, sourceTaskId), this.detail(actor, targetTaskId)]);
+    this.requireParticipant(actor, source.workspace);
     if (source.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     if (source.id === target.id) throw new UnprocessableEntityException('A task cannot depend on itself');
     if (type === 'BLOCKED_BY' && (await this.dependencyPath(target.id, source.id)))
@@ -158,6 +159,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async comment(actor: Principal, taskId: string, body: string) {
     const task = await this.detail(actor, taskId);
+    this.requireParticipant(actor, task.workspace);
     return this.db.transaction(async (tx) => {
       const comment = await tx.taskComment.create({
         data: { taskId, authorId: actor.employee.id, body },
@@ -190,6 +192,7 @@ export abstract class TaskWorkflowService extends TaskRecordService {
 
   async addAttachment(actor: Principal, taskId: string, dto: AttachmentDto) {
     const task = await this.detail(actor, taskId);
+    this.requireParticipant(actor, task.workspace);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     return this.db.transaction(async (tx) => {
       const attachment = await tx.taskAttachment.create({ data: { taskId, ...dto } });

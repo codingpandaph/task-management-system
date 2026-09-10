@@ -85,6 +85,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                 fullWidth
                 size="small"
                 label="Write a comment"
+                disabled={locked}
                 value={commentText}
                 onChange={(event) => setCommentText(event.target.value)}
                 onKeyDown={async (event) => {
@@ -96,7 +97,9 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                 }}
               />
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
-                Mention a colleague with their employee ID, for example @2026-ACC-000002.
+                {locked
+                  ? 'Leadership oversight is read-only.'
+                  : 'Mention a colleague with their employee ID, for example @2026-ACC-000002.'}
               </Typography>
               {task.comments?.map((comment) => (
                 <Box key={comment.id} sx={{ mt: 1.5 }}>
@@ -107,7 +110,7 @@ export function TaskDetail({ taskId, user, columns = [], onClose, refresh, peopl
                 </Box>
               ))}
             </Box>
-            <TaskAttachments taskId={task.id} attachments={task.attachments} add={mutate} />
+            <TaskAttachments taskId={task.id} attachments={task.attachments} add={mutate} readOnly={locked} />
             <TaskActivity activity={task.activity} />
           </Stack>
           <Stack spacing={2}>

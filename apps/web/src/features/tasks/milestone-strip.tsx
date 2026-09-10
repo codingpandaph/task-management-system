@@ -37,10 +37,7 @@ export function MilestoneStrip({
     isOvercapacity: boolean;
   }>();
   const [confirming, setConfirming] = useState(false);
-  const manager =
-    user.position === 'MANAGING_DIRECTOR' ||
-    (user.position === 'SENIOR_DIRECTOR' && user.department?.id === workspace.departmentId) ||
-    (user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId);
+  const manager = user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId;
   if (!milestone) return null;
   return (
     <>

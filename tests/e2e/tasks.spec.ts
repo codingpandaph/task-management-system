@@ -77,6 +77,29 @@ test('role-aware navigation and department visibility enforce scope', async ({ b
   }
 });
 
+test('Senior Director board oversight is visible and read-only', async ({ page }) => {
+  await signIn(page, users.senior);
+  await page.getByRole('link', { name: 'Team boards', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Team', exact: true })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Team', exact: true }).click();
+  await expect(page.getByRole('option', { name: 'Client Services · Client Success', exact: true })).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Client Services · Account Growth', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText(/Leadership oversight · You can review this team’s board/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create task', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Create board', exact: true })).toHaveCount(0);
+  await page.getByText('Saved views and bulk actions', { exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save view', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Bulk update', exact: true })).toHaveCount(0);
+  await page.locator('.task-card-open').first().click();
+  const detail = page.getByRole('dialog');
+  await expect(detail.getByText('Leadership oversight is read-only.', { exact: true })).toBeVisible();
+  await expect(detail.getByLabel('Write a comment')).toBeDisabled();
+  await expect(detail.getByRole('button', { name: 'Edit task', exact: true })).toHaveCount(0);
+  await expect(detail.getByLabel('Move to')).toHaveCount(0);
+  await expect(detail.getByRole('button', { name: 'Add attachment', exact: true })).toHaveCount(0);
+});
+
 test('Account Director configures workflows, delegates access, and creates a typed board', async ({ page }) => {
   await signIn(page, users.director);
   await page.getByRole('link', { name: 'Department', exact: true }).click();

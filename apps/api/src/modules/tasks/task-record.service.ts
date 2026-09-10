@@ -67,6 +67,7 @@ export abstract class TaskRecordService extends TaskWorkspaceService {
 
   async edit(actor: Principal, id: string, dto: TaskEditDto) {
     const task = await this.detail(actor, id);
+    this.requireParticipant(actor, task.workspace);
     if (task.board.status !== 'ACTIVE') throw new BadRequestException('Completed sprint boards are read-only');
     const assigneeId = dto.clearAssignee ? null : dto.assigneeId;
     const targetMilestoneId = dto.clearMilestone ? null : (dto.milestoneId ?? task.milestoneId);

@@ -225,8 +225,9 @@ snapshot under `prisma/fixtures`.
 
 Task workspaces reuse the HRIS hierarchy. Every team owns its own workspace, and all active team members can view,
 comment on, and move its tickets. Creating tickets and boards remains independently permissioned. Account Directors
-manage their team only; Senior Directors can view and manage every team in their department; the Managing Director can
-view every department. Assignment, mentions, WIP limits, capacity, archives, and reporting all enforce the same team
+manage their team only; Senior Directors can view every team in their department; the Managing Director can view every
+department. Leadership oversight is read-only, while team participants retain their permitted workflow actions.
+Assignment, mentions, WIP limits, capacity, archives, and reporting all enforce the same team
 boundary. Scrum uses one board and one milestone per sprint, with date-only start and due dates. Completion makes that
 sprint board read-only and preserves it in Past sprints.
 

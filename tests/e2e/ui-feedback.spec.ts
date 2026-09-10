@@ -50,6 +50,8 @@ test('department checkboxes, policy actions, and Scrum dates follow the current 
   await page.getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Create Christmas policy' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.context().clearCookies();
+  await login(page.request, usernames.director);
   await page.goto('/workspaces');
   await expect(page.getByRole('button', { name: 'New milestone', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Create board', exact: true }).click();

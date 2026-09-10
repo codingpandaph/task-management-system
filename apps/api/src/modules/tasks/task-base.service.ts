@@ -33,18 +33,25 @@ export function display(employee: { firstName: string; lastName: string }) {
 export abstract class TaskBaseService {
   constructor(protected readonly db: DatabaseService) {}
   protected manages(actor: Principal, workspace: { departmentId: string; teamId: string }) {
+    return actor.employee.position === 'ACCOUNT_DIRECTOR' && actor.employee.teamId === workspace.teamId;
+  }
+
+  protected oversees(actor: Principal, workspace: { departmentId: string }) {
     return (
       actor.employee.position === 'MANAGING_DIRECTOR' ||
-      (actor.employee.position === 'SENIOR_DIRECTOR' && actor.employee.departmentId === workspace.departmentId) ||
-      (actor.employee.position === 'ACCOUNT_DIRECTOR' && actor.employee.teamId === workspace.teamId)
+      (actor.employee.position === 'SENIOR_DIRECTOR' && actor.employee.departmentId === workspace.departmentId)
     );
+  }
+
+  protected requireParticipant(actor: Principal, workspace: { teamId: string }) {
+    if (actor.employee.teamId !== workspace.teamId) throw new ForbiddenException('Team participation required');
   }
 
   protected async workspaceAccess(actor: Principal, workspaceId: string, management = false) {
     const workspace = await this.db.workspace.findUnique({ where: { id: workspaceId } });
     if (!workspace) throw new NotFoundException('Workspace not found');
     if (management && !this.manages(actor, workspace)) throw new ForbiddenException('Workspace manager required');
-    if (!management && !this.manages(actor, workspace) && actor.employee.teamId !== workspace.teamId) {
+    if (!management && !this.oversees(actor, workspace) && actor.employee.teamId !== workspace.teamId) {
       throw new NotFoundException('Workspace not found');
     }
     return workspace;

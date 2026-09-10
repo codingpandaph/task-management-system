@@ -60,11 +60,10 @@ export function TaskBoardView(props: TaskBoardViewProps) {
   } = props;
   const workspace = workspaces.find((item) => item.id === workspaceId);
   const selectedBoard = workspace?.boards.find((item) => item.id === boardId);
-  const workspaceManager =
-    !!workspace &&
-    (user.position === 'MANAGING_DIRECTOR' ||
-      (user.position === 'SENIOR_DIRECTOR' && user.department?.id === workspace.departmentId) ||
-      (user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId));
+  const workspaceManager = !!workspace && user.position === 'ACCOUNT_DIRECTOR' && user.team?.id === workspace.teamId;
+  const readOnlyOversight =
+    user.position === 'MANAGING_DIRECTOR' ||
+    (user.position === 'SENIOR_DIRECTOR' && user.department?.id === workspace?.departmentId);
   const canCreateTasks =
     workspaceManager ||
     !!workspace?.memberships.some((membership) => membership.employeeId === user.id && membership.canCreateTasks);
@@ -144,6 +143,12 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           {board?.board.status === 'INACTIVE' && (
             <Alert severity="info">This sprint is complete. Its board is read-only.</Alert>
           )}
+          {readOnlyOversight && board?.board.status === 'ACTIVE' && (
+            <Alert severity="info">
+              Leadership oversight · You can review this team’s board, sprint capacity, and delivery reports. Workflow
+              changes stay with the team.
+            </Alert>
+          )}
           {board?.board.kind === 'SCRUM' && (
             <MilestoneStrip
               workspace={workspace}
@@ -191,6 +196,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 setPriority={setPriorityFilter}
                 setAssignee={setAssigneeFilter}
                 refresh={refresh}
+                readOnly={readOnlyOversight || board.board.status === 'INACTIVE'}
               />
             </details>
           )}
@@ -206,7 +212,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
                 assigneeFilter={assigneeFilter}
                 selectTask={setSelected}
                 refresh={refresh}
-                readOnly={board.board.status === 'INACTIVE'}
+                readOnly={readOnlyOversight || board.board.status === 'INACTIVE'}
               />
             </>
           )}
@@ -239,7 +245,7 @@ export function TaskBoardView(props: TaskBoardViewProps) {
           taskId={selected}
           user={user}
           people={people}
-          readOnly={board?.board.status === 'INACTIVE'}
+          readOnly={readOnlyOversight || board?.board.status === 'INACTIVE'}
           onClose={() => setSelected(undefined)}
           refresh={refresh}
         />

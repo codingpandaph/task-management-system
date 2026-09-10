@@ -27,10 +27,11 @@ type Props = {
   setPriority: (value: string) => void;
   setAssignee: (value: string) => void;
   refresh: () => Promise<void>;
+  readOnly?: boolean;
 };
 
 export function TaskProductActions(props: Props) {
-  const { board, search, priority, assignee, people, setSearch, setPriority, setAssignee, refresh } = props;
+  const { board, search, priority, assignee, people, setSearch, setPriority, setAssignee, refresh, readOnly } = props;
   const [views, setViews] = useState<SavedView[]>([]),
     [selectedView, setSelectedView] = useState('');
   const workspaceId = board.workspace.id;
@@ -97,61 +98,63 @@ export function TaskProductActions(props: Props) {
           </IconButton>
         </Tooltip>
       )}
-      <ModalForm
-        buttonLabel="Bulk update"
-        icon={<PlaylistAddCheckOutlined />}
-        title="Update several tasks"
-        fields={[
-          {
-            name: 'taskIds',
-            label: 'Tasks',
-            multiple: true,
-            options: tasks.map((task) => ({ value: task.id, label: `${task.publicKey} · ${task.title}` })),
-          },
-          {
-            name: 'priority',
-            label: 'Set priority',
-            optional: true,
-            options: [
-              { value: '', label: 'Keep current' },
-              { value: 'LOW', label: 'Low' },
-              { value: 'MEDIUM', label: 'Medium' },
-              { value: 'HIGH', label: 'High' },
-            ],
-          },
-          {
-            name: 'assigneeId',
-            label: 'Set assignee',
-            optional: true,
-            options: [
-              { value: '', label: 'Keep current' },
-              ...teamPeople.map((person) => ({ value: person.id, label: person.displayName })),
-            ],
-          },
-          {
-            name: 'columnId',
-            label: 'Move to',
-            optional: true,
-            options: [
-              { value: '', label: 'Keep current' },
-              ...board.board.columns.map((column) => ({ value: column.id, label: column.name })),
-            ],
-          },
-        ]}
-        onSubmit={async (values) => {
-          await api(
-            'tasks/bulk',
+      {!readOnly && (
+        <ModalForm
+          buttonLabel="Bulk update"
+          icon={<PlaylistAddCheckOutlined />}
+          title="Update several tasks"
+          fields={[
             {
-              taskIds: String(values.taskIds).split(',').filter(Boolean),
-              priority: values.priority || undefined,
-              assigneeId: values.assigneeId || undefined,
-              columnId: values.columnId || undefined,
+              name: 'taskIds',
+              label: 'Tasks',
+              multiple: true,
+              options: tasks.map((task) => ({ value: task.id, label: `${task.publicKey} · ${task.title}` })),
             },
-            'PATCH',
-          );
-          await refresh();
-        }}
-      />
+            {
+              name: 'priority',
+              label: 'Set priority',
+              optional: true,
+              options: [
+                { value: '', label: 'Keep current' },
+                { value: 'LOW', label: 'Low' },
+                { value: 'MEDIUM', label: 'Medium' },
+                { value: 'HIGH', label: 'High' },
+              ],
+            },
+            {
+              name: 'assigneeId',
+              label: 'Set assignee',
+              optional: true,
+              options: [
+                { value: '', label: 'Keep current' },
+                ...teamPeople.map((person) => ({ value: person.id, label: person.displayName })),
+              ],
+            },
+            {
+              name: 'columnId',
+              label: 'Move to',
+              optional: true,
+              options: [
+                { value: '', label: 'Keep current' },
+                ...board.board.columns.map((column) => ({ value: column.id, label: column.name })),
+              ],
+            },
+          ]}
+          onSubmit={async (values) => {
+            await api(
+              'tasks/bulk',
+              {
+                taskIds: String(values.taskIds).split(',').filter(Boolean),
+                priority: values.priority || undefined,
+                assigneeId: values.assigneeId || undefined,
+                columnId: values.columnId || undefined,
+              },
+              'PATCH',
+            );
+            await refresh();
+          }}
+        />
+      )}
     </Stack>
   );
 }

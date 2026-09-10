@@ -9,10 +9,12 @@ export function TaskAttachments({
   taskId,
   attachments,
   add,
+  readOnly = false,
 }: {
   taskId: string;
   attachments: Attachment[];
   add: (path: string, body: unknown) => Promise<void>;
+  readOnly?: boolean;
 }) {
   return (
     <Box>
@@ -35,19 +37,21 @@ export function TaskAttachments({
           No attachments
         </Typography>
       )}
-      <ModalForm
-        buttonLabel="Add attachment"
-        icon={<AttachFileOutlined />}
-        title="Link an attachment"
-        description="For this prototype, attachments use secure links rather than storing files."
-        fields={[
-          { name: 'name', label: 'File name' },
-          { name: 'url', label: 'Secure link', type: 'url' },
-          { name: 'mediaType', label: 'File type', value: 'application/pdf' },
-          { name: 'sizeBytes', label: 'File size in bytes', type: 'number', value: 1 },
-        ]}
-        onSubmit={(values) => add(`tasks/${taskId}/attachments`, values)}
-      />
+      {!readOnly && (
+        <ModalForm
+          buttonLabel="Add attachment"
+          icon={<AttachFileOutlined />}
+          title="Link an attachment"
+          description="For this prototype, attachments use secure links rather than storing files."
+          fields={[
+            { name: 'name', label: 'File name' },
+            { name: 'url', label: 'Secure link', type: 'url' },
+            { name: 'mediaType', label: 'File type', value: 'application/pdf' },
+            { name: 'sizeBytes', label: 'File size in bytes', type: 'number', value: 1 },
+          ]}
+          onSubmit={(values) => add(`tasks/${taskId}/attachments`, values)}
+        />
+      )}
     </Box>
   );
 }

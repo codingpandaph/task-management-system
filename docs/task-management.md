@@ -24,17 +24,18 @@ two Account Directors, and 30 members.
 | ----------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
 | Member            | Their team workspace                     | My Tasks; can comment and move team tickets; creates tasks/boards only when granted |
 | Account Director  | Their team workspace                     | Team permissions, sign-off, capacity, archive, and one-team reporting               |
-| Senior Director   | Every team workspace in their department | Department portfolio and every team report in that department                       |
-| Managing Director | Every workspace                          | Organization portfolio across departments and teams                                 |
+| Senior Director   | Every team workspace in their department | Read-only department portfolio and every team report in that department             |
+| Managing Director | Every workspace                          | Read-only organization portfolio across departments and teams                       |
 | HR employee       | Their HR team workspace                  | HR powers do not grant delivery access outside the HR team                          |
 
 There is no collaborator or invitation concept. Active team membership grants normal board access. A stale workspace
 membership cannot widen access beyond the employee’s current team. Assignment, mentions, saved views, bulk changes,
 capacity, archives, and reports use the same server-side boundary.
 
-Create Tasks and Create Boards are independent membership permissions. Account Directors, the department Senior
-Director, and the Managing Director have both capabilities by role. A permitted member remains the authenticated
-reporter; the UI never impersonates a director.
+Create Tasks and Create Boards are independent membership permissions. Account Directors have both capabilities for
+their team by role. Senior and Managing Directors can inspect boards and reports but cannot create, edit, move,
+comment, approve, archive, restore, or complete sprint work. A permitted member remains the authenticated reporter;
+the UI never impersonates a director.
 
 ## Core flows
 
@@ -50,9 +51,9 @@ explicit director sign-off.
 
 ### Team
 
-Team Boards opens the signed-in person’s team; leaders receive a Team selector for each workspace in their permitted
-scope. The heading shows department and team. Assignee controls list the selected team only. Every team has its own
-Kanban WIP limit.
+Team Boards opens the signed-in person’s team; Account Directors operate their team, while Senior and Managing
+Directors receive a Team selector for read-only oversight within their scope. The heading shows department and team.
+Assignee controls list the selected team only. Every team has its own Kanban WIP limit.
 
 A team can enable Kanban, Scrum, List, or any combination. The settings use checkboxes and Select all. The WIP field is
 shown only when Kanban is selected. Creating Kanban/List asks for Board name and uses Create board. Selecting Scrum
@@ -77,7 +78,7 @@ the Managing Director can maintain the wider structure.
 ## API map
 
 - `GET /api/task-workspaces` — workspaces scoped to team, department, or organization role.
-- `POST /api/task-workspaces` — provision a workspace for an active team.
+- Team creation provisions its private workspace automatically; there is no separate public workspace-creation action.
 - `GET /api/task-workspaces/:id/board` — selected board, team members, and WIP.
 - `POST /api/task-workspaces/:id/boards` — create Kanban/List or one Scrum sprint board.
 - `POST /api/task-workspaces/:id/memberships` — change Create Tasks/Create Boards for a team member.
@@ -91,10 +92,10 @@ the Managing Director can maintain the wider structure.
 
 ## Validation and failure behavior
 
-The API rejects cross-team reads, assignment, mentions, membership grants, and board creation. It rejects inactive
-employees, mismatched board/workspace IDs, circular dependencies, unfinished blockers, exceeded WIP, Scrum without all
-milestone fields, milestone fields on non-Scrum boards, and a due date that does not follow the start date. Workspace
-numbers are allocated under a serializable transaction. Task activity is append-only.
+The API rejects cross-team reads, leadership oversight mutations, assignment, mentions, membership grants, and board
+creation. It rejects inactive employees, mismatched board/workspace IDs, circular dependencies, unfinished blockers,
+exceeded WIP, Scrum without all milestone fields, milestone fields on non-Scrum boards, and a due date that does not
+follow the start date. Workspace numbers are allocated under a serializable transaction. Task activity is append-only.
 
 ## Manual acceptance checklist
 
@@ -109,6 +110,9 @@ Prerequisites: run the full seed; use the current-year IDs in README; keep two s
 - [ ] **Team boundary — two Account Directors.** As Jordan, confirm Team Boards and Delivery Reports contain Client
       Success only. Attempt the Account Growth workspace URL and expect denial. As Bailey, see Account Growth only. As
       Sidney, see both; as Avery, see every department.
+- [ ] **Read-only leadership oversight.** As Sidney, open both Client Services teams and confirm tasks, sprint capacity,
+      and reports are visible while Create board, Create task, Bulk update, editing, movement, comments, attachments,
+      sign-off, archive, restore, and Complete sprint are unavailable. Repeat as Avery across departments.
 - [ ] **Default access — Member.** Disable Alex’s Create Tasks and Create Boards switches. Sign in as Alex and confirm the
       buttons disappear while existing team tickets remain readable, commentable, and movable. Confirm no collaborator
       control exists.

@@ -17,13 +17,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export enum WorkspaceFunctionDto {
-  ENGINEERING_PRODUCT = 'ENGINEERING_PRODUCT',
-  MARKETING_CREATIVE = 'MARKETING_CREATIVE',
-  SALES_ACCOUNT_MANAGEMENT = 'SALES_ACCOUNT_MANAGEMENT',
-  HR_OPERATIONS = 'HR_OPERATIONS',
-  FINANCE_LEGAL = 'FINANCE_LEGAL',
-}
 export enum TaskPriorityDto {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
@@ -46,11 +39,6 @@ export enum TaskLinkTypeDto {
   BLOCKS = 'BLOCKS',
   BLOCKED_BY = 'BLOCKED_BY',
   RELATES_TO = 'RELATES_TO',
-}
-export class WorkspaceDto {
-  @IsUUID() departmentId!: string;
-  @IsUUID() teamId!: string;
-  @IsEnum(WorkspaceFunctionDto) function!: keyof typeof WorkspaceFunctionDto;
 }
 export class ColumnDto {
   @IsString() @IsNotEmpty() @MaxLength(80) name!: string;

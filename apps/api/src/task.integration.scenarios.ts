@@ -46,6 +46,23 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
         2,
       );
       assert.equal((await tasks.workspaces(managingDirector)).length >= 6, true);
+      const ownWorkspace = await db.workspace.findFirstOrThrow({
+        where: { code: 'ACC' },
+        include: { boards: { include: { columns: true, tasks: true } } },
+      });
+      const board = ownWorkspace.boards[0];
+      const task = board.tasks[0];
+      await tasks.board(senior, ownWorkspace.id);
+      await tasks.board(managingDirector, ownWorkspace.id);
+      await assert.rejects(tasks.createBoard(senior, ownWorkspace.id, { name: 'Leadership board', kind: 'KANBAN' }));
+      await assert.rejects(tasks.move(senior, task.id, board.columns[0].id));
+      await assert.rejects(tasks.comment(managingDirector, task.id, 'Oversight mutation'));
+      await assert.rejects(
+        tasks.addMembership(senior, ownWorkspace.id, {
+          employeeId: member.employee.id,
+          canCreateTasks: true,
+        }),
+      );
     },
   );
   await suite.test('task numbers are workspace-scoped and concurrent creation is safe', async () => {
@@ -118,23 +135,6 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     assert.equal(edited.assigneeId, director.employee.id);
     assert.equal(edited.reporterId, member.employee.id);
   });
-  await suite.test('Senior Director provisions the correct adaptive workspace templates', async () => {
-    const team = await db.team.create({
-      data: { code: 'DELIVERY', name: 'Delivery', departmentId: senior.employee.departmentId! },
-    });
-    const workspace = await tasks.createWorkspace(
-      senior,
-      senior.employee.departmentId!,
-      team.id,
-      'ENGINEERING_PRODUCT',
-    );
-    const created = await db.workspace.findUniqueOrThrow({
-      where: { id: workspace.id },
-      include: { boards: { include: { columns: true } } },
-    });
-    assert.deepEqual(created.boards.map((board) => board.name).sort(), ['Engineering delivery']);
-    assert.ok(created.boards.every((board) => board.columns.some((column) => column.isInitial)));
-  });
   await suite.test('task completion requires management sign-off', async () => {
     const workspace = await db.workspace.findFirstOrThrow({
       where: { code: 'ACC' },
@@ -176,7 +176,8 @@ export async function registerTaskIntegrationScenarios(suite: TestContext, conte
     await tasks.link(member, blocked.id, blocker.id, 'BLOCKED_BY');
     await assert.rejects(tasks.move(member, blocked.id, progress.id));
     await assert.rejects(tasks.link(member, blocker.id, blocked.id, 'BLOCKED_BY'));
-    assert.equal((await tasks.move(senior, blocked.id, progress.id)).columnId, progress.id);
+    await assert.rejects(tasks.move(senior, blocked.id, progress.id));
+    assert.equal((await tasks.move(await actor('Jordan'), blocked.id, progress.id)).columnId, progress.id);
   });
   await suite.test('soft deletion hides tasks and manager restore retains history', async () => {
     const director = await actor('Jordan');
