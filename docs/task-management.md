@@ -253,8 +253,10 @@ screen.
 Start with `yarn dev:fresh`, open `http://localhost:3000`, and use the fictional credentials in README. The limited test
 seed uses the same key roles and resets `tms_test` before each Playwright layer.
 
-For an automated visible tour, run `yarn demo:e2e`. It resets once and uses one headed Chromium page for HRIS setup,
-every leave requester and approver, cancellation, the director-to-employee task handoff, and delivery reporting. The
+For an automated visible tour, run `yarn demo:e2e`. It resets once with the full fictional organization and uses one
+headed Chromium page. The opening Organization scene proves one Senior Director, two Account Directors, and 15 members
+under each delivery director before continuing through HRIS setup, every leave requester and approver, cancellation,
+the director-to-employee task handoff, and delivery reporting. The
 full `yarn test:e2e` suite remains the exhaustive automated gate for valid, denied, validation, responsive, and
 cross-browser paths that would make a human-paced demonstration unnecessarily long.
 

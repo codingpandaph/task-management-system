@@ -41,7 +41,7 @@
     "test:e2e": "yarn test:e2e:chromium && yarn test:e2e:browsers",
     "test:e2e:chromium": "yarn e2e:db:reset && playwright test --project=chromium",
     "test:e2e:browsers": "yarn e2e:db:reset && playwright test --config=playwright.cross-browser.config.ts",
-    "demo:e2e": "yarn e2e:db:reset && PLAYWRIGHT_DEMO=1 playwright test tests/e2e/demo.spec.ts --headed --project=chromium --workers=1",
+    "demo:e2e": "SEED_PROFILE=integration yarn e2e:db:reset && PLAYWRIGHT_DEMO=1 playwright test tests/e2e/demo.spec.ts --headed --project=chromium --workers=1",
     "test:e2e:ui": "yarn e2e:db:reset && playwright test --ui",
     "test:e2e:install": "playwright install chromium",
     "db:validate": "prisma validate",

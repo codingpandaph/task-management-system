@@ -16,25 +16,32 @@ test('complete CPSync HRIS and task-management demonstration in one browser page
   const christmasPolicy = `Demo Christmas ${suffix}`;
   const department = `Demo Operations ${suffix}`;
 
-  await test.step('run starts from the limited deterministic seed', async () => {
-    await signIn(page, `${year}-HR-000004`);
+  await test.step('run starts with Simon’s two complete 15-member teams', async () => {
+    await signIn(page, `${year}-ORG-000001`);
+    await page.getByRole('link', { name: 'Organization', exact: true }).click();
     await announce(
       page,
-      'Fresh demonstration data',
-      'One browser and one page will carry the entire tour across roles.',
+      'Simon’s department structure',
+      'One Senior Director leads two Account Directors, each with 15 team members.',
     );
     const employees = (await (await page.request.get('/api/employees?pageSize=100')).json()) as { total: number };
     const policies = (await (await page.request.get('/api/policies')).json()) as {
       leave: unknown[];
       christmas: unknown[];
     };
-    expect(employees.total).toBe(7);
-    expect(policies.leave).toHaveLength(1);
-    expect(policies.christmas).toHaveLength(1);
-    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(1_500);
+    expect(employees.total).toBe(36);
+    for (const department of ['Client Services', 'Marketing']) {
+      await expect(
+        page.getByRole('region', { name: department }).getByText('15 people', { exact: true }),
+      ).toBeVisible();
+    }
+    expect(policies.leave.length).toBeGreaterThanOrEqual(1);
+    expect(policies.christmas.length).toBeGreaterThanOrEqual(1);
+    if (process.env.PLAYWRIGHT_DEMO) await page.waitForTimeout(3_000);
   });
 
   await test.step('HR creates regular and Christmas policies', async () => {
+    await signIn(page, `${year}-HR-000004`);
     await page.getByRole('link', { name: 'Policies', exact: true }).click();
 
     await page.getByRole('button', { name: 'Create', exact: true }).click();

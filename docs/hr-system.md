@@ -413,9 +413,11 @@ React, Hooks, and accessibility rules. Each layer has a dedicated root command f
 The clean CI runner generates the ignored Prisma client immediately after installation and before every static or build
 gate; a tooling test preserves that required ordering.
 
-Run `yarn demo:e2e` to watch all requester perspectives file leave, complete their exact approval chains, cancel an
-approved request, administer HR records, and hand work from a director to an employee. The command resets once and uses
-one headed Chromium browser, one context, and one page for the full tour. It signs out between roles so every screen is
+Run `yarn demo:e2e` to first see the Senior Director and the two Account Directors with 15 members under each delivery
+team, then watch all requester perspectives file leave, complete their exact approval chains, cancel an approved
+request, administer HR records, and hand work from a director to an employee. The command resets once with the full
+fictional organization and uses one headed Chromium browser, one context, and one page for the full tour. It signs out
+between roles so every screen is
 rendered with that employee's real backend and route permissions. On-screen narration and deliberate pauses make the
 role changes and expected outcomes reviewable.
 

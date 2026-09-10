@@ -86,8 +86,9 @@ yarn db:migrate:dev --name descriptive_change
 yarn db:migrate:deploy
 ```
 
-Integration tests require a dedicated test database. Every Playwright command requires exactly `tms_test`, resets it,
-applies committed migrations, and loads a limited deterministic seven-person seed before starting the app:
+Integration tests require a dedicated test database. Every Playwright command requires exactly `tms_test` and applies
+committed migrations before starting the app. Automated acceptance runs use a limited deterministic seven-person seed;
+the headed product demo uses the full fictional organization:
 
 ```bash
 yarn test
@@ -130,8 +131,9 @@ responsive UI, direct authorization denial, and browser-driven filing plus appro
 matrix. It also covers personal tasks, team boards, task creation, comments, management sign-off,
 and drag-and-drop movement, contextual per-board search, delegated board/ticket creation, self/department
 assignment, authenticated creator reporting, delivery reporting, and
-every defined breakpoint. `yarn demo:e2e` resets once, opens one Chromium browser with one page, and runs the HR setup,
-five leave perspectives, cancellation, director-to-employee task handoff, and reporting in sequence. A visible guide
+every defined breakpoint. `yarn demo:e2e` resets once, opens one Chromium browser with one page, and first shows the
+Senior Director plus both Account Directors with 15 members per delivery team. It then runs the HR setup, five leave
+perspectives, cancellation, director-to-employee task handoff, and reporting in sequence. A visible guide
 names each role and explains the expected result while the journey pauses between meaningful actions. Manual
 checklists are in [docs/hr-system.md](docs/hr-system.md#manual-acceptance-checklist) and
 [docs/task-management.md](docs/task-management.md#complete-manual-acceptance-checklist).
