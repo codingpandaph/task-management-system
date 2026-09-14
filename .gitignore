@@ -1,3 +1,9 @@
+# Local AI agent instructions, configuration, and design metadata
+AGENTS.md
+.codex/
+.agents/
+.impeccable/
+
 # Logs
 logs
 *.log
